@@ -1,29 +1,22 @@
 # 📸 Photo Manufactura
 
-> **A modern, modular C++ application for professional photo processing and manufacturing workflows**
+> **High-performance, modular photo processing engine built with modern C++20 and Qt6**
 
 [![CMake](https://img.shields.io/badge/CMake-3.21+-blue.svg)](https://cmake.org/)
 [![C++](https://img.shields.io/badge/C++-20-blue.svg)](https://isocpp.org/)
 [![Qt](https://img.shields.io/badge/Qt-6.x-green.svg)](https://www.qt.io/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-## ✨ Features
-
-- 🎯 **Modular Architecture** - Independent, testable components
-- 🚀 **High Performance** - Modern C++20 with optimized processing
-- 🖼️ **RAW Processing** - Professional RAW file handling and conversion
-- 🎨 **Advanced Image Processing** - Comprehensive editing and enhancement tools
-- 🔄 **Workflow Automation** - Intelligent task scheduling and batch processing
-- 💻 **Cross-Platform** - Runs on macOS, Linux, and Windows
-- 🧪 **Extensively Tested** - Component-level and integration testing
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.x-orange.svg)](https://opencv.org/)
+[![LibRaw](https://img.shields.io/badge/LibRaw-0.20.2-blue.svg)](https://github.com/LibRaw/LibRaw)
+[![License](https://img.shields.io/badge/license-GNU-blue.svg)](LICENSE)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - **CMake 3.21+**
 - **C++20 compatible compiler** (GCC 10+, Clang 12+, MSVC 2019+)
-- **Qt6** (optional, for GUI components)
-- **OpenCV** (optional, for advanced image processing)
+- **Qt6** (GUI components)
+- **OpenCV** (advanced image processing)
+- **LibRaw** (RAW file support)
 
 ### Installation
 
@@ -40,18 +33,51 @@ cmake --build --preset default
 
 > 📖 **Detailed build instructions**: See [BUILD.md](BUILD.md)
 
-## 🏗️ Architecture
-
-Photo Manufactura is built with a modular, component-based architecture:
+## 📁 Project Structure
 
 ```
-📁 src/
-├── 🎨 ui/                 # User interface components
-├── 🎮 controller/         # Application logic and coordination
-├── 🖼️  image_processing/   # Core image manipulation algorithms
-├── 📷 raw_processing/     # RAW file format handling
-└── ⚡ scheduler_worker/   # Task scheduling and worker threads
+photo-manufactura/
+├── 📄 BUILD.md                    # Detailed build instructions
+├── ⚙️  CMakeLists.txt              # Main CMake configuration
+├── 🔧 CMakePresets.json           # Build presets (default, debug, dev)
+├── 📋 conan.txt                   # Package dependencies
+├── 📜 LICENSE                     # Project license
+├── 📖 README.md                   # This file
+├── 🔨 build/                      # Build outputs (generated)
+│   ├── default/                   # Release build artifacts
+│   │   └── bin/photo_manufactura  # Main executable
+│   └── dev/                       # Development build artifacts
+└── 📦 src/                        # Source code
+    ├── 🖥️  controller/             # Application logic & coordination
+    │   └── CMakeLists.txt
+    ├── 📄 document/               # Document management system
+    │   └── CMakeLists.txt
+    ├── 🎨 image_processing/       # Core image manipulation algorithms
+    │   └── CMakeLists.txt
+    ├── 📸 raw_processing/         # RAW file format handling
+    │   └── CmakeLists.txt
+    ├── ⚡ scheduler_worker/       # Task scheduling & worker threads
+    │   └── CMakeLists.txt
+    ├── 🖼️  ui/                     # Qt6-based user interface
+    │   ├── CMakeLists.txt         # UI component build config
+    │   ├── ui_main.cpp            # UI implementation
+    │   ├── ui_main.h              # UI interface definitions
+    │   └── test_main.cpp          # UI component tests
+    └── 🚀 main.cpp                # Application entry point
 ```
+
+### 🏗️ Architecture Overview
+
+**Modular Design**: Each component in `src/` is independently buildable and testable:
+
+| Component | Purpose | Key Features |
+|-----------|---------|-------------|
+| **UI** | User interface layer | Qt6 widgets, responsive design |
+| **Controller** | Application coordination | MVC pattern, event handling |
+| **Document** | File & project management | Session state, project files |
+| **Image Processing** | Core algorithms | Filters, transforms, effects |
+| **RAW Processing** | Professional workflow | LibRaw integration, metadata |
+| **Scheduler Worker** | Performance optimization | Multi-threading, task queues |
 
 ### Component Independence
 Each component can be developed, tested, and built independently:
@@ -64,31 +90,23 @@ cmake -B build -S . && cmake --build build
 
 ## 🎯 Use Cases
 
-### Professional Photography
+### Professional Photography Editing
+
 - **RAW Workflow**: Import, process, and export professional RAW files
-- **Batch Processing**: Apply edits to thousands of images automatically
 - **Color Management**: Professional color space handling and calibration
-
-### Manufacturing & Production
-- **Quality Control**: Automated image analysis for defect detection
-- **Workflow Integration**: Seamless integration with production pipelines
-- **Performance Optimization**: High-throughput processing for industrial use
-
-### Development & Research
-- **Plugin Architecture**: Extensible framework for custom algorithms
-- **API Integration**: Easy integration with external tools and services
-- **Research Platform**: Foundation for computer vision and image processing research
+- **Filter Library**: Extensive collection of image filters and effects
+- **Basic Editing Tools**: Crop, rotate, adjust brightness/contrast
+  
 
 ## 🛠️ Development
 
 ### Build Configurations
 
-| Preset | Purpose | Optimization |
-|--------|---------|-------------|
-| `default` | Standard release build | `-O3` |
-| `debug` | Development with symbols | `-g -O0` |
-| `dev` | Debug + extra warnings | `-Wall -Wextra` |
-| `release-optimized` | Maximum performance | `-O3 -march=native` |
+| Preset | Purpose | Optimization | Output |
+|--------|---------|-------------|---------|
+| `default` | Standard release build | `-O3` | `build/default/` |
+| `debug` | Development with symbols | `-g -O0` | `build/debug/` |
+| `dev` | Debug + extra warnings | `-Wall -Wextra` | `build/dev/` |
 
 ### Code Quality
 - **Modern C++20** features and best practices
@@ -97,38 +115,29 @@ cmake -B build -S . && cmake --build build
 - **Comprehensive testing** with independent component tests
 
 ### Contributing
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
+1. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+2. **Commit** your changes (`git commit -m '<prefix> : Add amazing feature'`) with `feat`, `fix`, or `docs` prefixes
+3. **Push** to the branch (`git push origin feature/amazing-feature`)
+4. **Open** a Pull Request
+5. **Review** and discuss changes with maintainers
+6. **Merge** after approval and passing tests
+7. **Celebrate** your contribution to Photo Manufactura! 
 
 ## 📊 Performance
 
-Photo Manufactura is designed for high-performance photo processing:
-
-- **Multi-threaded**: Efficient use of modern multi-core processors
-- **Memory Optimized**: Smart memory management for large image files
-- **SIMD Optimized**: Vectorized operations for critical image processing paths
-- **GPU Ready**: Architecture supports future GPU acceleration
+To be Added Soon! 
 
 ## 🤝 Community & Support
 
 - **📖 Documentation**: [Build Guide](BUILD.md) | [API Reference](docs/)
 - **🐛 Issues**: [GitHub Issues](https://github.com/ad-tran/photo-manufactura/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/ad-tran/photo-manufactura/discussions)
-- **📧 Contact**: [maintainer@photo-manufactura.dev](mailto:maintainer@photo-manufactura.dev)
+
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- **Qt Framework** for excellent cross-platform UI capabilities
-- **OpenCV** for comprehensive computer vision algorithms
-- **CMake** for modern, flexible build system
-- **C++ Community** for continuous language evolution
 
 ---
 
