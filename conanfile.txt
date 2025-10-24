@@ -1,0 +1,13 @@
+[requires]
+qt/6.8.3
+libraw/0.21.2
+opencv/4.12.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[options]
+qt/*:shared=True
+qt/*:with_opengl=True
+opencv/*:shared=True

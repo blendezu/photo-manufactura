@@ -1,35 +1,35 @@
 [
-    {
-        "name": "Clang (macOS)",
-        "compilers": {
-            "C": "/usr/bin/clang",
-            "CXX": "/usr/bin/clang++"
-        },
-        "isTrusted": true,
-        "environmentVariables": {
-            "CMAKE_BUILD_TYPE": "Debug"
-        }
+  {
+    "name": "Clang (macOS)",
+    "compilers": {
+      "C": "/usr/bin/clang",
+      "CXX": "/usr/bin/clang++"
     },
-    {
-        "name": "Clang Release (macOS)",
-        "compilers": {
-            "C": "/usr/bin/clang",
-            "CXX": "/usr/bin/clang++"
-        },
-        "isTrusted": true,
-        "environmentVariables": {
-            "CMAKE_BUILD_TYPE": "Release"
-        }
-    },
-    {
-        "name": "GCC (Homebrew)",
-        "compilers": {
-            "C": "/opt/homebrew/bin/gcc-13",
-            "CXX": "/opt/homebrew/bin/g++-13"
-        },
-        "isTrusted": true,
-        "environmentVariables": {
-            "CMAKE_BUILD_TYPE": "Debug"
-        }
+    "isTrusted": true,
+    "environmentVariables": {
+      "CMAKE_BUILD_TYPE": "Debug"
     }
+  },
+  {
+    "name": "Clang Release (macOS)",
+    "compilers": {
+      "C": "/usr/bin/clang",
+      "CXX": "/usr/bin/clang++"
+    },
+    "isTrusted": true,
+    "environmentVariables": {
+      "CMAKE_BUILD_TYPE": "Release"
+    }
+  },
+  {
+    "name": "GCC (Homebrew)",
+    "compilers": {
+      "C": "/opt/homebrew/bin/gcc-13",
+      "CXX": "/opt/homebrew/bin/g++-13"
+    },
+    "isTrusted": true,
+    "environmentVariables": {
+      "CMAKE_BUILD_TYPE": "Debug"
+    }
+  }
 ]
