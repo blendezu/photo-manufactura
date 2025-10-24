@@ -1,0 +1,11 @@
+{
+    "name": "dev-analysis",
+    "inherits": [
+        "debug"
+    ],
+    "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Wconversion -Wshadow",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+    }
+}

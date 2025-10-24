@@ -2,7 +2,7 @@
     "version": 6,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 16,
+        "minor": 21,
         "patch": 0
     },
     "configurePresets": [
@@ -25,12 +25,13 @@
             }
         },
         {
-            "name": "release-with-debug-info",
+            "name": "release-optimized",
             "inherits": [
                 "default"
             ],
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native"
             }
         },
         {
