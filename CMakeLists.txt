@@ -26,17 +26,21 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
-add_subdirectory(
-    src/ui
-)
-add_subdirectory(
-    src/scheduler_worker
-)
-add_subdirectory(
-    src/raw_processing
-)
+# Add subdirectories first
+add_subdirectory(src/ui)
+add_subdirectory(src/scheduler_worker)
+add_subdirectory(src/raw_processing)
 add_subdirectory(src/image_processing)
 add_subdirectory(src/controller)
+
+# Link the component libraries to the main executable
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ui
+    scheduler_worker
+    raw_processing
+    image_processing
+    controller
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
