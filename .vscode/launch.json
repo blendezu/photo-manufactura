@@ -1,0 +1,57 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Main App (Default)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/default/bin/photo_manufactura",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: build"
+        },
+        {
+            "name": "Debug Main App (Dev)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/dev/bin/photo_manufactura",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: build"
+        },
+        {
+            "name": "Debug UI Component",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/ui/build/bin/ui_test",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/src/ui",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "Build UI Component"
+        },
+        {
+            "name": "Debug Controller Component",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/controller/build/bin/controller_test",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/src/controller",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "Build Controller Component"
+        }
+    ]
+}

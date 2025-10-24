@@ -1,0 +1,47 @@
+[
+    {
+        "key": "cmd+shift+b",
+        "command": "cmake.build",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+c",
+        "command": "cmake.configure",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+r",
+        "command": "cmake.debugTarget",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+t",
+        "command": "cmake.selectTarget",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+k",
+        "command": "cmake.selectKit",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+p",
+        "command": "cmake.selectConfigurePreset",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+l",
+        "command": "cmake.clean",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+u",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Build UI Component"
+    },
+    {
+        "key": "cmd+shift+i",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Build Controller Component"
+    }
+]

@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.makefile-tools"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.cpptools-themes"
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "folders": [
+        {
+            "name": "📁 Main Project",
+            "path": "."
+        },
+        {
+            "name": "🖼️ UI Component",
+            "path": "./src/ui"
+        },
+        {
+            "name": "🎮 Controller Component",
+            "path": "./src/controller"
+        },
+        {
+            "name": "🎨 Image Processing",
+            "path": "./src/image_processing"
+        },
+        {
+            "name": "📸 RAW Processing",
+            "path": "./src/raw_processing"
+        },
+        {
+            "name": "⚡ Scheduler Worker",
+            "path": "./src/scheduler_worker"
+        }
+    ],
+    "settings": {
+        "cmake.configureOnOpen": false,
+        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "cmake.generator": "Ninja"
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-vscode.cmake-tools",
+            "ms-vscode.cpptools",
+            "twxs.cmake",
+            "llvm-vs-code-extensions.vscode-clangd"
+        ]
+    }
+}

@@ -1,0 +1,158 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Configure UI Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                "."
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/ui"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure UI component CMake"
+        },
+        {
+            "label": "Build UI Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/src/ui"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build UI component independently",
+            "dependsOn": "Configure UI Component"
+        },
+        {
+            "label": "Clean UI Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/ui"
+            },
+            "detail": "Clean UI component build directory"
+        },
+        {
+            "label": "Test UI Component",
+            "type": "shell",
+            "command": "./build/bin/ui_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/ui"
+            },
+            "dependsOn": "Build UI Component",
+            "detail": "Run UI component tests"
+        },
+        {
+            "label": "Configure Controller Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                "."
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/controller"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure Controller component CMake"
+        },
+        {
+            "label": "Build Controller Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/controller"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Controller component independently",
+            "dependsOn": "Configure Controller Component"
+        },
+        {
+            "label": "Configure Image Processing Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                "."
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure Image Processing component CMake"
+        },
+        {
+            "label": "Build Image Processing Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Image Processing component independently",
+            "dependsOn": "Configure Image Processing Component"
+        },
+        {
+            "label": "Build All Components",
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "Build UI Component",
+                "Build Controller Component",
+                "Build Image Processing Component"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Build all components in parallel"
+        }
+    ]
+}

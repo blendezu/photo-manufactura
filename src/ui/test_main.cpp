@@ -1,5 +1,6 @@
-#include "ui_main.h"
 #include <iostream>
+
+#include "ui_main.h"
 
 int main() {
     std::cout << "Testing UI Component independently\n";

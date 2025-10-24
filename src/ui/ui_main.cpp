@@ -8,4 +8,5 @@ void initialize() {
 void render() {
     std::cout << "Rendering UI...\n";
 }
-} // namespace ui
+
+}  // namespace ui

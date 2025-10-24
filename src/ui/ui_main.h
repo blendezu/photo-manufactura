@@ -3,4 +3,4 @@
 namespace ui {
 void initialize();
 void render();
-} // namespace ui
+}  // namespace ui
