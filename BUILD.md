@@ -44,6 +44,7 @@ cmake --build build
 
 - `src/ui/` - User interface components
 - `src/controller/` - Application logic
+- `src/document/` - Document management
 - `src/image_processing/` - Image manipulation
 - `src/raw_processing/` - RAW file handling
 - `src/scheduler_worker/` - Task scheduling
