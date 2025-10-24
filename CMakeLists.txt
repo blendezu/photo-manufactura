@@ -25,6 +25,7 @@ message(STATUS "OpenCV Version: ${OpenCV_VERSION}")
 add_executable(${PROJECT_NAME}
     src/main.cpp
 )
+
 add_subdirectory(
     src/ui
 )
