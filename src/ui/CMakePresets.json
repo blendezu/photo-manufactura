@@ -60,7 +60,7 @@
             "displayName": "UI Test Only",
             "configurePreset": "debug",
             "targets": [
-                "ui_test"
+                "test_mainwindow"
             ],
             "jobs": 2
         }

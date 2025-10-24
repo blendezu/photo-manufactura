@@ -31,7 +31,7 @@
             "name": "Debug UI Component",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/src/ui/build/bin/ui_test",
+            "program": "${workspaceFolder}/src/ui/build/bin/test_mainwindow",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/src/ui",

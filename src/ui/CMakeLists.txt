@@ -13,6 +13,11 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     
     # Enable compile commands for IDEs
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    
+    # Enable Qt auto-tools for standalone build
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+    set(CMAKE_AUTOUIC ON)
 endif()
 
 # Create the UI library
@@ -20,8 +25,8 @@ add_library(ui STATIC)
 
 # Add source files
 target_sources(ui PRIVATE
-    ui_main.cpp
-    ui_main.h
+    mainwindow.cpp
+    mainwindow.h
 )
 
 # Include directories
@@ -41,16 +46,16 @@ endif()
 # If standalone build, create an executable for testing
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # Create a test executable for this component
-    add_executable(ui_test)
+    add_executable(test_mainwindow)
     
-    target_sources(ui_test PRIVATE
-        test_main.cpp
+    target_sources(test_mainwindow PRIVATE
+        test_mainwindow.cpp
     )
     
-    target_link_libraries(ui_test PRIVATE ui)
+    target_link_libraries(test_mainwindow PRIVATE ui)
     
     # Set output directory
-    set_target_properties(ui_test PROPERTIES
+    set_target_properties(test_mainwindow PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 endif()

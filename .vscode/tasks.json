@@ -58,7 +58,7 @@
         {
             "label": "Test UI Component",
             "type": "shell",
-            "command": "./build/bin/ui_test",
+            "command": "./build/bin/test_mainwindow",
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"

@@ -31,7 +31,7 @@ cmake --build --preset default
 ./build/default/bin/photo_manufactura
 ```
 
-> 📖 **Detailed build instructions**: See [BUILD.md](BUILD.md)
+> 📖 **Detailed build instructions**: See [docs/BUILD.md](docs/BUILD.md)
 
 ## 📁 Project Structure
 
@@ -129,7 +129,7 @@ To be Added Soon!
 
 ## 🤝 Community & Support
 
-- **📖 Documentation**: [Build Guide](BUILD.md) | [API Reference](docs/)
+- **📖 Documentation**: [Build Guide](docs/BUILD.md) | [API Reference](docs/)
 - **🐛 Issues**: [GitHub Issues](https://github.com/ad-tran/photo-manufactura/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/ad-tran/photo-manufactura/discussions)
 
@@ -143,7 +143,7 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 <div align="center">
 
-**[⭐ Star this repo](https://github.com/ad-tran/photo-manufactura)** • **[🍴 Fork it](https://github.com/ad-tran/photo-manufactura/fork)** • **[📖 Read the docs](BUILD.md)**
+**[⭐ Star this repo](https://github.com/ad-tran/photo-manufactura)** • **[🍴 Fork it](https://github.com/ad-tran/photo-manufactura/fork)** • **[📖 Read the docs](docs/BUILD.md)**
 
 *Built with ❤️ for photographers and developers*
 
