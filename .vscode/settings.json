@@ -1,0 +1,22 @@
+{
+    // Enable format on save for C/C++ files using clang-format
+    "editor.formatOnSave": true,
+    // Specify clangFormat as the formatter for C/C++
+    "C_Cpp.formatting": "clangFormat",
+    // Set clangd as the default formatter
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+    // ✅ CMake integration
+    "cmake.useCMakePresets": "auto",
+    // Use CMake Tools as the configuration provider for C/C++
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    // ✅ clangd setup for Qt
+    "clangd.arguments": [
+        "--clang-tidy", // Enable clang-tidy diagnostics
+        "--compile-commands-dir=out/build/debug" // Path to compile_commands.json
+    ],
+    // File associations for C/C++ files
+    "files.associations": {
+        "*.h": "cpp",
+        "*.cpp": "cpp"
+    }
+}

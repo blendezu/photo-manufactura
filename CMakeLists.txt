@@ -17,10 +17,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Debug info
-message(STATUS "Using Qt version ${QT_VERSION}")
-message(STATUS "Project: ${PROJECT_NAME} Version: ${PROJECT_VERSION}")
-message(STATUS "OpenCV Version: ${OpenCV_VERSION}")
+
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
