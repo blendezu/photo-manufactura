@@ -1,5 +1,0 @@
-PROJECT_NAME = "Photo Manufactura"
-INPUT = ../src
-RECURSIVE = YES
-GENERATE_HTML = YES
-OUTPUT_DIRECTORY = ./generated
