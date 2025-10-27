@@ -34,7 +34,6 @@
         "recommendations": [
             "ms-vscode.cmake-tools",
             "ms-vscode.cpptools",
-            "twxs.cmake",
             "llvm-vs-code-extensions.vscode-clangd"
         ]
     }
