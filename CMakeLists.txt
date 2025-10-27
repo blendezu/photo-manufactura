@@ -26,16 +26,16 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
-# TODO: Add subdirectories when you have source files in them
-# add_subdirectory(src/ui)
+# Add subdirectories
+add_subdirectory(src/ui)
 # add_subdirectory(src/scheduler_worker)
 add_subdirectory(src/raw_processing)
 # add_subdirectory(src/image_processing)
 # add_subdirectory(src/controller)
 
-# TODO: Link libraries when they exist
+# Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    # ui
+    ui
 #     scheduler_worker
     raw_processing
 #     image_processing

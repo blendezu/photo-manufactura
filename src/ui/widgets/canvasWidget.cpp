@@ -13,13 +13,7 @@ CanvasWidget::CanvasWidget(QWidget* parent)
       m_shaderProgram(nullptr),
       m_zoomFactor(1.0),
       m_panOffset(0, 0),
-      m_panning(false) {
-    // Initialize with test image
-    QImage image("widgets/test/test_1.jpg");
-    if (!image.isNull()) {
-        setImage(image);
-    }
-}
+      m_panning(false) {}
 
 CanvasWidget::~CanvasWidget() {
     makeCurrent();

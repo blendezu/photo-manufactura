@@ -1,6 +1,10 @@
 #include "toolBar.h"
 
+#include <QCursor>
+#include <QMenu>
 #include <QMessageBox>
+
+#include "subMenuFile.h"
 
 ToolBar::ToolBar(QWidget* parent) : QToolBar(parent) {
     // Initialize toolbar and actions
@@ -19,12 +23,12 @@ ToolBar::ToolBar(QWidget* parent) : QToolBar(parent) {
     connect(toolsAction, &QAction::triggered, this, &ToolBar::onToolsActionTriggered);
     connect(helpAction, &QAction::triggered, this, &ToolBar::onHelpActionTriggered);
 }
-ToolBar::~ToolBar() {
-    // Destructor implementation (if needed)
-}
+ToolBar::~ToolBar() {}
 // TODO: Move to Controller later
 void ToolBar::onFileActionTriggered() {
     QMessageBox::information(this, tr("File Action"), tr("File action triggered."));
+    SubMenuFile* subMenu = new SubMenuFile(this);
+    subMenu->exec(QCursor::pos());
 }
 
 void ToolBar::onEditActionTriggered() {
