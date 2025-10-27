@@ -28,7 +28,7 @@ message(STATUS "OpenCV_VERSION: ${OpenCV_VERSION}")
 message(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "OpenCV_LIBS: ${OpenCV_LIBS}")
 
-if(TARGET OpenCV::opencv_core)
+if(TARGET OpenCV::core)
   message(STATUS "✅ OpenCV targets available")
   target_link_libraries(raw_processing PUBLIC
     OpenCV::opencv_core
