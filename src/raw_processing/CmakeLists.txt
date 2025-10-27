@@ -24,14 +24,19 @@ target_compile_features(raw_processing PUBLIC cxx_std_20)
 # OpenCV – nutze Targets, falle sonst auf Variablen zurück
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
 
+message(STATUS "OpenCV_VERSION: ${OpenCV_VERSION}")
+message(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "OpenCV_LIBS: ${OpenCV_LIBS}")
+
 if(TARGET OpenCV::opencv_core)
+  message(STATUS "✅ OpenCV targets available")
   target_link_libraries(raw_processing PUBLIC
     OpenCV::opencv_core
     OpenCV::opencv_imgproc
     OpenCV::opencv_imgcodecs
   )
 else()
-  message(STATUS "OpenCV imported targets not available; falling back to OpenCV_LIBS/INCLUDE_DIRS")
+  message(STATUS "❌ OpenCV targets NOT available, using fallback")
   target_include_directories(raw_processing PUBLIC ${OpenCV_INCLUDE_DIRS})
   target_link_libraries(raw_processing PUBLIC ${OpenCV_LIBS})
 endif()
