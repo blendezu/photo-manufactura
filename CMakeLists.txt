@@ -39,7 +39,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 #     scheduler_worker
     raw_processing
 #     image_processing
-#     controller
+   controller
 )
 
 # Warnings/Debug generator-agnostisch und auch fürs Modul

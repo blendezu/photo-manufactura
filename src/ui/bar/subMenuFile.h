@@ -14,11 +14,11 @@ class SubMenuFile : public QMenu {
     void onNewTriggered();
     void onOpenTriggered();
     void onSaveTriggered();
-    void onExportTriggered();
+    void onExitTriggered();
 
    private:
     QAction* newAction;
     QAction* openAction;
     QAction* saveAction;
-    QAction* exportAction;
+    QAction* exitAction;
 };

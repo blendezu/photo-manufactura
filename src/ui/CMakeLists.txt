@@ -39,6 +39,8 @@ target_sources(ui PRIVATE
     mainwindow.h
     bar/toolBar.cpp
     bar/toolBar.h
+    bar/subMenuFile.cpp
+    bar/subMenuFile.h
     panel/infoPanel.cpp
     panel/infoPanel.h
     panel/toolPanel.cpp

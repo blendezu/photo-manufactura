@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+
 class ToolPanel : public QWidget {
     Q_OBJECT
    public:

@@ -14,10 +14,36 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
+# Find required Qt6 components for controller
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+
 # Create the Controller library
-add_library(controller STATIC)
+add_library(controller STATIC
+    ApplicationController.cpp
+    ApplicationController.h
+    ICommand.h
+    Commands.h
+)
 
 # Add source files when you create them
+target_sources(controller PRIVATE
+    ApplicationController.cpp
+)
+
+# Add header files
+target_sources(controller PRIVATE
+    ApplicationController.h
+    ICommand.h
+    Commands.h
+)
+
+# Link Qt6 libraries
+target_link_libraries(controller 
+    PUBLIC
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::Gui
+)
 # target_sources(controller PRIVATE
 #     controller.cpp
 #     controller_manager.cpp
