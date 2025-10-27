@@ -1,61 +1,73 @@
-# UI Component - Can be built independently or as part of main project
-# This file works in both standalone and subdirectory mode
+# ============================================================
+# UI Component
+# Can be built standalone (app) or as a submodule (library)
+# ============================================================
 
-# Check if this is being built as a standalone project
+cmake_minimum_required(VERSION 3.21)
+
+# Detect if built standalone
+set(STANDALONE_BUILD OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    # Standalone build
-    cmake_minimum_required(VERSION 3.21)
+    set(STANDALONE_BUILD ON)
+endif()
+
+if(STANDALONE_BUILD)
     project(ui_component VERSION 1.0.0 LANGUAGES CXX)
-    
-    # Set C++ standard for standalone build
+
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    
-    # Enable compile commands for IDEs
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-    
-    # Enable Qt auto-tools for standalone build
+
+    # Qt tools for MOC, UIC, RCC
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
     set(CMAKE_AUTOUIC ON)
 endif()
 
-# Create the UI library
+# ============================================================
+# Find Qt dependencies
+# ============================================================
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
+
+# ============================================================
+# UI Library
+# ============================================================
 add_library(ui STATIC)
 
-# Add source files
 target_sources(ui PRIVATE
     mainwindow.cpp
     mainwindow.h
+    bar/toolBar.cpp
+    bar/toolBar.h
+    panel/infoPanel.cpp
+    panel/infoPanel.h
+    panel/toolPanel.cpp
+    panel/toolPanel.h
+    widgets/canvasWidget.cpp
+    widgets/canvasWidget.h
 )
 
-# Include directories
 target_include_directories(ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Dependencies (Qt6 with error handling)
-find_package(Qt6 COMPONENTS Core Widgets)
-if(Qt6_FOUND)
-    target_link_libraries(ui PUBLIC Qt6::Core Qt6::Widgets)
-    message(STATUS "Qt6 found: ${Qt6_VERSION}")
-else()
-    message(WARNING "Qt6 not found - building without Qt support")
-endif()
+target_link_libraries(ui PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
 
-# If standalone build, create an executable for testing
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    # Create a test executable for this component
-    add_executable(test_mainwindow)
-    
-    target_sources(test_mainwindow PRIVATE
-        test_mainwindow.cpp
+# ============================================================
+# Standalone Executable
+# ============================================================
+if(STANDALONE_BUILD)
+    add_executable(ui_main
+        ui_main.cpp
     )
-    
-    target_link_libraries(test_mainwindow PRIVATE ui)
-    
-    # Set output directory
-    set_target_properties(test_mainwindow PROPERTIES
+
+    target_link_libraries(ui_main PRIVATE ui)
+
+    set_target_properties(ui_main PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
+
+    message(STATUS "✅ Building standalone UI executable (entry: ui_main.cpp)")
+else()
+    message(STATUS "📦 Building UI as a submodule library")
 endif()

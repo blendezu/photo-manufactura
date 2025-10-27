@@ -56,9 +56,9 @@
             "detail": "Clean UI component build directory"
         },
         {
-            "label": "Test UI Component",
+            "label": "Launch UI Component",
             "type": "shell",
-            "command": "./build/bin/test_mainwindow",
+            "command": "./build/bin/ui_main",
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"

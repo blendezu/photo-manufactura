@@ -1,44 +1,30 @@
 #include "mainwindow.h"
 
+#include <QAction>
+#include <QDockWidget>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMessageBox>
+
+#include "bar/toolBar.h"
+#include "widgets/canvasWidget.h"
+
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
-    centralWidget = new QWidget(this);
-    mainLayout = new QVBoxLayout(centralWidget);
-    inputLayout = new QHBoxLayout();
-
-    imageLabel = new QLabel("Image Path:", this);
-    imagePathEdit = new QLineEdit(this);
-    selectImageButton = new QPushButton("Select Image", this);
-    processImageButton = new QPushButton("Process Image", this);
-
-    inputLayout->addWidget(imageLabel);
-    inputLayout->addWidget(imagePathEdit);
-    inputLayout->addWidget(selectImageButton);
-
-    mainLayout->addLayout(inputLayout);
-    mainLayout->addWidget(processImageButton);
-
-    setCentralWidget(centralWidget);
-
-    connect(selectImageButton, &QPushButton::clicked, this, &MainWindow::onSelectImage);
-    connect(processImageButton, &QPushButton::clicked, this, &MainWindow::onProcessImage);
+    setupUi();
+    setupMenus();
+}
+MainWindow::~MainWindow() {
+    // Destructor implementation (if needed)
 }
 
-MainWindow::~MainWindow() {}
-
-void MainWindow::onSelectImage() {
-    QString fileName =
-        QFileDialog::getOpenFileName(this, "Select Image", "", "Images (*.png *.jpg *.bmp)");
-    if (!fileName.isEmpty()) {
-        imagePathEdit->setText(fileName);
-    }
+void MainWindow::setupUi() {
+    setWindowTitle(tr("Photo Manufactura"));
+    resize(800, 600);
+    // Central Widget
+    CanvasWidget* canvas = new CanvasWidget(this);
+    setCentralWidget(canvas);
 }
-
-void MainWindow::onProcessImage() {
-    QString imagePath = imagePathEdit->text();
-    if (imagePath.isEmpty()) {
-        QMessageBox::warning(this, "Warning", "Please select an image first.");
-        return;
-    }
-    // Placeholder for image processing logic
-    QMessageBox::information(this, "Info", "Processing image: " + imagePath);
+void MainWindow::setupMenus() {
+    ToolBar* toolBar = new ToolBar(this);
+    addToolBar(toolBar);
 }
