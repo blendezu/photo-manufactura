@@ -56,9 +56,9 @@
             "detail": "Clean UI component build directory"
         },
         {
-            "label": "Test UI Component",
+            "label": "Launch UI Component",
             "type": "shell",
-            "command": "./build/bin/test_mainwindow",
+            "command": "./build/bin/ui_main",
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"
@@ -153,6 +153,57 @@
                 "isDefault": true
             },
             "detail": "Build all components in parallel"
-        }
+        },
+        {
+            "label": "Configure Raw Processing Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                "."
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure UI component CMake" 
+        },
+        {
+            "label": "Build Raw Processing Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build UI component independently",
+            "dependsOn": "Configure Raw Processing Component"
+        },
+        {
+            "label": "Launch Raw Processing Component",
+            "type": "shell",
+            "command": "./build/bin/test_mainwindow",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/ui"
+            },
+            "dependsOn": "Build Raw Processing Component",
+            "detail": "Launch Raw Processing Components"
+        },
     ]
 }

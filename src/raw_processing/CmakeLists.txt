@@ -1,0 +1,56 @@
+# Library
+add_library(raw_processing STATIC)
+
+target_sources(raw_processing PRIVATE
+    raw_processing.cpp
+    raw_processing.h
+)
+
+target_include_directories(raw_processing PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_compile_features(raw_processing PUBLIC cxx_std_20)
+
+# OpenCV - FESTE VERBINDUNG
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)  # highgui für imshow/waitKey
+
+if(TARGET OpenCV::OpenCV)
+    target_link_libraries(raw_processing PUBLIC OpenCV::OpenCV)
+elseif(TARGET OpenCV::opencv_core)
+    target_link_libraries(raw_processing PUBLIC
+        OpenCV::opencv_core
+        OpenCV::opencv_imgproc
+        OpenCV::opencv_imgcodecs
+        OpenCV::opencv_highgui  # Für imshow und waitKey
+    )
+else()
+    target_include_directories(raw_processing PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(raw_processing PUBLIC ${OpenCV_LIBS})
+endif()
+
+# LibRaw und LCMS2
+target_include_directories(raw_processing PUBLIC
+    /opt/homebrew/Cellar/libraw/0.21.4/include/libraw
+    /opt/homebrew/Cellar/libraw/0.21.4/include
+    /opt/homebrew/opt/little-cms2/include
+)
+
+target_link_libraries(raw_processing PUBLIC
+    /opt/homebrew/Cellar/libraw/0.21.4/lib/libraw.dylib
+    /opt/homebrew/lib/liblcms2.dylib
+)
+
+# Warnungen
+target_compile_options(raw_processing PRIVATE 
+    $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>
+)
+
+# Test - WICHTIG: Auch OpenCV verlinken!
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
+    add_executable(raw_processing_test test_main.cpp)
+    target_link_libraries(raw_processing_test PRIVATE 
+        raw_processing
+        ${OpenCV_LIBS}  # OpenCV auch hier verlinken!
+    )
+endif()
