@@ -247,19 +247,19 @@ class ImageProcessor {
      * @return Image converted to HSL color space (32FC3)
      */
     template <typename T>
-    cv::Mat convertBGR2HSLTemplate(const cv::Mat& iPut) {
+    cv::Mat convertBGR2HSLTemplate(const cv::Mat& bgrImg) {
         // check if the input image is empty
-        if (iPut.empty()) {
+        if (bgrImg.empty()) {
             std::cerr << "Error in convertBGR2HSLTemplate: the input image is empty\n";
             return cv::Mat();
         }
-        cv::Mat oPut(iPut.size(), CV_32FC3);
+        cv::Mat hslImg(bgrImg.size(), CV_32FC3);
 
-        for (int y = 0; y < iPut.rows; y++) {
-            const T* iPtr = iPut.ptr<T>(y);
-            cv::Vec3f* oPtr = oPut.ptr<cv::Vec3f>(y);
+        for (int y = 0; y < bgrImg.rows; y++) {
+            const T* iPtr = bgrImg.ptr<T>(y);
+            cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
 
-            for (int x = 0; x < iPut.cols; x++) {
+            for (int x = 0; x < bgrImg.cols; x++) {
                 // Schritt 1: Normalisierung
                 float B = iPtr[x][0] / 255.0f;
                 float G = iPtr[x][1] / 255.0f;
@@ -297,10 +297,10 @@ class ImageProcessor {
                     H += 360.0f;
                 }
 
-                oPtr[x] = cv::Vec3f(H, S, L);
+                hslPtr[x] = cv::Vec3f(H, S, L);
             }
         }
-        return oPut;
+        return hslImg;
     }
 
     /**
