@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../core/operation_base.h"
+#include "operation_base.h"
 
 class BrightnessAdjust : public ImageOperation {
    private:
