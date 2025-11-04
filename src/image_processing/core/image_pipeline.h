@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IMAGE_PIPELINE_H
+#define IMAGE_PIPELINE_H
 
 #include <memory>
 #include <opencv2/core/mat.hpp>
@@ -77,3 +78,5 @@ class ImagePipeline {
    private:
     void updateCache(const cv::Mat& result);
 };
+
+#endif
