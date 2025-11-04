@@ -128,21 +128,16 @@ void MainWindow::onBrightnessReleased() {
 🎯 Was das für den Benutzer bedeutet:
 Während Slider bewegt:
 
-🔄 Sofortige Vorschau - Bild ändert sich live
-⏳ Temporäre Änderung - Noch nicht gespeichert
-↶ Noch kein Undo - Kann einfach Slider zurückziehen
+- 🔄 Sofortige Vorschau -> Bild ändert sich live
+- ⏳ Temporäre Änderung -> Noch nicht gespeichert
+- ↶ Noch kein Undo -> Kann einfach Slider zurückziehen
 
 Nach Loslassen:
 
-✅ Änderung gespeichert - In Pipeline-Historie
-↶ Undo verfügbar - Kann rückgängig gemacht werden
-💾 In Projekt enthalten - Wird mitgespeichert
+- ✅ Änderung gespeichert -> In Pipeline-Historie
+- ↶ Undo verfügbar -> Kann rückgängig gemacht werden
+- 💾 In Projekt enthalten -> Wird mitgespeichert
 
-🚀 Genau wie in Lightroom:
-Echtzeit-Feedback während der Anpassung
-Auto-Speicherung bei Loslassen
-Volles Undo/Redo für jede Änderung
-Non-destructive - Original bleibt erhalten
 
 ## ⚠️ FEHLERBEHANDLUNG
 
