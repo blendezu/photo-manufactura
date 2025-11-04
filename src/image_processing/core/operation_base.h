@@ -1,4 +1,6 @@
-#pragma one
+#ifndef OPERATION_BASE_H
+#define OPERATION_BASE_H
+
 #include <opencv2/opencv.hpp>
 #include <string>
 
@@ -17,3 +19,5 @@ class ImageOperation {
         return "";
     }
 };
+
+#endif

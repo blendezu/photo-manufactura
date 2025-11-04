@@ -1,22 +1,27 @@
-#pragma one
+#pragma once
 #include "../core/operation_base.h"
 
-class Flip : ImageOperation {
+class Flip : public ImageOperation {
    private:
     int flipDir;
 
    public:
     Flip(int flipDirdirection) : flipDir(flipDirdirection) {}
 
-    std::string getName() {
+    cv::Mat apply(const cv::Mat& scrImg) override;
+
+    std::string getName() const override {
         return "Flip";
     }
 
-    cv::Mat apply(const cv::Mat& scrImg) override;
+    std::string getSettings() const override {
+        return "direction: " + std::to_string(flipDir);
+    }
 
     void setDirection(int direction) {
         flipDir = direction;
     }
+
     int getDirection() {
         return flipDir;
     }
