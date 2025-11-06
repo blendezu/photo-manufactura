@@ -1,3 +1,5 @@
+#include <string>
+
 #include "operation_base.h"
 
 class AdjustContrast : public ImageOperation {
@@ -7,9 +9,21 @@ class AdjustContrast : public ImageOperation {
    public:
     AdjustContrast(int value) : contrast(value) {}
 
-    cv::Mat apply(const cv::Mat& srcImg);
+    cv::Mat apply(const cv::Mat& srcImg) override;
+
+    std::string getName() const override {
+        return "Contrast";
+    }
 
     std::string getSettings() {
-        return
+        return "contrast: " + std::to_string(contrast);
+    }
+
+    void setContrast(int value) {
+        contrast = std::clamp(value, -100, 100);
+    }
+
+    int getContrast() {
+        return contrast;
     }
 };
