@@ -1,4 +1,4 @@
-#pragma one
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -6,14 +6,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../core/operation_base.h"
+#include "operation_base.h"
 
 class OperationRegistry {
    public:
     using OperationFactory = std::function<std::shared_ptr<ImageOperation>()>;
 
     // Categories for filters
-    enum class Category { COLOR_EFFECTS, VINTAGE, BLACK_WHITE, BINARY };
+    enum class Category { MONOCHROME, VINTAGE };
 
     // filter information
     struct FilterInfo {
@@ -23,18 +23,18 @@ class OperationRegistry {
         std::string iconName;  // for UI-Icons
     };
 
-    // single pattern
+    // singleton pattern
     static OperationRegistry& getInstance();
 
     // Filter register
-    void registerFiler(const std::string& name, OperationFactory factory, Category category,
-                       const std::string& description = "", const std::string& iconName = "");
+    void registerFilter(const std::string& name, OperationFactory factory, Category category,
+                        const std::string& description = "", const std::string& iconName = "");
 
     // create filter
     std::shared_ptr<ImageOperation> createFilter(const std::string& name);
 
     // list available filter
-    std::vector<std::string> getFilterByCategory(Category category) const;
+    std::vector<std::string> getFiltersByCategory(Category category) const;
 
     // Filter information
     FilterInfo getFilterInfo(const std::string& name) const;
