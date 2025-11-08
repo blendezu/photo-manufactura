@@ -1,11 +1,9 @@
 #include "operation_registry.h"
 
-#include <algorithm>
 #include <memory>
 
-#include "../operations/effects/Vintage1.h"
-#include "../operations/effects/binary_image.h"
 #include "../operations/effects/gray_image.h"
+#include "../operations/effects/vintage1.h"
 
 OperationRegistry& OperationRegistry::getInstance() {
     static OperationRegistry instance;
@@ -17,17 +15,13 @@ OperationRegistry::OperationRegistry() {
 }
 
 void OperationRegistry::registerDefaultFilters() {
-    registerFilter(
-        "Vintage 1", []() { return std::make_shared<Vintage1>(); }, Category::VINTAGE,
-        "Vintage Look mit weichen Farben", "vintage");
+    // registerFilter(
+    //     "Vintage 1", []() { return std::make_shared<Vintage1>(); }, Category::VINTAGE,
+    //     "Vintage Look mit weichen Farben", "vintage");
 
     registerFilter(
         "Gray Image", []() { return std::make_shared<GrayImage>(); }, Category::MONOCHROME,
         "Gray image with only one channel", "gray image");
-
-    registerFilter(
-        "Binary image", []() { return std::make_shared<BinaryFilter>(); }, Category::MONOCHROME,
-        "Binary image", "binary image");
 }
 
 void OperationRegistry::registerFilter(const std::string& name, OperationFactory factory,
@@ -60,7 +54,7 @@ OperationRegistry::FilterInfo OperationRegistry::getFilterInfo(const std::string
     }
 
     // Fallback for non registered filter
-    return FilterInfo({name, Category::MONOCHROME, "", ""});
+    return FilterInfo({name, Category::GENERAL, "", ""});
 }
 
 std::string OperationRegistry::categoryToString(Category category) {

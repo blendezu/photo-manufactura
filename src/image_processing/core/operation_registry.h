@@ -13,7 +13,7 @@ class OperationRegistry {
     using OperationFactory = std::function<std::shared_ptr<ImageOperation>()>;
 
     // Categories for filters
-    enum class Category { MONOCHROME, VINTAGE };
+    enum class Category { MONOCHROME, VINTAGE, GENERAL };
 
     // filter information
     struct FilterInfo {
