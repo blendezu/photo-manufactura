@@ -1,7 +1,8 @@
 #include "document.h"
-#include <stdexcept>
+
+#include <QtGui/QImage>
 #include <opencv2/opencv.hpp>
-#include <QImage>
+#include <stdexcept>
 
 QImage Document::Mat2Q(const cv::Mat& matImg) {
     // Sicherstellen, dass das Bild kontinuierlich im Speicher liegt
@@ -21,8 +22,7 @@ QImage Document::Mat2Q(const cv::Mat& matImg) {
         case CV_8UC3: {
             cv::Mat rgb;
             cv::cvtColor(matContiguous, rgb, cv::COLOR_BGR2RGB);
-            return QImage(rgb.data, rgb.cols, rgb.rows,
-                          rgb.step, QImage::Format_RGB888);
+            return QImage(rgb.data, rgb.cols, rgb.rows, rgb.step, QImage::Format_RGB888);
         }
 
         case CV_8UC4: {
@@ -33,8 +33,7 @@ QImage Document::Mat2Q(const cv::Mat& matImg) {
         case CV_16UC1: {
             cv::Mat mat8;
             matContiguous.convertTo(mat8, CV_8UC1, 1.0 / 256.0);
-            return QImage(mat8.data, mat8.cols, mat8.rows,
-                          mat8.step, QImage::Format_Grayscale8);
+            return QImage(mat8.data, mat8.cols, mat8.rows, mat8.step, QImage::Format_Grayscale8);
         }
 
         case CV_16UC3: {
@@ -42,8 +41,7 @@ QImage Document::Mat2Q(const cv::Mat& matImg) {
             matContiguous.convertTo(mat8, CV_8UC3, 1.0 / 256.0);
             cv::Mat rgb;
             cv::cvtColor(mat8, rgb, cv::COLOR_BGR2RGB);
-            return QImage(rgb.data, rgb.cols, rgb.rows,
-                          rgb.step, QImage::Format_RGB888);
+            return QImage(rgb.data, rgb.cols, rgb.rows, rgb.step, QImage::Format_RGB888);
         }
 
         default:
@@ -59,26 +57,28 @@ cv::Mat Document::Q2Mat(const QImage& img) {
     cv::Mat mat;
 
     switch (img.format()) {
-
         case QImage::Format_Grayscale8: {
             // 1-Kanal Graustufen
-            mat = cv::Mat(img.height(), img.width(), CV_8UC1, const_cast<uchar*>(img.bits()), img.bytesPerLine());
-            return mat.clone(); // clone, damit cv::Mat eigene Daten besitzt
+            mat = cv::Mat(img.height(), img.width(), CV_8UC1, const_cast<uchar*>(img.bits()),
+                          img.bytesPerLine());
+            return mat.clone();  // clone, damit cv::Mat eigene Daten besitzt
         }
 
         case QImage::Format_RGB888: {
             // 3-Kanal RGB
-            mat = cv::Mat(img.height(), img.width(), CV_8UC3, const_cast<uchar*>(img.bits()), img.bytesPerLine());
+            mat = cv::Mat(img.height(), img.width(), CV_8UC3, const_cast<uchar*>(img.bits()),
+                          img.bytesPerLine());
             cv::Mat bgr;
-            cv::cvtColor(mat, bgr, cv::COLOR_RGB2BGR); // OpenCV nutzt BGR
+            cv::cvtColor(mat, bgr, cv::COLOR_RGB2BGR);  // OpenCV nutzt BGR
             return bgr;
         }
 
         case QImage::Format_ARGB32: {
             // 4-Kanal BGRA
-            mat = cv::Mat(img.height(), img.width(), CV_8UC4, const_cast<uchar*>(img.bits()), img.bytesPerLine());
+            mat = cv::Mat(img.height(), img.width(), CV_8UC4, const_cast<uchar*>(img.bits()),
+                          img.bytesPerLine());
             cv::Mat bgr;
-            cv::cvtColor(mat, bgr, cv::COLOR_BGRA2BGR); // optional in BGR
+            cv::cvtColor(mat, bgr, cv::COLOR_BGRA2BGR);  // optional in BGR
             return bgr;
         }
 
