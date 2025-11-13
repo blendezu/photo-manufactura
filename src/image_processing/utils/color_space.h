@@ -9,6 +9,21 @@ class ColorSpace {
      * @param bgrImg Input image in BGR color space
      * @return Image converted to HSL color space (32FC3)
      */
+    static cv::Mat convertBGR2HSL(const cv::Mat& bgrImg);
+
+    /**
+     * @brief Convert image from HSL to BGR color space
+     * @param hslImg Input image in HSL color space
+     * @return Image converted to BGR color space (original depth)
+     */
+    static cv::Mat convertHSL2BGR(const cv::Mat& hslImg, int bitDepth);
+
+   private:
+    /**
+     * @brief Convert image from BGR to HSL color space
+     * @param bgrImg Input image in BGR color space
+     * @return Image converted to HSL color space (32FC3)
+     */
     template <typename T>
     static cv::Mat convertBGR2HSLTemplate(const cv::Mat& bgrImg) {
         // check if the input image is empty
@@ -72,22 +87,6 @@ class ColorSpace {
             }
         }
         return hslImg;
-    }
-
-    /**
-     * @brief Convert image from BGR to HSL color space
-     * @param bgrImg Input image in BGR color space
-     * @return Image converted to HSL color space (32FC3)
-     */
-    static cv::Mat convertBGR2HSL(const cv::Mat& bgrImg) {
-        if (bgrImg.type() == CV_8UC3) {
-            return convertBGR2HSLTemplate<cv::Vec3b>(bgrImg);
-        } else if (bgrImg.type() == CV_16UC3) {
-            return convertBGR2HSLTemplate<cv::Vec3w>(bgrImg);
-        } else {
-            std::cerr << "Error in converBGR2HSL: unsupported input data type\n";
-            return cv::Mat();
-        }
     }
 
     /**
@@ -164,31 +163,5 @@ class ColorSpace {
         }
         return bgrImg;
     }
-
-    /**
-     * @brief Convert image from HSL to BGR color space
-     * @param hslImg Input image in HSL color space
-     * @return Image converted to BGR color space (original depth)
-     */
-    static cv::Mat convertHSL2BGR(const cv::Mat& hslImg, int bitDepth) {
-        // check if the input image is empty
-        if (hslImg.empty()) {
-            std::cerr << "Error in convertHSL2BGR: the input image is empty\n";
-            return cv::Mat();
-        }
-        if (hslImg.type() != CV_32FC3) {
-            std::cerr << "Error in convertHSL2BGR: supported only float image\n";
-            return cv::Mat();
-        }
-        if (bitDepth == 8) {
-            return convertHSL2BGRTemplate<CV_8UC3, cv::Vec3b>(hslImg, bitDepth);
-        } else if (bitDepth == 16) {
-            return convertHSL2BGRTemplate<CV_16UC3, cv::Vec3w>(hslImg, bitDepth);
-        } else {
-            std::cerr << "Error in convertHSL2BGR: unsupported bit depth (only 8 oder 16)\n";
-            return cv::Mat();
-        }
-    }
 };
-
 #endif  // COLOR_SPACE.H

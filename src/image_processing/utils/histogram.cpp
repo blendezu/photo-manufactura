@@ -10,24 +10,24 @@ std::tuple<cv::Mat, cv::Mat> Histogram::histogramImg(const cv::Mat& src) {
     cv::Mat img8;
     if (src.type() == CV_16UC1) {
         src.convertTo(img8, CV_8UC1, 255.0 / 65535.0);
-    }
-    else if (src.type() == CV_16UC3) {
+    } else if (src.type() == CV_16UC3) {
         src.convertTo(img8, CV_8UC3, 255.0 / 65535.0);
-    }
-    else {
+    } else {
         img8 = src;
     }
 
     // hist dimensions
     int histSize = 256;
-    int binW = 3; // Width of each bin
-    int histW = histSize * binW; // Width of the hist
-    int histH = 2 * histW / 3; // Heigh of the hist
+    int binW = 3;                 // Width of each bin
+    int histW = histSize * binW;  // Width of the hist
+    int histH = 2 * histW / 3;    // Heigh of the hist
     cv::Mat histImg(histH, histW, CV_8UC4, cv::Scalar(0, 0, 0, 0));
 
     if (img8.type() == CV_8UC1) {
         std::vector<int> hist(histSize, 0);
-        for(int y = 0; y < img8.rows; y++) {
+
+        // iteration through the image to caculate the hist array
+        for (int y = 0; y < img8.rows; y++) {
             const uchar* img8Ptr = img8.ptr<uchar>(y);
 
             for (int x = 0; x < img8.cols; x++) {
@@ -36,18 +36,16 @@ std::tuple<cv::Mat, cv::Mat> Histogram::histogramImg(const cv::Mat& src) {
         }
 
         int maxVal = *std::max_element(hist.begin(), hist.end());
-        for(int i = 0; i < histSize; i++) {
+        for (int i = 0; i < histSize; i++) {
             int binH = hist[i] * histH / maxVal;
-            cv::Point tl = cv::Point(binW*i,      histH - binH - 1);
-            cv::Point br = cv::Point(binW*(i+1), histH-1);
+            cv::Point tl = cv::Point(binW * i, histH - binH - 1);
+            cv::Point br = cv::Point(binW * (i + 1), histH - 1);
 
-            cv::rectangle(histImg, tl,
-            br, cv::Scalar(255, 255, 255, 255), cv::FILLED);
+            cv::rectangle(histImg, tl, br, cv::Scalar(255, 255, 255, 255), cv::FILLED);
         }
 
-        return {histImg, cv::Mat()};
-    }
-    else if (img8.type() == CV_8UC3) {
+        return {histImg, histImg};
+    } else if (img8.type() == CV_8UC3) {
         std::cout << "color image\n";
         std::vector<int> histR(histSize, 0);
         std::vector<int> histG(histSize, 0);
@@ -65,7 +63,7 @@ std::tuple<cv::Mat, cv::Mat> Histogram::histogramImg(const cv::Mat& src) {
                 int G = img8Ptr[x][1];
                 int R = img8Ptr[x][2];
 
-                int Y = 0.299f*R + 0.587f*G + 0.114f*B;
+                int Y = 0.299f * R + 0.587f * G + 0.114f * B;
 
                 histR[R]++;
                 histG[G]++;
@@ -86,49 +84,46 @@ std::tuple<cv::Mat, cv::Mat> Histogram::histogramImg(const cv::Mat& src) {
 
         for (int i = 0; i < histSize; i++) {
             int binH = histR[i] * histH / maxColor;
-            cv::Point tl = cv::Point(i*binW, histH - binH - 1);
-            cv::Point br = cv::Point((i+1)*binW, histH - 1);
+            cv::Point tl = cv::Point(i * binW, histH - binH - 1);
+            cv::Point br = cv::Point((i + 1) * binW, histH - 1);
             cv::Scalar red = cv::Scalar(0, 0, 255, 255);
             cv::rectangle(histColor, tl, br, red, cv::FILLED);
         }
 
         for (int i = 0; i < histSize; i++) {
             int binH = histG[i] * histH / maxColor;
-            cv::Point tl = cv::Point(i*binW, histH - binH - 1);
-            cv::Point br = cv::Point((i+1)*binW, histH - 1);
+            cv::Point tl = cv::Point(i * binW, histH - binH - 1);
+            cv::Point br = cv::Point((i + 1) * binW, histH - 1);
             cv::Scalar green = cv::Scalar(0, 255, 0, 128);
             cv::rectangle(histColor, tl, br, green, cv::FILLED);
         }
 
         for (int i = 0; i < histSize; i++) {
             int binH = histB[i] * histH / maxColor;
-            cv::Point tl = cv::Point(i*binW, histH - binH - 1);
-            cv::Point br = cv::Point((i+1)*binW, histH - 1);
+            cv::Point tl = cv::Point(i * binW, histH - binH - 1);
+            cv::Point br = cv::Point((i + 1) * binW, histH - 1);
             cv::Scalar blue = cv::Scalar(255, 0, 0, 128);
             cv::rectangle(histColor, tl, br, blue, cv::FILLED);
         }
-        
+
         for (int i = 0; i < histSize; i++) {
             int binH = histLum[i] * histH / maxColor;
-            cv::Point tl = cv::Point(i*binW, histH - binH - 1);
-            cv::Point br = cv::Point((i+1)*binW, histH - 1);
+            cv::Point tl = cv::Point(i * binW, histH - binH - 1);
+            cv::Point br = cv::Point((i + 1) * binW, histH - 1);
             cv::Scalar white = cv::Scalar(255, 255, 255, 255);
             cv::rectangle(histColor, tl, br, white, cv::FILLED);
         }
 
         for (int i = 0; i < histSize; i++) {
             int binH = histLum[i] * histH / maxLum;
-            cv::Point tl = cv::Point(i*binW, histH - binH - 1);
-            cv::Point br = cv::Point((i+1)*binW, histH - 1);
+            cv::Point tl = cv::Point(i * binW, histH - binH - 1);
+            cv::Point br = cv::Point((i + 1) * binW, histH - 1);
             cv::Scalar white = cv::Scalar(255, 255, 255, 255);
             cv::rectangle(histLumImg, tl, br, white, cv::FILLED);
         }
 
         return {histColor, histLumImg};
-    }
-    else {
-
+    } else {
         return {cv::Mat(), cv::Mat()};
     }
-
 }
