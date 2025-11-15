@@ -34,7 +34,11 @@ cv::Mat BrightnessAdjust::apply(const cv::Mat& srcImg) {
                 dstPtr[x] = cv::Vec3f(H, S, newL);
             }
         }
-        return ColorSpace.convertHSL2BGR(dstImg, 8);
+        if (srcImg.type() == CV_8UC3) {
+            return ColorSpace.convertHSL2BGR(dstImg, 8);
+        } else {
+            return ColorSpace.convertHSL2BGR(dstImg, 16);
+        }
     }
 
     // gray image
