@@ -5,7 +5,7 @@
 #include <opencv2/core/mat.hpp>
 
 cv::Mat ResizeImage::apply(const cv::Mat& srcImg) {
-    std::cout << "🤙Start resizing ...\n";
+    // std::cout << "🤙Start resizing ...\n";
     if (srcImg.empty()) {
         std::cerr << "Error in ResizeImage: empty input image\n";
         return cv::Mat();

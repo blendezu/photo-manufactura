@@ -116,6 +116,8 @@ class ResizeImage : public ImageOperation {
 
     template <typename T>
     cv::Mat resizeBGRImgTemplate(const cv::Mat& srcImg) {
+        auto start = std::chrono::high_resolution_clock::now();
+
         cv::Mat dstImg(imgH, imgW, srcImg.type());  // resized image
 
         double scaleFactorX = (double)imgW / srcImg.cols;
@@ -168,6 +170,9 @@ class ResizeImage : public ImageOperation {
                 dstPtr[x] = T(newB, newG, newR);
             }
         }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        // std::cout << duration.count() << std::endl;
         return dstImg;
     }
 };
