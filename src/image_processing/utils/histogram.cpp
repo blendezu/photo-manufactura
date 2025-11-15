@@ -46,7 +46,6 @@ std::tuple<cv::Mat, cv::Mat> Histogram::histogramImg(const cv::Mat& src) {
 
         return {histImg, histImg};
     } else if (img8.type() == CV_8UC3) {
-        std::cout << "color image\n";
         std::vector<int> histR(histSize, 0);
         std::vector<int> histG(histSize, 0);
         std::vector<int> histB(histSize, 0);
@@ -72,8 +71,6 @@ std::tuple<cv::Mat, cv::Mat> Histogram::histogramImg(const cv::Mat& src) {
                 histLum[Y]++;
             }
         }
-
-        std::cout << "hists caculations done!\n";
 
         int maxR = *std::max_element(histR.begin(), histR.end());
         int maxG = *std::max_element(histG.begin(), histG.end());
