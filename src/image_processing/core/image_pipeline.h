@@ -31,9 +31,16 @@ class ImagePipeline {
 
     // operations management
     void addOperation(std::shared_ptr<ImageOperation> operation);
+
+    // add a operation to any position
     void insertOperation(int index, std::shared_ptr<ImageOperation>);
+
+    // When a slider set to 0 --> remove that operation
     void removeOperation(int index);
+
+    // mainly for the Reset button (undo still works)
     void clearOperations();
+
     void clearUndoHistory();
 
     // call the operation
@@ -47,7 +54,7 @@ class ImagePipeline {
 
     // Live-Operation for realtime preview
     void setLiveOperation(std::shared_ptr<ImageOperation> operation);
-    void clearLiveOperation();
+    void clearLiveOperations();
 
     // Pipeline
     cv::Mat process();
