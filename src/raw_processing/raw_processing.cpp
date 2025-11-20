@@ -1,8 +1,11 @@
 #include "raw_processing.h"
 
-#include <libraw/libraw.h>
+// Zusätzliche Includes für die Implementation
+#include <libraw.h>
 
-#include <opencv2/opencv.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <stdexcept>
 
 cv::Mat RawProcessing::getRawImg(const std::string& raw_path) {
     LibRaw processor;

@@ -1,92 +1,56 @@
-# Raw Processing Component - standalone-fähig oder als Teil des Superbuilds
-
-# Erkennen: Standalone-Aufruf (cmake -S . -B build in diesem Ordner)
-set(_RAW_PROC_STANDALONE OFF)
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  set(_RAW_PROC_STANDALONE ON)
-  cmake_minimum_required(VERSION 3.21)
-  project(raw_processing_component VERSION 1.0.0 LANGUAGES CXX)
-  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-endif()
-
 # Library
 add_library(raw_processing STATIC)
+
 target_sources(raw_processing PRIVATE
-  raw_processing.cpp
-  raw_processing.h
+    raw_processing.cpp
+    raw_processing.h
 )
+
 target_include_directories(raw_processing PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
-# C++-Standard am Target
+
 target_compile_features(raw_processing PUBLIC cxx_std_20)
 
-# OpenCV – nutze Targets, falle sonst auf Variablen zurück
-find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
+# OpenCV - FESTE VERBINDUNG
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)  # highgui für imshow/waitKey
 
-message(STATUS "OpenCV_VERSION: ${OpenCV_VERSION}")
-message(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
-message(STATUS "OpenCV_LIBS: ${OpenCV_LIBS}")
-
-if(TARGET OpenCV::opencv_core)
-  message(STATUS "✅ OpenCV targets available")
-  target_link_libraries(raw_processing PUBLIC
-    OpenCV::opencv_core
-    OpenCV::opencv_imgproc
-    OpenCV::opencv_imgcodecs
-  )
+if(TARGET OpenCV::OpenCV)
+    target_link_libraries(raw_processing PUBLIC OpenCV::OpenCV)
+elseif(TARGET OpenCV::opencv_core)
+    target_link_libraries(raw_processing PUBLIC
+        OpenCV::opencv_core
+        OpenCV::opencv_imgproc
+        OpenCV::opencv_imgcodecs
+        OpenCV::opencv_highgui  # Für imshow und waitKey
+    )
 else()
-  message(STATUS "❌ OpenCV targets NOT available, using fallback")
-  target_include_directories(raw_processing PUBLIC ${OpenCV_INCLUDE_DIRS})
-  target_link_libraries(raw_processing PUBLIC ${OpenCV_LIBS})
+    target_include_directories(raw_processing PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(raw_processing PUBLIC ${OpenCV_LIBS})
 endif()
 
-# LibRaw – zuerst pkg-config, dann Fallback
-find_package(PkgConfig QUIET)
-set(_libraw_ok FALSE)
-if(PkgConfig_FOUND)
-  pkg_check_modules(LIBRAW QUIET IMPORTED_TARGET libraw)
-  if(LIBRAW_FOUND AND TARGET PkgConfig::LIBRAW)
-    target_link_libraries(raw_processing PUBLIC PkgConfig::LIBRAW)
-    # Manche pkg-configs liefern Include-Dirs separat – hilf IntelliSense/Build
-    if(LIBRAW_INCLUDE_DIRS)
-      target_include_directories(raw_processing PUBLIC ${LIBRAW_INCLUDE_DIRS})
-    endif()
-    set(_libraw_ok TRUE)
-  endif()
-endif()
+# LibRaw und LCMS2
+target_include_directories(raw_processing PUBLIC
+    /opt/homebrew/Cellar/libraw/0.21.4/include/libraw
+    /opt/homebrew/Cellar/libraw/0.21.4/include
+    /opt/homebrew/opt/little-cms2/include
+)
 
-if(NOT _libraw_ok)
-  # Fallback für Homebrew (ARM+Intel) und MacPorts
-  find_path(LIBRAW_INCLUDE_DIR
-    NAMES libraw/libraw.h libraw.h
-    HINTS /opt/homebrew/include /usr/local/include /opt/local/include
-  )
-  find_library(LIBRAW_LIBRARY
-    NAMES raw libraw
-    HINTS /opt/homebrew/lib /usr/local/lib /opt/local/lib
-  )
-  if(LIBRAW_INCLUDE_DIR AND LIBRAW_LIBRARY)
-    target_include_directories(raw_processing PUBLIC ${LIBRAW_INCLUDE_DIR})
-    target_link_libraries(raw_processing PUBLIC ${LIBRAW_LIBRARY})
-    set(_libraw_ok TRUE)
-  endif()
-endif()
+target_link_libraries(raw_processing PUBLIC
+    /opt/homebrew/Cellar/libraw/0.21.4/lib/libraw.dylib
+    /opt/homebrew/lib/liblcms2.dylib
+)
 
-if(NOT _libraw_ok)
-  message(FATAL_ERROR "LibRaw not found. Install with: brew install libraw")
-endif()
+# Warnungen
+target_compile_options(raw_processing PRIVATE 
+    $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>
+)
 
-# Optionales Standalone-Testprogramm (nur wenn in diesem Ordner konfiguriert)
-option(BUILD_RAW_PROCESSING_TEST "Build raw_processing_test executable" ${_RAW_PROC_STANDALONE})
-if(BUILD_RAW_PROCESSING_TEST AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
-  add_executable(raw_processing_test
-    test_main.cpp
-  )
-  target_link_libraries(raw_processing_test PRIVATE raw_processing)
-  set_target_properties(raw_processing_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-elseif(BUILD_RAW_PROCESSING_TEST)
-  message(STATUS "raw_processing_test skipped (test_main.cpp not found)")
+# Test - WICHTIG: Auch OpenCV verlinken!
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
+    add_executable(raw_processing_test test_main.cpp)
+    target_link_libraries(raw_processing_test PRIVATE 
+        raw_processing
+        ${OpenCV_LIBS}  # OpenCV auch hier verlinken!
+    )
 endif()

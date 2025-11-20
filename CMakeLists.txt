@@ -10,11 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Enable testing
 enable_testing()
 
-# Prefer Ninja
-# if(NOT CMAKE_GENERATOR)
-#     set(CMAKE_GENERATOR "Ninja" CACHE STRING "")
-# endif()
-
 # Enable AUTOMOC, AUTORCC, AUTOUIC
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -22,32 +17,29 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Bessere Ausgabe-Verzeichnis-Struktur
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
-# Add subdirectories
-add_subdirectory(src/ui)
-# add_subdirectory(src/scheduler_worker)
+# Subdirectories
 add_subdirectory(src/raw_processing)
-# add_subdirectory(src/image_processing)
-# add_subdirectory(src/controller)
+add_subdirectory(src/image_processing)
+# Weitere Module später hinzufügen
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ui
-#     scheduler_worker
     raw_processing
-#     image_processing
-   controller
+    image_processing
 )
 
-# Warnings/Debug generator-agnostisch und auch fürs Modul
-target_compile_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>)
-target_compile_options(raw_processing    PRIVATE $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>)
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+# Warnungen für alle Targets einheitlich setzen
+target_compile_options(${PROJECT_NAME} PRIVATE 
+    $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>
 )
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
