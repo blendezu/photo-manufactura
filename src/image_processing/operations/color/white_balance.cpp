@@ -17,11 +17,11 @@ cv::Mat WhiteBalance::apply(const cv::Mat& srcImg) {
     }
 
     else if (srcImg.type() == CV_8UC3) {
-        return whiteBalanceTemplate<cv::Vec3b, uchar>(srcImg, changeFactorR, changeFactorB);
+        return whiteBalanceTemplate<uchar>(srcImg, changeFactorR, changeFactorB);
     }
 
     else if (srcImg.type() == CV_16UC3) {
-        return whiteBalanceTemplate<cv::Vec3w, ushort>(srcImg, changeFactorR, changeFactorB);
+        return whiteBalanceTemplate<ushort>(srcImg, changeFactorR, changeFactorB);
     } else {
         std::cerr << "Error in WhiteBalance: unsupported image type\n";
         return cv::Mat();

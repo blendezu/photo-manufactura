@@ -15,31 +15,39 @@ cv::Mat AdjustHighlight::apply(const cv::Mat& srcImg) {
 
     // color image
     if (srcImg.type() == CV_8UC3 || srcImg.type() == CV_16UC3) {
+        // 1. Convert to HSL
         cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
-        cv::Mat dstImg(hslImg.size(), hslImg.type());
 
-        auto [minL, maxL] = ImageUtils::caculateMinMax(hslImg, 2);
-        std::cout << minL << "; " << maxL << std::endl;
+        // find the min & max value to caculate the weight
+        auto minMaxVal = ImageUtils::calculateMinMax(hslImg, 2);
+        float minL = std::get<0>(minMaxVal);
+        float maxL = std::get<1>(minMaxVal);
+
+        // to caculate the weight
+        auto weightParams = ImageUtils::precalculateWhiteWeightParams(minL, maxL, 0.4, 0.7);
+
+        int len = hslImg.cols * 3;  // 1D Array
+
+        // clang-format off
+        #pragma omp parallel for
+        // clang-format on
         for (int y = 0; y < srcImg.rows; y++) {
-            const cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
-            cv::Vec3f* dstPtr = dstImg.ptr<cv::Vec3f>(y);
+            float* __restrict hslPtr = hslImg.ptr<float>(y);
 
-            for (int x = 0; x < hslImg.cols; x++) {
-                float H = hslPtr[x][0];
-                float S = hslPtr[x][1];
-                float currL = hslPtr[x][2];
+            for (int x = 2; x < len; x += 3) {
+                float currL = hslPtr[x];
 
-                float weight = caculateWeight(currL, minL, maxL);
+                float weight = ImageUtils::calculateBrightWeight(currL, weightParams);
                 float brightnessChange = weight * highlightFactor;
                 float newL = std::clamp(currL + brightnessChange, 0.0f, 1.0f);
 
-                dstPtr[x] = cv::Vec3f(H, S, newL);
+                hslPtr[x] = newL;
             }
         }
         if (srcImg.depth() == CV_8U) {
-            return ColorSpace::convertHSL2BGR(dstImg, 8);
+            return ColorSpace::convertHSL2BGR(hslImg, 8);
         } else {
-            return ColorSpace::convertHSL2BGR(dstImg, 16);
+            return ColorSpace::convertHSL2BGR(hslImg, 16);
         }
     }  // 8 bit gray image
     else if (srcImg.type() == CV_8UC1) {

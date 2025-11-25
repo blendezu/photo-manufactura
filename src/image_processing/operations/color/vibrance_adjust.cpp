@@ -16,32 +16,30 @@ cv::Mat AdjustVibrance::apply(const cv::Mat& srcImg) {
     }
 
     float vibranceFactor = vibrance / 300.0f;
-    ColorSpace ColorSpace;
-    cv::Mat hslImg = ColorSpace.convertBGR2HSL(srcImg);  // convert input image to hsl
-    cv::Mat dstImg(hslImg.size(), hslImg.type());
 
+    // convert input image to hsl
+    cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
+
+    int len = hslImg.cols * 3;  // 1D Array
+
+#pragma omp parallel for
     for (int y = 0; y < hslImg.rows; y++) {
-        const cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
-        cv::Vec3f* dstPtr = dstImg.ptr<cv::Vec3f>(y);
+        float* __restrict hslPtr = hslImg.ptr<float>(y);
 
-        for (int x = 0; x < hslImg.cols; x++) {
-            float H = hslPtr[x][0];
-            float currS = hslPtr[x][1];
-            float L = hslPtr[x][2];
+        for (int x = 1; x < len; x += 3) {
+            float currS = hslPtr[x];
 
             float weight = caculateWeight(currS);
             float newS = currS + weight * vibranceFactor;
             newS = std::clamp(newS, 0.0f, 1.0f);
 
-            dstPtr[x] = cv::Vec3f(H, newS, L);
+            hslPtr[x] = newS;
         }
     }
 
     if (srcImg.depth() == CV_8U) {
-        std::cout << "8";
-        return ColorSpace.convertHSL2BGR(dstImg, 8);
+        return ColorSpace::convertHSL2BGR(hslImg, 8);
     } else {
-        std::cout << "16";
-        return ColorSpace.convertHSL2BGR(dstImg, 16);
+        return ColorSpace::convertHSL2BGR(hslImg, 16);
     }
 }
