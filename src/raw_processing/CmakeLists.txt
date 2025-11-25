@@ -1,3 +1,7 @@
+cmake_minimum_required(VERSION 3.21)
+project(RawProcessing LANGUAGES CXX)
+
+
 # Library
 add_library(raw_processing STATIC)
 
@@ -52,5 +56,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
     target_link_libraries(raw_processing_test PRIVATE 
         raw_processing
         ${OpenCV_LIBS}  # OpenCV auch hier verlinken!
+    )
+    # Output-Pfad festlegen
+    set_target_properties(raw_processing_test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 endif()
