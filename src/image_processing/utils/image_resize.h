@@ -71,8 +71,8 @@ class ResizeImage : public ImageOperation {
    private:
     template <typename T>
     cv::Mat resizeGrayImgTemplate(const cv::Mat& srcImg) {
-        double scaleFactorX = (float)imgW / srcImg.cols;
-        double scaleFactorY = (float)imgH / srcImg.rows;
+        float scaleFactorX = (float)imgW / srcImg.cols;
+        float scaleFactorY = (float)imgH / srcImg.rows;
 
         cv::Mat dstImg(imgH, imgW, srcImg.type());
 
@@ -81,34 +81,34 @@ class ResizeImage : public ImageOperation {
 
         for (int y = 0; y < dstImg.rows; y++) {
             for (int x = 0; x < dstImg.cols; x++) {
-                double newPixel = 0.0;
+                float newPixel = 0.0f;
 
-                double oldX = findOldX(x);
-                double oldY = findOldY(y);
+                float oldX = findOldX(x);
+                float oldY = findOldY(y);
 
-                double oXD = std::floor(oldX);
-                double oYD = std::floor(oldY);
+                float oXD = std::floor(oldX);
+                float oYD = std::floor(oldY);
 
                 for (int i = -1; i < 3; i++) {
                     int Y = oYD + i;
                     Y = std::clamp(Y, 0, srcImg.rows - 1);
 
-                    double tY = oldY - (oYD + i);
-                    double wY = ImageUtils::calculateCubicWeight(tY);
+                    float tY = oldY - (oYD + i);
+                    float wY = ImageUtils::calculateCubicWeight(tY);
 
                     for (int j = -1; j < 3; j++) {
                         int X = oXD + j;
                         X = std::clamp(X, 0, srcImg.cols - 1);
 
-                        double tX = oldX - (oXD + j);
-                        double wX = ImageUtils::calculateCubicWeight(tX);
+                        float tX = oldX - (oXD + j);
+                        float wX = ImageUtils::calculateCubicWeight(tX);
 
                         newPixel += wX * wY * srcImg.at<T>(Y, X);
                     }
                 }
-                double maxRange = 0.0;
-                (srcImg.depth() == CV_16U) ? maxRange = 65535.0 : maxRange = 255.0;
-                dstImg.at<T>(y, x) = static_cast<T>(std::clamp(newPixel, 0.0, maxRange));
+                float maxRange = 0.0f;
+                (srcImg.depth() == CV_16U) ? maxRange = 65535.0f : maxRange = 255.0f;
+                dstImg.at<T>(y, x) = static_cast<T>(std::clamp(newPixel, 0.0f, maxRange));
             }
         }
         return dstImg;
@@ -116,37 +116,40 @@ class ResizeImage : public ImageOperation {
 
     template <typename T>
     cv::Mat resizeBGRImgTemplate(const cv::Mat& srcImg) {
-        auto start = std::chrono::high_resolution_clock::now();
-
         cv::Mat dstImg(imgH, imgW, srcImg.type());  // resized image
 
-        double scaleFactorX = (double)imgW / srcImg.cols;
-        double scaleFactorY = (double)imgH / srcImg.rows;
+        // inversed scale to avoid division in the for loop
+        float scaleFactorX = static_cast<float>(srcImg.cols) / imgW;
+        float scaleFactorY = static_cast<float>(srcImg.rows) / imgH;
+
+        // clang-format off
+        #pragma omp parallel for
+        // clang-format on
 
         for (int y = 0; y < dstImg.rows; y++) {
             T* dstPtr = dstImg.ptr<T>(y);
 
             for (int x = 0; x < dstImg.cols; x++) {
-                double oldX = x / scaleFactorX;
-                double oldY = y / scaleFactorY;
+                float oldX = x * scaleFactorX;
+                float oldY = y * scaleFactorY;
 
-                double newR = 0.0;
-                double newG = 0.0;
-                double newB = 0.0;
+                float newR = 0.0f;
+                float newG = 0.0f;
+                float newB = 0.0f;
 
-                double oX = std::floor(oldX);
-                double oY = std::floor(oldY);
+                float oX = std::floor(oldX);
+                float oY = std::floor(oldY);
 
                 for (int i = -1; i < 3; i++) {
-                    double tY = (oY + i) - oldY;
-                    double wY = ImageUtils::calculateCubicWeight(tY);
+                    float tY = (oY + i) - oldY;
+                    float wY = ImageUtils::calculateCubicWeight(tY);
 
                     int Y = oY + i;
                     Y = std::clamp(Y, 0, srcImg.rows - 1);
 
                     for (int j = -1; j < 3; j++) {
-                        double tX = (oX + j) - oldX;
-                        double wX = ImageUtils::calculateCubicWeight(tX);
+                        float tX = (oX + j) - oldX;
+                        float wX = ImageUtils::calculateCubicWeight(tX);
 
                         int X = static_cast<int>(oX + j);
                         X = std::clamp(X, 0, srcImg.cols - 1);
@@ -170,9 +173,6 @@ class ResizeImage : public ImageOperation {
                 dstPtr[x] = T(newB, newG, newR);
             }
         }
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        // std::cout << duration.count() << std::endl;
         return dstImg;
     }
 };

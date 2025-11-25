@@ -18,7 +18,7 @@ class AdjustVibrance : public ImageOperation {
         return "Vibrance";
     }
 
-    std::string getSettings() {
+    std::string getSettings() const override {
         return "vibrance: " + std::to_string(vibrance);
     }
 

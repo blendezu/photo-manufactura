@@ -51,6 +51,7 @@ class TintMagenta : public ImageOperation {
     cv::Mat tintMagentaTemplate(const cv::Mat& srcImg, float changeFactor) {
         cv::Mat dstImg(srcImg.size(), srcImg.type());
 
+#pragma omp parallel for
         for (int y = 0; y < srcImg.rows; y++) {
             const V* srcPtr = srcImg.ptr<V>(y);
             V* dstPtr = dstImg.ptr<V>(y);
@@ -60,6 +61,7 @@ class TintMagenta : public ImageOperation {
                 T G = srcPtr[x][1];
                 T R = srcPtr[x][2];
 
+                // change only G channel
                 T newG = cv::saturate_cast<T>(G * changeFactor);
 
                 dstPtr[x] = V(B, newG, R);

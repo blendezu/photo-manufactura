@@ -16,30 +16,27 @@ cv::Mat AdjustSaturation::apply(const cv::Mat& srcImg) {
         return srcImg;
     }
 
-    std::cout << "RGB\n";
-    ColorSpace ColorSpace;
-    cv::Mat hslImg = ColorSpace.convertBGR2HSL(srcImg);  // convert to hsl image
-    cv::Mat dstImg(hslImg.size(), hslImg.type());        // output image
+    cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);  // convert to hsl image
     float satFactor = 1 + saturation / 100.0f;  // change factor <1 --> reduce; >1 --> increase
 
-    for (int y = 0; y < hslImg.rows; y++) {
-        const cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
-        cv::Vec3f* dstPtr = dstImg.ptr<cv::Vec3f>(y);
+    int len = hslImg.cols * 3;
 
-        for (int x = 0; x < hslImg.cols; x++) {
-            float H = hslPtr[x][0];
-            float currS = hslPtr[x][1];
-            float L = hslPtr[x][2];
+#pragma omp parallel for
+    for (int y = 0; y < hslImg.rows; y++) {
+        float* __restrict hslPtr = hslImg.ptr<float>(y);
+
+        for (int x = 1; x < len; x += 3) {
+            float currS = hslPtr[x];
 
             float newS = currS * satFactor;
             newS = std::clamp(newS, 0.0f, 1.0f);
-            dstPtr[x] = cv::Vec3f(H, newS, L);
+            hslPtr[x] = newS;
         }
     }
     if (srcImg.depth() == CV_8U) {
-        return ColorSpace.convertHSL2BGR(dstImg, 8);
+        return ColorSpace::convertHSL2BGR(hslImg, 8);
 
     } else {
-        return ColorSpace.convertHSL2BGR(dstImg, 16);
+        return ColorSpace::convertHSL2BGR(hslImg, 16);
     }
 }

@@ -2,7 +2,8 @@
 #define ROTATE_H
 #include <opencv2/core/types.hpp>
 
-#include "../core/operation_base.h"
+#include "image_utils.h"
+#include "operation_base.h"
 
 class Rotate : public ImageOperation {
    private:
@@ -36,119 +37,153 @@ class Rotate : public ImageOperation {
     /**
      * @brief Rotate image by specified angle around center
      * @brief Interpolation method: bicubic
-     * @param iPut Input source image
+     * @param srcImg Input source image
      * @param angle Rotation angle in degrees (positive = counter-clockwise)
      * @return Rotated image with preserved content
      */
     template <typename T>
-    static cv::Mat rotateImgTemplate(const cv::Mat& iPut, int angle_deg, cv::Rect roi) {
-        if (iPut.empty()) {
+    static cv::Mat rotateImgTemplate(const cv::Mat& srcImg, int angle_deg, cv::Rect roi) {
+        if (srcImg.empty()) {
             std::cerr << "Error: input image is empty\n";
             return cv::Mat();
         }
 
-        int imgW = iPut.cols;
-        int imgH = iPut.rows;
+        const int imgW = srcImg.cols;
+        const int imgH = srcImg.rows;
 
-        // check ROI validity
-        cv::Rect imgRect(0, 0, imgW, imgH);
-        if ((imgRect & roi).empty()) {
+        // ROI validity check
+        if (roi.x < 0 || roi.y < 0 || roi.x + roi.width > imgW || roi.y + roi.height > imgH) {
             std::cerr << "Error in rotateImgTemplate: ROI is not valid\n";
             return cv::Mat();
         }
 
-        cv::Mat rotatedImg(iPut.size(), iPut.type(),
-                           cv::Scalar(0));  // black backgroun for black corner
-        int cx = imgW / 2;
-        int cy = imgH / 2;
+        cv::Mat dstImg(srcImg.size(), srcImg.type(), cv::Scalar(0));  // output image
+        const int cx = imgW / 2;
+        const int cy = imgH / 2;
 
-        double angle_rad = angle_deg * M_PI / 180.0;
-        double cosA = std::cos(angle_rad);
-        double sinA = std::sin(angle_rad);
+        // for the transformation atrix
+        const double angle_rad = angle_deg * M_PI / 180.0;
+        const double cosA = std::cos(angle_rad);
+        const double sinA = std::sin(angle_rad);
 
-        auto cubicWeight = [](double t) -> double {
-            t = std::abs(t);
-            if (t < 1)
-                return 1.5 * t * t * t - 2.5 * t * t + 1;
-            else if (t < 2)
-                return -0.5 * t * t * t + 2.5 * t * t - 4 * t + 2;
-            else
-                return 0.0;
+        // Line pointers for better access
+        std::vector<const T*> srcRowPtrs(imgH);
+        for (int y = 0; y < imgH; y++) {
+            srcRowPtrs[y] = srcImg.ptr<T>(y);
+        }
+
+        // Boundary-Check
+        auto inBounds = [imgW, imgH](int x, int y) -> bool {
+            return static_cast<unsigned>(x) < static_cast<unsigned>(imgW) &&
+                   static_cast<unsigned>(y) < static_cast<unsigned>(imgH);
         };
 
-        int channels = iPut.channels();
-
+        // clang-format off
+        #pragma omp parallel for
+        // clang-format on
         for (int y = 0; y < imgH; y++) {
-            T* outPtr = rotatedImg.ptr<T>(y);
+            T* outPtr = dstImg.ptr<T>(y);
+
             for (int x = 0; x < imgW; x++) {
-                double oldX = (x - cx) * cosA + (y - cy) * sinA + cx;
-                double oldY = -(x - cx) * sinA + (y - cy) * cosA + cy;
+                // Inverse Mapping
+                float dx = x - cx;
+                float dy = y - cy;
+                float oldX = dx * cosA + dy * sinA + cx;
+                float oldY = -dx * sinA + dy * cosA + cy;
 
-                int i = static_cast<int>(std::floor(oldX));
-                int j = static_cast<int>(std::floor(oldY));
-                double a = oldX - i;
-                double b = oldY - j;
+                int i = static_cast<int>(oldX);
+                int j = static_cast<int>(oldY);
+                float a = oldX - i;
+                float b = oldY - j;
 
-                double wx[4], wy[4];
-                for (int m = 0; m < 4; m++)
-                    wx[m] = cubicWeight(a - (m - 1));
-                for (int n = 0; n < 4; n++)
-                    wy[n] = cubicWeight(b - (n - 1));
-
-                std::vector<double> sum(channels, 0.0);
-
+                // Gewichte vorberechnen
+                float wx[4], wy[4];
+                for (int m = 0; m < 4; m++) {
+                    wx[m] = ImageUtils::calculateCubicWeight(a - (m - 1));
+                }
                 for (int n = 0; n < 4; n++) {
-                    int yj = j + n - 1;
-                    if (yj < 0 || yj >= imgH)
-                        continue;
-                    const T* srcPtr = iPut.ptr<T>(yj);
-
-                    for (int m = 0; m < 4; m++) {
-                        int xi = i + m - 1;
-                        if (xi < 0 || xi >= imgW)
-                            continue;
-
-                        if (channels == 1) {
-                            if constexpr (std::is_same<T, uchar>::value) {
-                                sum[0] += static_cast<double>(srcPtr[xi]) * wx[m] * wy[n];
-                            } else if constexpr (std::is_same<T, uint16_t>::value) {
-                                sum[0] += static_cast<double>(srcPtr[xi]) * wx[m] * wy[n];
-                            }
-                        } else if (channels == 3) {
-                            auto pix = srcPtr[xi];
-                            for (int c = 0; c < 3; c++) {
-                                if constexpr (std::is_same<T, cv::Vec3b>::value) {
-                                    sum[c] += static_cast<double>(pix[c]) * wx[m] * wy[n];
-                                } else if constexpr (std::is_same<T, cv::Vec3w>::value) {
-                                    sum[c] += static_cast<double>(pix[c]) * wx[m] * wy[n];
-                                }
-                            }
-                        }
-                    }
+                    wy[n] = ImageUtils::calculateCubicWeight(b - (n - 1));
                 }
 
-                // write back
-                if (channels == 1) {
-                    if constexpr (std::is_same<T, uchar>::value) {
-                        outPtr[x] = static_cast<uchar>(std::min(std::max(sum[0], 0.0), 255.0));
-                    } else if constexpr (std::is_same<T, uint16_t>::value) {
-                        outPtr[x] = static_cast<uint16_t>(std::min(std::max(sum[0], 0.0), 65535.0));
+                // Pixel-Interpolation
+                if constexpr (std::is_same_v<T, uchar> || std::is_same_v<T, uint16_t>) {
+                    float sum = 0.0;
+                    float weightSum = 0.0;
+
+                    for (int n = 0; n < 4; n++) {
+                        int yj = j + n - 1;
+                        if (!inBounds(0, yj))
+                            continue;
+
+                        const T* srcPtr = srcRowPtrs[yj];
+                        for (int m = 0; m < 4; m++) {
+                            int xi = i + m - 1;
+                            if (!inBounds(xi, 0))
+                                continue;
+
+                            float weight = wx[m] * wy[n];
+                            sum += static_cast<float>(srcPtr[xi]) * weight;
+                            weightSum += weight;
+                        }
                     }
-                } else if (channels == 3) {
-                    for (int c = 0; c < 3; c++) {
-                        if constexpr (std::is_same<T, cv::Vec3b>::value) {
+
+                    // Normalisierung um Artefakte zu reduzieren
+                    if (weightSum > 1e-6) {
+                        sum /= weightSum;
+                    }
+
+                    if constexpr (std::is_same_v<T, uchar>) {
+                        outPtr[x] = static_cast<uchar>(std::clamp(sum, 0.0f, 255.0f));
+                    } else {
+                        outPtr[x] = static_cast<uint16_t>(std::clamp(sum, 0.0f, 65535.0f));
+                    }
+
+                } else if constexpr (std::is_same_v<T, cv::Vec3b> || std::is_same_v<T, cv::Vec3w>) {
+                    float sum[3] = {0, 0, 0};
+                    float weightSum = 0.0;
+
+                    for (int n = 0; n < 4; n++) {
+                        int yj = j + n - 1;
+                        if (!inBounds(0, yj))
+                            continue;
+
+                        const T* srcPtr = srcRowPtrs[yj];
+                        for (int m = 0; m < 4; m++) {
+                            int xi = i + m - 1;
+                            if (!inBounds(xi, 0))
+                                continue;
+
+                            float weight = wx[m] * wy[n];
+                            const auto& pixel = srcPtr[xi];
+
+                            for (int c = 0; c < 3; c++) {
+                                sum[c] += static_cast<float>(pixel[c]) * weight;
+                            }
+                            weightSum += weight;
+                        }
+                    }
+
+                    // Normalisierung
+                    if (weightSum > 1e-6) {
+                        for (int c = 0; c < 3; c++) {
+                            sum[c] /= weightSum;
+                        }
+                    }
+
+                    if constexpr (std::is_same_v<T, cv::Vec3b>) {
+                        for (int c = 0; c < 3; c++) {
+                            outPtr[x][c] = static_cast<uchar>(std::clamp(sum[c], 0.0f, 255.0f));
+                        }
+                    } else {
+                        for (int c = 0; c < 3; c++) {
                             outPtr[x][c] =
-                                static_cast<uchar>(std::min(std::max(sum[c], 0.0), 255.0));
-                        } else if constexpr (std::is_same<T, cv::Vec3w>::value) {
-                            outPtr[x][c] =
-                                static_cast<uint16_t>(std::min(std::max(sum[c], 0.0), 65535.0));
+                                static_cast<uint16_t>(std::clamp(sum[c], 0.0f, 65535.0f));
                         }
                     }
                 }
             }
         }
-
-        return rotatedImg(roi).clone();
+        return dstImg(roi).clone();
     }
 };
 

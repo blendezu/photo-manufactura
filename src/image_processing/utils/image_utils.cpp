@@ -9,7 +9,7 @@
 
 #include "color_space.h"
 
-std::tuple<float, float> ImageUtils::caculateMinMax(const cv::Mat& srcImg, int channel) {
+std::tuple<float, float> ImageUtils::calculateMinMax(const cv::Mat& srcImg, int channel) {
     if (srcImg.empty()) {
         std::cerr << "Error in getMinMaxHSL: empty input image\n";
         return {0.0f, 0.0f};
@@ -40,38 +40,53 @@ std::tuple<float, float> ImageUtils::caculateMinMax(const cv::Mat& srcImg, int c
     return {static_cast<float>(minVal), static_cast<float>(maxVal)};
 }
 
-float ImageUtils::caculateBrightWeight(float currVal, float minVal, float maxVal, double underP,
-                                       double upperP) {
-    float underVal = minVal + (maxVal - minVal) * underP;
-    float upperVal = minVal + (maxVal - minVal) * upperP;
-    float weight = 0.0f;
+ImageUtils::WeightParams ImageUtils::precalculateWhiteWeightParams(float minVal, float maxVal,
+                                                                   float underP, float upperP) {
+    ImageUtils::WeightParams params;
+    params.underVal = minVal + (maxVal - minVal) * underP;
+    params.upperVal = minVal + (maxVal - minVal) * upperP;
 
-    if (currVal <= underVal) {
-        weight = 0.0f;
-    } else if (currVal <= upperVal) {
-        float t = (upperVal - currVal) / (upperVal - underVal);
-        weight = 1 - t * t;
-    } else {
-        weight = 1.0f;
-    }
-    return weight;
+    const float range = params.upperVal - params.underVal;
+    params.constantWeight = (range <= 1e-6f);  // to avoid 0 division
+    params.invRange = params.constantWeight ? 0.0f : (1.0f / range);
+    return params;
 }
 
-float ImageUtils::caculateDarkWeight(float currVal, float minVal, float maxVal, double underP,
-                                     double upperP) {
-    float underVal = minVal + (maxVal - minVal) * underP;
-    float upperVal = minVal + (maxVal - minVal) * upperP;
-    float weight = 0.0f;
-
-    if (currVal <= underVal) {
-        weight = 1.0f;
-    } else if (currVal <= upperVal) {
-        float x = (currVal - underP) / (upperVal - underVal);
-        weight = 1 - x * x;
-    } else {
-        weight = 0.0f;
+float ImageUtils::calculateBrightWeight(float currVal, WeightParams params) {
+    if (currVal <= params.underVal) {
+        return 0.0f;
+    } else if (currVal >= params.upperVal) {
+        return 1.0f;
     }
-    return weight;
+
+    const float t = (params.upperVal - currVal) * params.invRange;
+    return fma(-t, t, 1.0f);
+}
+
+ImageUtils::WeightParams ImageUtils::precalculateDarkWeightParams(float minVal, float maxVal,
+                                                                  float underP, float upperP) {
+    ImageUtils::WeightParams params;
+    params.underVal = minVal + (maxVal - minVal) * underP;
+    params.upperVal = minVal + (maxVal - minVal) * upperP;
+
+    const float range = params.upperVal - params.underVal;
+    params.constantWeight = (range <= 1e-6f);  // to avoid 0 division
+    params.invRange = params.constantWeight ? 0.0f : (1.0f / range);
+
+    return params;
+}
+
+float ImageUtils::calculateDarkWeight(float currVal, const WeightParams& params) {
+    if (currVal <= params.underVal) {
+        return 1.0f;
+    }
+
+    if (currVal >= params.upperVal) {
+        return 0.0f;
+    }
+
+    const float x = (currVal - params.underVal) * params.invRange;
+    return fma(-x, x, 1.0f);
 }
 
 cv::Mat ImageUtils::blendScratch(const cv::Mat& srcImg, cv::Mat& scratchImg) {
@@ -101,6 +116,7 @@ cv::Mat ImageUtils::blendScratch(const cv::Mat& srcImg, cv::Mat& scratchImg) {
 }
 
 cv::Mat ImageUtils::setSaturationTo(const cv::Mat& srcImg, float sat) {
+    auto start = std::chrono::high_resolution_clock::now();
     if (srcImg.empty()) {
         std::cerr << "❌Error in setSaturationTo: empty input image\n";
         return cv::Mat();
@@ -116,23 +132,28 @@ cv::Mat ImageUtils::setSaturationTo(const cv::Mat& srcImg, float sat) {
     }
 
     cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
-    cv::Mat dstImgHSL(hslImg.size(), hslImg.type());
+
+    // clang-format off
+    #pragma omp parallel for
+    // clang-format on
 
     for (int y = 0; y < hslImg.rows; y++) {
-        const cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
-        cv::Vec3f* dstPtr = dstImgHSL.ptr<cv::Vec3f>(y);
+        cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
 
         for (int x = 0; x < hslImg.cols; x++) {
             float H = hslPtr[x][0];
             float L = hslPtr[x][2];
 
-            dstPtr[x] = cv::Vec3f(H, sat, L);
+            hslPtr[x] = cv::Vec3f(H, sat, L);
         }
     }
     if (srcImg.depth() == CV_8U) {
-        return ColorSpace::convertHSL2BGR(dstImgHSL, 8);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "set saturation Time: " << duration.count() << " ms" << std::endl;
+        return ColorSpace::convertHSL2BGR(hslImg, 8);
     } else {
-        return ColorSpace::convertHSL2BGR(dstImgHSL, 16);
+        return ColorSpace::convertHSL2BGR(hslImg, 16);
     }
 }
 
@@ -161,14 +182,21 @@ cv::Mat ImageUtils::setVintageWarm(const cv::Mat& srcImg) {
     }
 }
 
-double ImageUtils::calculateCubicWeight(double t) {
-    t = std::abs(t);
+// cv::Mat ImageUtils::copyMakeBorder(const cv::Mat& srcImg, int borderSize) {
+//     if (srcImg.empty()) {
+//         std::cerr << "Error in copyMakeBorder: empty input image\n";
+//         return cv::Mat();
+//     }
+// }
 
-    if (t < 1) {
-        return 1.5 * t * t * t - 2.5 * t * t + 1;
-    } else if (1 <= t && t < 2) {
-        return -0.5 * t * t * t + 2.5 * t * t - 4 * t + 2;
-    } else {
-        return 0;
-    }
-}
+// cv::Mat ImageUtils::gaussianBlur(const cv::Mat& srcImg, int kernelSize, double sigma) {
+//     if (srcImg.empty()) {
+//         std::cerr << "Error in gaussianBlur: empty input image\n";
+//         return cv::Mat();
+//     }
+
+//     if (kernelSize % 2 == 0) {
+//         std::cerr << "Error in gaussianBlur: the kernel size need to be odd\n";
+//         return cv::Mat();
+//     }
+// }

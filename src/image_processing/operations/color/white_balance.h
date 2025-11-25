@@ -1,6 +1,10 @@
+#include <algorithm>
+#include <limits>
+#include <opencv2/core.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/saturate.hpp>
 #include <string>
+#include <vector>
 
 #include "operation_base.h"
 
@@ -30,28 +34,46 @@ class WhiteBalance : public ImageOperation {
     }
 
    private:
-    template <typename V, typename T>
+    template <typename T>
     cv::Mat whiteBalanceTemplate(const cv::Mat& srcImg, float changeFactorR, float changeFactorB) {
         if (srcImg.channels() != 3) {
             std::cerr << "Error in WhiteBalance: empty input image\n";
             return cv::Mat();
         }
 
-        cv::Mat dstImg(srcImg.size(), srcImg.type());  // output image
+        cv::Mat dstImg(srcImg.size(), srcImg.type());
 
+        // LUT size
+        int maxRange = std::numeric_limits<T>::max();
+        int lutSize = maxRange + 1;
+
+        // create LUT
+        std::vector<T> lutB(lutSize);
+        std::vector<T> lutR(lutSize);
+
+// LUT calculate
+#pragma omp parallel for
+        for (int i = 0; i < lutSize; i++) {
+            float valB = i * changeFactorB;
+            float valR = i * changeFactorR;
+
+            lutB[i] = static_cast<T>(std::clamp(valB, 0.0f, static_cast<float>(maxRange)));
+            lutR[i] = static_cast<T>(std::clamp(valR, 0.0f, static_cast<float>(maxRange)));
+        }
+
+        int len = srcImg.cols * 3;
+
+#pragma omp parallel for
         for (int y = 0; y < srcImg.rows; y++) {
-            const V* srcPtr = srcImg.ptr<V>(y);
-            V* dstPtr = dstImg.ptr<V>(y);
+            const T* srcPtr = srcImg.ptr<T>(y);
+            T* dstPtr = dstImg.ptr<T>(y);
 
-            for (int x = 0; x < srcImg.cols; x++) {
-                T B = srcPtr[x][0];
-                T G = srcPtr[x][1];
-                T R = srcPtr[x][2];
+            for (int i = 0; i < len; i += 3) {
+                dstPtr[i] = lutB[srcPtr[i]];  // B
 
-                T newB = cv::saturate_cast<T>(B * changeFactorB);
-                T newR = cv::saturate_cast<T>(R * changeFactorR);
+                dstPtr[i + 1] = srcPtr[i + 1];  // G
 
-                dstPtr[x] = V(newB, G, newR);
+                dstPtr[i + 2] = lutR[srcPtr[i + 2]];  // R
             }
         }
         return dstImg;

@@ -8,14 +8,26 @@
 #include <tuple>
 
 class ImageUtils {
+   private:
+    struct WeightParams {
+        float underVal;
+        float upperVal;
+        float invRange;
+        bool constantWeight;
+    };
+
    public:
-    static std::tuple<float, float> caculateMinMax(const cv::Mat& scrImg, int channel);
+    static std::tuple<float, float> calculateMinMax(const cv::Mat& scrImg, int channel);
 
-    static float caculateBrightWeight(float currVal, float minVal, float maxVal, double underP,
-                                      double upperP);
+    static WeightParams precalculateWhiteWeightParams(float minVal, float maxVal, float underP,
+                                                      float upperP);
 
-    static float caculateDarkWeight(float currVal, float minVal, float maxVal, double underP,
-                                    double upperP);
+    static float calculateBrightWeight(float currVal, WeightParams params);
+
+    static WeightParams precalculateDarkWeightParams(float minVal, float maxVal, float underP,
+                                                     float upperP);
+
+    static float calculateDarkWeight(float currVal, const WeightParams& params);
 
     static cv::Mat blendScratch(const cv::Mat& srcImg, cv::Mat& scratchImg);
 
@@ -23,7 +35,21 @@ class ImageUtils {
 
     static cv::Mat setVintageWarm(const cv::Mat& srcImg);
 
-    static double calculateCubicWeight(double t);
+    static inline float calculateCubicWeight(double t) {
+        t = std::abs(t);
+
+        if (t < 1) {
+            return 1.5 * t * t * t - 2.5 * t * t + 1;
+        } else if (1 <= t && t < 2) {
+            return -0.5 * t * t * t + 2.5 * t * t - 4 * t + 2;
+        } else {
+            return 0;
+        }
+    }
+
+    static cv::Mat gaussianBlur(const cv::Mat& srcImg, int kernelSize, double sigma);
+
+    static cv::Mat copyMakeBorder(const cv::Mat& srcImg, int borderSize);
 
    private:
     template <typename T>
@@ -43,8 +69,9 @@ class ImageUtils {
 
         cv::Mat dstImg = srcImg.clone();  // output image
 
+#pragma omp parallel for
         for (int y = 0; y < srcImg.rows; y++) {
-            const T* srcPtr = srcImg.ptr<T>(y);
+            // const T* srcPtr = srcImg.ptr<T>(y);
             const cv::Vec3b* scratchPtr = scratchImg.ptr<cv::Vec3b>(y);
             T* dstPtr = dstImg.ptr<T>(y);
 
@@ -89,23 +116,25 @@ class ImageUtils {
 
         cv::Mat dstImg = srcImg.clone();  // output image
 
+        int white = 0;
+        (srcImg.depth() == CV_16U) ? white = 65000 : white = 205;
+
+#pragma omp parallel for
         for (int y = 0; y < srcImg.rows; y++) {
-            const T* srcPtr = srcImg.ptr<T>(y);
             const uchar* scratchPtr = scratchImg.ptr<uchar>(y);
             T* dstPtr = dstImg.ptr<T>(y);
 
             for (int x = 0; x < srcImg.cols; x++) {
                 if (scratchPtr[x] > 200) {
                     if (srcImg.depth() == CV_16U) {
-                        ushort white = 65000;
                         dstPtr[x] = white;
                     } else {
-                        uchar white = 250;
                         dstPtr[x] = white;
                     }
                 }
             }
         }
+
         return dstImg;
     }
 
@@ -116,14 +145,15 @@ class ImageUtils {
         int maxRange = 0;
         (srcImg.depth() == CV_16U) ? maxRange = 65535 : maxRange = 255;
 
+#pragma omp parallel for
         for (int y = 0; y < srcImg.rows; y++) {
             const T* srcPtr = srcImg.ptr<T>(y);
             T* dstPtr = dstImg.ptr<T>(y);
 
             for (int x = 0; x < srcImg.cols; x++) {
-                int B = srcPtr[x][0] * 0.9;
-                int G = srcPtr[x][1] * 1.05;
-                int R = srcPtr[x][2] * 1.1;
+                int B = srcPtr[x][0] * 992 >> 10;
+                int G = srcPtr[x][1] * 1075 >> 10;
+                int R = srcPtr[x][2] * 1126 >> 10;
 
                 B = std::clamp(B, 0, maxRange);
                 G = std::clamp(G, 0, maxRange);
