@@ -30,8 +30,8 @@ void ImagePipeline::addOperation(std::shared_ptr<ImageOperation> operation) {
     undoneOperations.clear();  // delete Redo history when new operation
     invalidateCache();
 
-    std::cout << "Operation added: " << operation->getName() << " (Total: )" << operations.size()
-              << std::endl;
+    std::cout << "Operation added: " << operation->getName() << " (Total: " << operations.size()
+              << ")" << std::endl;
 }
 
 void ImagePipeline::insertOperation(int index, std::shared_ptr<ImageOperation> operation) {
@@ -60,7 +60,6 @@ void ImagePipeline::removeOperation(int index) {
 
     std::string opName = operations[index]->getName();
     operations.erase(operations.begin() + index);
-    undoneOperations.clear();
     invalidateCache();
 
     std::cout << "Operation removed at " << index << ": " << opName << std::endl;
@@ -70,7 +69,6 @@ void ImagePipeline::clearOperations() {
     if (!operations.empty()) {
         std::cout << "Clearing all operations (" << operations.size() << " total)" << std::endl;
         operations.clear();
-        undoneOperations.clear();
         invalidateCache();
     }
 }
@@ -93,14 +91,10 @@ std::shared_ptr<ImageOperation> ImagePipeline::getOperation(int index) {
 
 void ImagePipeline::setLiveOperation(std::shared_ptr<ImageOperation> operation) {
     liveOperation = operation;
-    invalidateCache();
 }
 
-void ImagePipeline::clearLiveOperation() {
-    if (liveOperation) {
-        liveOperation = nullptr;
-        invalidateCache();
-    }
+void ImagePipeline::clearLiveOperations() {
+    liveOperation = nullptr;
 }
 
 cv::Mat ImagePipeline::process() {
@@ -109,12 +103,26 @@ cv::Mat ImagePipeline::process() {
         return cv::Mat();
     }
 
-    // apply cache when necessary
-    if (cacheValid && !cachedResult.empty()) {
+    // ✅ Cache für normale Operationen (ohne Live-Op)
+    if (cacheValid && !cachedResult.empty() && !liveOperation) {
         return cachedResult.clone();
     }
 
-    // Pipeline evoke
+    // ✅ OPTIMIERT: Cache für Vorschau (mit Live-Op) - NUR Live-Op wird berechnet!
+    if (cacheValid && !cachedResult.empty() && liveOperation) {
+        cv::Mat result = cachedResult.clone();
+
+        cv::Mat previous = result.clone();
+        result = liveOperation->apply(result);
+
+        if (result.empty()) {
+            std::cerr << "Error: Live operation returned empty image" << std::endl;
+            return previous;
+        }
+        return result;  // ⚡ Nur Live-Op auf Cache angewendet!
+    }
+
+    // ❌ Cache ungültig - normale Berechnung
     cv::Mat result = originalImg.clone();
 
     try {
@@ -136,7 +144,7 @@ cv::Mat ImagePipeline::process() {
             }
         }
 
-        // Live-Operation aplly if active
+        // Live-Operation apply if active
         if (liveOperation) {
             cv::Mat previous = result.clone();
             result = liveOperation->apply(result);
@@ -232,7 +240,7 @@ void ImagePipeline::invalidateCache() {
 void ImagePipeline::updateCache(const cv::Mat& result) {
     if (!result.empty()) {
         cachedResult = result.clone();
-        cachedResult = true;
+        cacheValid = true;
     }
 }
 

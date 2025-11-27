@@ -2,6 +2,7 @@
 
 #include <opencv2/core/hal/interface.h>
 
+#include <chrono>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -11,16 +12,26 @@
 #include "image_utils.h"
 
 cv::Mat Vintage1::apply(const cv::Mat& srcImg) {
+    auto start = std::chrono::high_resolution_clock::now();
     if (srcImg.empty()) {
         std::cerr << "Error in Vintage1: empty input image\n";
         return cv::Mat();
     }
 
-    cv::Mat scratchImg = cv::imread("images/9003.jpg");
+    // reduce image saturation
+
     cv::Mat satReducedImg = ImageUtils::setSaturationTo(srcImg, 0.0f);
+
+    // add scratch image
+
     cv::Mat blendedImg = ImageUtils::blendScratch(satReducedImg, scratchImg);
+
+    // if color image, make it warm
     if (srcImg.channels() == 3) {
         cv::Mat warmImg = ImageUtils::setVintageWarm(blendedImg);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "load img Time: " << duration.count() << " ms" << std::endl;
         return warmImg;
     } else {
         return blendedImg;

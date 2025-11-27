@@ -1,5 +1,8 @@
 #include "crop.h"
 
+#include <opencv2/core/hal/interface.h>
+
+#include <opencv2/core.hpp>
 #include <stdexcept>
 
 cv::Mat Crop::apply(const cv::Mat& srcImg) {
@@ -13,7 +16,24 @@ cv::Mat Crop::apply(const cv::Mat& srcImg) {
                   roi.y + roi.height <= srcImg.rows;
 
     if (inside) {
-        return srcImg(roi).clone();
+        switch (srcImg.type()) {
+            case CV_8UC1:
+                return cropTemplate<uchar>(srcImg);
+
+            case CV_8UC3:
+                return cropTemplate<cv::Vec3b>(srcImg);
+
+            case CV_16UC1:
+                return cropTemplate<uint16_t>(srcImg);
+
+            case CV_16UC3:
+                return cropTemplate<cv::Vec3w>(srcImg);
+
+            default:
+                std::cerr << "Error in Crop: unsupported image type\n";
+                return cv::Mat();
+        }
+
     } else {
         std::cerr << "Error in cropImg: the roi area is not valid\n";
         return cv::Mat();
