@@ -6,6 +6,7 @@
 #include <opencv2/core/mat.hpp>
 #include <string>
 
+#include "image_utils.h"
 #include "operation_base.h"
 
 class AdjustHighlight : public ImageOperation {
@@ -34,23 +35,6 @@ class AdjustHighlight : public ImageOperation {
     }
 
    private:
-    float caculateWeight(float currL, float minL, float maxL) {
-        float topL = minL + 0.7f * (maxL - minL);
-        float midL = minL + 0.4f * (maxL - minL);
-
-        float weight = 0.0f;
-
-        if (currL >= topL) {
-            weight = 1.0f;
-        } else if (currL >= midL) {
-            float t = (currL - midL) / (topL - midL);
-            weight = t * t * (3 - 2 * t);
-        } else {
-            weight = 0.0f;
-        }
-        return weight;
-    }
-
     template <typename T>
     cv::Mat highlightGrayImgTemplate(const cv::Mat srcImg, float changeFactor) {
         if (srcImg.empty()) {
@@ -63,31 +47,39 @@ class AdjustHighlight : public ImageOperation {
         }
 
         cv::Mat dstImg(srcImg.size(), srcImg.type());  // output image
-        float rangeMax = 0.0f;
+        float maxRange = 0.0f;
+        float invMaxRange = 0.0f;  // --> to avoid division in the for loop
         if (srcImg.depth() == CV_8U) {
-            rangeMax = 255.0f;
+            maxRange = 255.0f;
+            invMaxRange = 1 / maxRange;
         } else {
-            rangeMax = 65535.0f;
+            maxRange = 65535.0f;
+            invMaxRange = 1 / maxRange;
         }
 
-        double imgMin, imgMax;
-        cv::minMaxLoc(srcImg, &imgMin, &imgMax);
+        // find min max value to calculate weight
+        auto minMaxVal = ImageUtils::calculateMinMax(srcImg, 0);
+        float minL = std::get<0>(minMaxVal);
+        float maxL = std::get<1>(minMaxVal);
 
-        float minL = imgMin / rangeMax;
-        float maxL = imgMax / rangeMax;
+        auto weightParams = ImageUtils::precalculateWhiteWeightParams(minL, maxL, 0.4f, 0.7f);
+
+        // clang-format off
+        #pragma omp parallel for
+        // clang-format on
 
         for (int y = 0; y < srcImg.rows; y++) {
-            const T* srcPtr = srcImg.ptr<T>(y);
-            T* dstPtr = dstImg.ptr<T>(y);
+            const T* __restrict srcPtr = srcImg.ptr<T>(y);
+            T* __restrict dstPtr = dstImg.ptr<T>(y);
 
             for (int x = 0; x < srcImg.cols; x++) {
-                float normedValue = srcPtr[x] / rangeMax;
-                float weight = caculateWeight(normedValue, minL, maxL);
+                float currVal = srcPtr[x] * invMaxRange;
+                float weight = ImageUtils::calculateBrightWeight(currVal, weightParams);
 
                 float deltaL = weight * changeFactor;
-                float newL = std::clamp(normedValue + deltaL, 0.0f, 1.0f);
+                float newL = std::clamp(currVal + deltaL, 0.0f, 1.0f);
 
-                dstPtr[x] = static_cast<T>(newL * rangeMax);
+                dstPtr[x] = static_cast<T>(newL * maxRange);
             }
         }
         return dstImg;

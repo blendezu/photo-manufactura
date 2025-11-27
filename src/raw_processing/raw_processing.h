@@ -9,7 +9,7 @@ class RawProcessing {
     RawProcessing() = default;
     ~RawProcessing() = default;
 
-    cv::Mat getRawImg(const std::string& raw_path);
+    static cv::Mat loadRawImg(const std::string& raw_path);
 };
 
 #endif  // RAW_PROCESSING_H
