@@ -3,51 +3,69 @@
 #include <QAction>
 #include <QApplication>
 #include <QFileDialog>
-
-#include "widgets/canvasWidget.h"
+#include <QMessageBox>
 
 SubMenuFile::SubMenuFile(QWidget* parent) : QMenu(parent) {
     this->setTitle("File");
 
-    QAction* newAction = new QAction("New", this);
-    QAction* openAction = new QAction("Open", this);
-    QAction* saveAction = new QAction("Save", this);
-    QAction* exitAction = new QAction("Exit", this);
-    QAction* someAction = new QAction();
+    // Create actions with shortcuts
+    newAction = new QAction("New", this);
+    newAction->setShortcut(QKeySequence::New);
 
-    // TODO : Export to ApplicationController for handling actions
+    openAction = new QAction("Open...", this);
+    openAction->setShortcut(QKeySequence::Open);
+
+    saveAction = new QAction("Save", this);
+    saveAction->setShortcut(QKeySequence::Save);
+
+    exitAction = new QAction("Exit", this);
+    exitAction->setShortcut(QKeySequence::Quit);
+
+    // Connect actions to slots
+    connect(newAction, &QAction::triggered, this, &SubMenuFile::onNewTriggered);
+    connect(openAction, &QAction::triggered, this, &SubMenuFile::onOpenTriggered);
+    connect(saveAction, &QAction::triggered, this, &SubMenuFile::onSaveTriggered);
+    connect(exitAction, &QAction::triggered, this, &SubMenuFile::onExitTriggered);
+
+    // Add actions to menu
     this->addAction(newAction);
     this->addAction(openAction);
     this->addAction(saveAction);
     this->addSeparator();
     this->addAction(exitAction);
-
-    // TODO: Connect actions to slots
-    connect(newAction, &QAction::triggered, this, &SubMenuFile::onNewTriggered);
-    connect(openAction, &QAction::triggered, this, &SubMenuFile::onOpenTriggered);
-    connect(saveAction, &QAction::triggered, this, &SubMenuFile::onSaveTriggered);
-    connect(exitAction, &QAction::triggered, qApp, &QApplication::quit);
 }
 
 SubMenuFile::~SubMenuFile() {}
 
-void SubMenuFile::onNewTriggered() {}
+void SubMenuFile::onNewTriggered() {
+    // TODO: Connect to ApplicationController to create new document
+    QMessageBox::information(this, tr("New"), tr("New document functionality coming soon!"));
+}
+
 void SubMenuFile::onOpenTriggered() {
     // Open file dialog
     QString fileName = QFileDialog::getOpenFileName(
-        this, tr("Open File"), "", tr("Images (*.png *.xpm *.jpg);;All Files (*)"));
+        this, tr("Open Image"), "",
+        tr("Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.raw *.cr2 *.nef);;All Files (*)"));
 
     if (!fileName.isEmpty()) {
+        // TODO: Connect to ApplicationController to load image
+        QMessageBox::information(this, tr("Open"), tr("Opening: %1").arg(fileName));
     }
 }
 
 void SubMenuFile::onSaveTriggered() {
     // Open file dialog for saving
     QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Save File"), "", tr("Images (*.png *.xpm *.jpg);;All Files (*)"));
+        this, tr("Save Image"), "",
+        tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif *.tiff);;All Files (*)"));
+
     if (!fileName.isEmpty()) {
-        // Save the current canvasWidget content to the selected file
-        // TODO: Implement saveImage functionality
-        // canvasWidget->saveImage(fileName);
+        // TODO: Connect to ApplicationController to save image
+        QMessageBox::information(this, tr("Save"), tr("Saving to: %1").arg(fileName));
     }
+}
+
+void SubMenuFile::onExitTriggered() {
+    QApplication::quit();
 }

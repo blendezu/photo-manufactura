@@ -10,8 +10,16 @@ class InfoPanel : public QWidget {
     explicit InfoPanel(QWidget* parent = nullptr);
     ~InfoPanel();
 
+    void updateImageInfo(const QString& filePath, int width, int height, const QString& format);
+    void clearInfo();
+
    private:
-    // Private members and methods can be added here
-    QLabel* imageLabel;
-    QVBoxLayout* layout;
+    void setupUI();
+
+    QVBoxLayout* m_mainLayout;
+    QLabel* m_titleLabel;
+    QLabel* m_filePathLabel;
+    QLabel* m_dimensionsLabel;
+    QLabel* m_formatLabel;
+    QLabel* m_histogramPlaceholder;
 };

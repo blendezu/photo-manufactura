@@ -1,70 +1,143 @@
 # ============================================================
-# UI Component
+# Photo Manufactura - UI Component
+# ============================================================
 # Can be built standalone (app) or as a submodule (library)
 # ============================================================
 
 cmake_minimum_required(VERSION 3.21)
 
-# Detect if built standalone
+# ============================================================
+# Detect Build Mode
+# ============================================================
 set(STANDALONE_BUILD OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(STANDALONE_BUILD ON)
 endif()
 
+# ============================================================
+# Project Configuration (Standalone Only)
+# ============================================================
 if(STANDALONE_BUILD)
-    project(ui_component VERSION 1.0.0 LANGUAGES CXX)
+    project(ui_component 
+        VERSION 1.0.0 
+        LANGUAGES CXX
+        DESCRIPTION "Photo Manufactura UI Component"
+    )
 
+    # C++ Standard
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-    # Qt tools for MOC, UIC, RCC
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-    set(CMAKE_AUTOUIC ON)
+    # Qt Meta-Object Compiler
+    set(CMAKE_AUTOMOC ON)  # Automatically run moc on Qt classes
+    set(CMAKE_AUTORCC ON)  # Automatically compile .qrc files
+    set(CMAKE_AUTOUIC ON)  # Automatically compile .ui files
 endif()
 
 # ============================================================
-# Find Qt dependencies
+# Dependencies
 # ============================================================
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
+find_package(Qt6 REQUIRED COMPONENTS 
+    Core 
+    Gui 
+    Widgets 
+    OpenGL 
+    OpenGLWidgets
+)
 
 # ============================================================
-# UI Library
+# UI Library Target
 # ============================================================
 add_library(ui STATIC)
 
-target_sources(ui PRIVATE
-    mainwindow.cpp
+# ------------------------------------------------------------
+# Source Files Organization
+# ------------------------------------------------------------
+set(MAIN_SOURCES
     mainwindow.h
-    bar/toolBar.cpp
+    mainwindow.cpp
+)
+
+set(BAR_SOURCES
     bar/toolBar.h
-    bar/subMenuFile.cpp
+    bar/toolBar.cpp
     bar/subMenuFile.h
-    panel/infoPanel.cpp
+    bar/subMenuFile.cpp
+    bar/subMenuEdit.h
+    bar/subMenuEdit.cpp
+    bar/subMenuView.h
+    bar/subMenuView.cpp
+)
+
+set(PANEL_SOURCES
     panel/infoPanel.h
-    panel/toolPanel.cpp
+    panel/infoPanel.cpp
     panel/toolPanel.h
-    widgets/canvasWidget.cpp
+    panel/toolPanel.cpp
+)
+
+set(WIDGET_SOURCES
     widgets/canvasWidget.h
+    widgets/canvasWidget.cpp
+    widgets/collapsibleWidget.h
+    widgets/collapsibleWidget.cpp
+    widgets/labeledSlider.h
+    widgets/labeledSlider.cpp
+    widgets/styleSheet.h
+    widgets/styleSheet.cpp
+    widgets/themeManager.h
+    widgets/themeManager.cpp
 )
 
+set(RESOURCE_SOURCES
+    resources/resources.qrc
+)
+
+# Add all sources to target
+target_sources(ui PRIVATE
+    ${MAIN_SOURCES}
+    ${BAR_SOURCES}
+    ${PANEL_SOURCES}
+    ${WIDGET_SOURCES}
+    ${RESOURCE_SOURCES}
+)
+
+# ------------------------------------------------------------
+# Include Directories
+# ------------------------------------------------------------
 target_include_directories(ui PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bar>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/panel>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets>
+    $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(ui PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
+# ------------------------------------------------------------
+# Link Libraries
+# ------------------------------------------------------------
+target_link_libraries(ui PUBLIC 
+    Qt6::Core 
+    Qt6::Gui 
+    Qt6::Widgets 
+    Qt6::OpenGL 
+    Qt6::OpenGLWidgets
+)
 
 # ============================================================
-# Standalone Executable
+# Standalone Executable (Optional)
 # ============================================================
 if(STANDALONE_BUILD)
+    # Create executable
     add_executable(ui_main
         ui_main.cpp
     )
 
+    # Link with UI library
     target_link_libraries(ui_main PRIVATE ui)
 
+    # Output directory
     set_target_properties(ui_main PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
