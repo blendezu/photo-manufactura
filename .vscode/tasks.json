@@ -171,7 +171,7 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Configure UI component CMake" 
+            "detail": "Configure Raw Processing component CMake"
         },
         {
             "label": "Build Raw Processing Component",
@@ -191,19 +191,19 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Build UI component independently",
+            "detail": "Build Raw Processing component independently",
             "dependsOn": "Configure Raw Processing Component"
         },
         {
             "label": "Launch Raw Processing Component",
             "type": "shell",
-            "command": "./build/bin/test_mainwindow",
+            "command": "./build/bin/raw_processing_main",
             "group": "test",
             "options": {
-                "cwd": "${workspaceFolder}/src/ui"
+                "cwd": "${workspaceFolder}/src/raw_processing"
             },
             "dependsOn": "Build Raw Processing Component",
-            "detail": "Launch Raw Processing Components"
-        },
+            "detail": "Launch Raw Processing Component"
+        }
     ]
 }
