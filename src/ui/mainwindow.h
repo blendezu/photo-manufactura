@@ -41,6 +41,8 @@ class MainWindow : public QMainWindow {
     SubMenuEdit* m_editMenu;
     SubMenuView* m_viewMenu;
 
+    // TODO: MOVE TO CONTROLLER: m_currentFilePath should be managed by ApplicationController state
+    // Use ApplicationController::getState("currentFile") instead
     // Current file
     QString m_currentFilePath;
 };
