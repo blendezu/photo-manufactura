@@ -2,6 +2,9 @@
 
 #include <QAction>
 #include <QDockWidget>
+#include <QFileInfo>
+#include <QImageReader>
+#include <QImageWriter>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -25,6 +28,7 @@ MainWindow::MainWindow(QWidget* parent)
     setupUi();
     setupMenuBar();
     setupDockPanels();
+    setupConnections();
 }
 
 MainWindow::~MainWindow() {
@@ -73,4 +77,42 @@ void MainWindow::setupDockPanels() {
     m_infoPanel = new InfoPanel(this);
     infoDock->setWidget(m_infoPanel);
     addDockWidget(Qt::RightDockWidgetArea, infoDock);
+}
+
+void MainWindow::setupConnections() {
+    // Connect File Menu signals to MainWindow slots
+    connect(m_fileMenu, &SubMenuFile::imageLoaded, this, &MainWindow::loadImage);
+    connect(m_fileMenu, &SubMenuFile::imageSaveRequested, this, &MainWindow::saveImage);
+}
+
+void MainWindow::loadImage(const QString& filePath) {
+    QImage image(filePath);
+
+    if (image.isNull()) {
+        QMessageBox::warning(this, tr("Error"), tr("Failed to load image: %1").arg(filePath));
+        return;
+    }
+
+    // Store current file path
+    m_currentFilePath = filePath;
+
+    // Display image on canvas
+    m_canvasWidget->setImage(image);
+    m_canvasWidget->zoomToFit();
+
+    // Update info panel with image metadata
+    QFileInfo fileInfo(filePath);
+    m_infoPanel->updateImageInfo(fileInfo.fileName(), image.width(), image.height(),
+                                 fileInfo.suffix().toUpper());
+
+    // Update window title
+    setWindowTitle(tr("Photo Manufactura - %1").arg(fileInfo.fileName()));
+}
+
+void MainWindow::saveImage(const QString& filePath) {
+    // TODO: Implement save using processed image from pipeline
+    // For now, show placeholder message
+    QMessageBox::information(
+        this, tr("Save"),
+        tr("Save functionality will be connected to ImagePipeline.\nPath: %1").arg(filePath));
 }

@@ -49,20 +49,24 @@ void SubMenuFile::onOpenTriggered() {
         tr("Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.raw *.cr2 *.nef);;All Files (*)"));
 
     if (!fileName.isEmpty()) {
-        // TODO: Connect to ApplicationController to load image
-        QMessageBox::information(this, tr("Open"), tr("Opening: %1").arg(fileName));
+        m_currentFilePath = fileName;
+        emit imageLoaded(fileName);
     }
 }
 
 void SubMenuFile::onSaveTriggered() {
-    // Open file dialog for saving
-    QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Save Image"), "",
-        tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif *.tiff);;All Files (*)"));
+    // If no current file, prompt for save location
+    if (m_currentFilePath.isEmpty()) {
+        QString fileName = QFileDialog::getSaveFileName(
+            this, tr("Save Image"), "",
+            tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif *.tiff);;All Files (*)"));
 
-    if (!fileName.isEmpty()) {
-        // TODO: Connect to ApplicationController to save image
-        QMessageBox::information(this, tr("Save"), tr("Saving to: %1").arg(fileName));
+        if (!fileName.isEmpty()) {
+            m_currentFilePath = fileName;
+            emit imageSaveRequested(fileName);
+        }
+    } else {
+        emit imageSaveRequested(m_currentFilePath);
     }
 }
 

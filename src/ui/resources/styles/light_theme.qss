@@ -53,7 +53,7 @@ QSlider::groove:horizontal {
 }
 
 QSlider::handle:horizontal {
-    background: #0078d4;
+    background: #ffdd00;
     width: 14px;
     height: 14px;
     margin: -4px 0;
@@ -65,7 +65,7 @@ QSlider::handle:horizontal:hover {
 }
 
 QSlider::sub-page:horizontal {
-    background: #0078d4;
+    background: #ffdd00;
     border-radius: 3px;
 }
 
