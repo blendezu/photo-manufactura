@@ -61,4 +61,6 @@ void InfoPanel::clearInfo() {
     m_filePathLabel->setText(tr("File: None"));
     m_dimensionsLabel->setText(tr("Dimensions: N/A"));
     m_formatLabel->setText(tr("Format: N/A"));
+    m_histogramPlaceholder->setText(tr("Histogram will appear here"));
+
 }

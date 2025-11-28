@@ -10,6 +10,10 @@ class SubMenuFile : public QMenu {
     explicit SubMenuFile(QWidget* parent = nullptr);
     ~SubMenuFile();
 
+   signals:
+    void imageLoaded(const QString& filePath);
+    void imageSaveRequested(const QString& filePath);
+
    private slots:
     void onNewTriggered();
     void onOpenTriggered();
@@ -21,4 +25,6 @@ class SubMenuFile : public QMenu {
     QAction* openAction;
     QAction* saveAction;
     QAction* exitAction;
+
+    QString m_currentFilePath;
 };

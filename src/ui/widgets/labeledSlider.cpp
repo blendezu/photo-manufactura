@@ -11,7 +11,7 @@ LabeledSlider::LabeledSlider(const QString& label, int min, int max, int default
 
     // Label
     m_label = new QLabel(label, this);
-    m_label->setStyleSheet("font-weight: bold; color: #cccccc;");
+    m_label->setStyleSheet("font-weight: bold; color: #d61818ff;");
 
     // Horizontal layout for slider and spinbox
     QHBoxLayout* controlLayout = new QHBoxLayout();
