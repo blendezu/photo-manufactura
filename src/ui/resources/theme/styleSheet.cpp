@@ -21,11 +21,11 @@ QString StyleSheet::loadQssFile(const QString& resourcePath) {
 QString StyleSheet::loadTheme(Theme theme) {
     switch (theme) {
         case Theme::Dark:
-            return loadQssFile(":/styles/styles/dark_theme.qss");
+            return loadQssFile(":/styles/dark_theme.qss");
         case Theme::Light:
-            return loadQssFile(":/styles/styles/light_theme.qss");
+            return loadQssFile(":/styles/light_theme.qss");
         default:
-            return loadQssFile(":/styles/styles/dark_theme.qss");
+            return loadQssFile(":/styles/dark_theme.qss");
     }
 }
 

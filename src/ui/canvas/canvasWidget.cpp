@@ -61,13 +61,13 @@ void CanvasWidget::initializeGL() {
 void CanvasWidget::setupShaders() {
     m_shaderProgram = new QOpenGLShaderProgram(this);
 
-    // Vertex shader
+    // Vertex shader (GLSL 120 for macOS compatibility)
     const char* vertexShaderSource = R"(
-        #version 330 core
-        layout (location = 0) in vec3 aPos;
-        layout (location = 1) in vec2 aTexCoord;
+        #version 120
+        attribute vec3 aPos;
+        attribute vec2 aTexCoord;
         
-        out vec2 TexCoord;
+        varying vec2 TexCoord;
         
         uniform mat4 u_mvpMatrix;
         
@@ -77,21 +77,24 @@ void CanvasWidget::setupShaders() {
         }
     )";
 
-    // Fragment shader
+    // Fragment shader (GLSL 120 for macOS compatibility)
     const char* fragmentShaderSource = R"(
-        #version 330 core
-        out vec4 FragColor;
-        
-        in vec2 TexCoord;
+        #version 120
+        varying vec2 TexCoord;
         uniform sampler2D u_texture;
         
         void main() {
-            FragColor = texture(u_texture, TexCoord);
+            gl_FragColor = texture2D(u_texture, TexCoord);
         }
     )";
 
     m_shaderProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
     m_shaderProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
+
+    // Bind attribute locations before linking
+    m_shaderProgram->bindAttributeLocation("aPos", 0);
+    m_shaderProgram->bindAttributeLocation("aTexCoord", 1);
+
     m_shaderProgram->link();
 
     if (!m_shaderProgram->isLinked()) {

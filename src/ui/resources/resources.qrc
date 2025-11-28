@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/styles">
+    <qresource prefix="/">
         <file>styles/dark_theme.qss</file>
         <file>styles/light_theme.qss</file>
     </qresource>
