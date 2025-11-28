@@ -2,7 +2,7 @@
 
 #include <QActionGroup>
 
-#include "../widgets/themeManager.h"
+#include "../resources/theme/themeManager.h"
 
 SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     this->setTitle("View");

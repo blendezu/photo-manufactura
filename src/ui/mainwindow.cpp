@@ -12,10 +12,10 @@
 #include "bar/subMenuEdit.h"
 #include "bar/subMenuFile.h"
 #include "bar/subMenuView.h"
+#include "canvas/canvasWidget.h"
 #include "panel/infoPanel.h"
 #include "panel/toolPanel.h"
-#include "widgets/canvasWidget.h"
-#include "widgets/themeManager.h"
+#include "resources/theme/themeManager.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
