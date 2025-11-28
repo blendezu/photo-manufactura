@@ -78,16 +78,22 @@ set(PANEL_SOURCES
 )
 
 set(WIDGET_SOURCES
-    widgets/canvasWidget.h
-    widgets/canvasWidget.cpp
     widgets/collapsibleWidget.h
     widgets/collapsibleWidget.cpp
     widgets/labeledSlider.h
     widgets/labeledSlider.cpp
-    widgets/styleSheet.h
-    widgets/styleSheet.cpp
-    widgets/themeManager.h
-    widgets/themeManager.cpp
+)
+
+set(CANVAS_SOURCES
+    canvas/canvasWidget.h
+    canvas/canvasWidget.cpp
+)
+
+set(THEME_SOURCES
+    resources/theme/styleSheet.h
+    resources/theme/styleSheet.cpp
+    resources/theme/themeManager.h
+    resources/theme/themeManager.cpp
 )
 
 set(RESOURCE_SOURCES
@@ -100,6 +106,8 @@ target_sources(ui PRIVATE
     ${BAR_SOURCES}
     ${PANEL_SOURCES}
     ${WIDGET_SOURCES}
+    ${CANVAS_SOURCES}
+    ${THEME_SOURCES}
     ${RESOURCE_SOURCES}
 )
 
@@ -109,8 +117,10 @@ target_sources(ui PRIVATE
 target_include_directories(ui PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bar>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/panel>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/resources/theme>
     $<INSTALL_INTERFACE:include>
 )
 
