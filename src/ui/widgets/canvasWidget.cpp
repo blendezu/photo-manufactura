@@ -185,6 +185,13 @@ void CanvasWidget::paintGL() {
 }
 
 void CanvasWidget::zoomIn() {
+    // TODO: MOVE TO CONTROLLER: Zoom state management should be handled by
+    // ApplicationController::zoomIn() The controller should handle:
+    //   1. Managing zoom level state via setState("zoomLevel", value)
+    //   2. Enforcing zoom limits (MIN_ZOOM, MAX_ZOOM)
+    //   3. Emitting zoomChanged signal for other UI components
+    // The CanvasWidget should receive zoom level from controller and only handle rendering
+
     m_zoomFactor = qMin(m_zoomFactor * ZOOM_STEP, MAX_ZOOM);
     updateMatrices();
     update();
@@ -192,6 +199,9 @@ void CanvasWidget::zoomIn() {
 }
 
 void CanvasWidget::zoomOut() {
+    // TODO: MOVE TO CONTROLLER: Zoom state management should be handled by
+    // ApplicationController::zoomOut() See zoomIn() comments for details
+
     m_zoomFactor = qMax(m_zoomFactor / ZOOM_STEP, MIN_ZOOM);
     updateMatrices();
     update();
@@ -199,6 +209,13 @@ void CanvasWidget::zoomOut() {
 }
 
 void CanvasWidget::zoomToFit() {
+    // TODO: MOVE TO CONTROLLER: Fit-to-window calculation should be handled by
+    // ApplicationController::fitToWindow() The controller should handle:
+    //   1. Getting image dimensions from DocumentManager
+    //   2. Calculating appropriate zoom level
+    //   3. Updating zoom state
+    // The CanvasWidget should receive the calculated zoom level from controller
+
     if (m_imageSize.isEmpty())
         return;
 

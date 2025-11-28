@@ -26,5 +26,7 @@ class SubMenuFile : public QMenu {
     QAction* saveAction;
     QAction* exitAction;
 
+    // TODO: MOVE TO CONTROLLER: m_currentFilePath should be managed by ApplicationController state
+    // Use ApplicationController::getState("currentFile") instead
     QString m_currentFilePath;
 };

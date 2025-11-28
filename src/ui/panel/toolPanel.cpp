@@ -71,6 +71,14 @@ CollapsibleWidget* ToolPanel::createBasicSection() {
     m_blacksSlider = new LabeledSlider("Blacks", -100, 100, 0, this);
 
     // Connect signals
+    // TODO: MOVE TO CONTROLLER: These signals should connect to ApplicationController slots
+    // The controller should handle:
+    //   1. Receiving adjustment values
+    //   2. Coordinating with ImageProcessingService to apply adjustments
+    //   3. Managing state and undo/redo history
+    //   4. Triggering image reprocessing via ImagePipeline
+    // Example: connect(m_exposureSlider, &LabeledSlider::valueChanged,
+    //                  controller, &ApplicationController::adjustExposure);
     connect(m_exposureSlider, &LabeledSlider::valueChanged, this, &ToolPanel::exposureChanged);
     connect(m_contrastSlider, &LabeledSlider::valueChanged, this, &ToolPanel::contrastChanged);
     connect(m_highlightsSlider, &LabeledSlider::valueChanged, this, &ToolPanel::highlightsChanged);
@@ -136,6 +144,14 @@ CollapsibleWidget* ToolPanel::createDetailSection() {
 }
 
 void ToolPanel::resetAllAdjustments() {
+    // TODO: MOVE TO CONTROLLER: Reset logic should be coordinated by ApplicationController
+    // The controller should handle:
+    //   1. Resetting ImagePipeline/processing parameters to defaults
+    //   2. Updating application state
+    //   3. Triggering image reprocessing
+    // The UI should emit a resetAllRequested() signal and the controller
+    // will call back to reset slider UI after processing is complete
+
     // Reset all sliders to default values
     m_exposureSlider->reset();
     m_contrastSlider->reset();

@@ -41,7 +41,7 @@ else()
 
     if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         target_compile_options(image_processing PRIVATE 
-            $<$<CONFIG:Release>:-mcpu=apple-m1>
+            $<$<CONFIG:Release>:-mcpu=apple-m2>
         )
     else()
         target_compile_options(image_processing PRIVATE 

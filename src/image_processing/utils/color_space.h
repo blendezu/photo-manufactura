@@ -1,9 +1,9 @@
 // neue mit Parallel
 
 #ifndef COLOR_SPACE_H
-#    define COLOR_SPACE_H
+#define COLOR_SPACE_H
 
-#    include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 class ColorSpace {
    public:
@@ -44,7 +44,7 @@ class ColorSpace {
         // Kleines Epsilon, um Division durch 0 zu verhindern, ohne zu branchen
         const float eps = 1e-7f;
 
-#    pragma omp parallel for
+#pragma omp parallel for
         for (int y = 0; y < rows; y++) {
             const auto* rowSrc = bgrImg.ptr<T>(y);
             using ValueType = typename T::value_type;
@@ -55,7 +55,7 @@ class ColorSpace {
             const ValueType* __restrict s = srcPtr;
             float* __restrict d = dstPtr;
 
-#    pragma omp simd
+#pragma omp simd
             for (int x = 0; x < cols; x++) {
                 int idx = x * 3;
 
@@ -160,7 +160,7 @@ class ColorSpace {
 
 // 3. Parallelisierung über Zeilen (Multithreading)
 // Funktioniert auf Mac, Linux, Windows gleich.
-#    pragma omp parallel for
+#pragma omp parallel for
         for (int y = 0; y < rows; y++) {
             const float* srcPtr = hslImg.ptr<float>(y);
 
@@ -175,7 +175,7 @@ class ColorSpace {
 // "omp simd" ist der Standard-Weg, Vektorisierung zu erzwingen.
 // Windows (MSVC) ignoriert dies oft, nutzt aber dank des
 // branchless Codes unten seine eigene Auto-Vektorisierung (/O2).
-#    pragma omp simd
+#pragma omp simd
             for (int x = 0; x < cols; x++) {
                 int idx = x * 3;
 
