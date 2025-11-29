@@ -1,165 +1,165 @@
-# ImagePipeline - Technische Dokumentation
+# ImagePipeline - Technical Documentation
 
-## 📋 ÜBERBLICK
-Die ImagePipeline ist das Kernsystem für non-destructive Bildbearbeitung. Sie verwaltet eine Historie von Bearbeitungsschritten und wendet diese in Echtzeit auf das Originalbild an.
+## 📋 OVERVIEW
+The ImagePipeline is the core system for non-destructive image editing. It manages a history of editing operations and applies them in real-time to the original image.
 
-## 🏗️ ARCHITEKTUR
+## 🏗️ ARCHITECTURE
 
-### Kernkomponenten:
-- originalImage: Unverändertes Ausgangsbild (cv::Mat)
-- operations: Liste aller Bearbeitungsoperationen (Vector von ImageOperation)
-- undoneOperations: Undo-Historie (Vector von ImageOperation) 
-- cachedResult: Zwischengespeichertes Ergebnis (cv::Mat)
-- cacheValid: Cache-Gültigkeitsflag (bool)
-- liveOperation: Temporäre Operation für Echtzeit-Vorschau (ImageOperation)
+### Core Components:
+- `originalImage`: Unchanged source image (cv::Mat)
+- `operations`: List of all editing operations (Vector of ImageOperation)
+- `undoneOperations`: Undo history (Vector of ImageOperation) 
+- `cachedResult`: Cached result (cv::Mat)
+- `cacheValid`: Cache validity flag (bool)
+- `liveOperation`: Temporary operation for real-time preview (ImageOperation)
 
-## 🔧 FUNKTIONEN
+## 🔧 FUNCTIONS
 
-### Bildverwaltung:
-- setImage(): Lädt Bild in Pipeline (macht Kopie)
-- getOriginalImage(): Gibt Originalbild zurück
-- hasImage(): Prüft ob Bild geladen
+### Image Management:
+- `setImage()`: Loads image into pipeline (makes a copy)
+- `getOriginalImage()`: Returns original image
+- `hasImage()`: Checks if image is loaded
 
-### Operations-Management:
-- addOperation(): Fügt Operation hinzu (löscht Undo-Historie)
-- insertOperation(): Fügt Operation an Position ein
-- removeOperation(): Entfernt Operation an Position
-- clearOperations(): Löscht alle Operationen
-- getOperation(): Gibt Operation an Index zurück
+### Operations Management:
+- `addOperation()`: Adds operation (clears undo history)
+- `insertOperation()`: Inserts operation at position
+- `removeOperation()`: Removes operation at position
+- `clearOperations()`: Clears all operations
+- `getOperation()`: Returns operation at index
 
-### Verarbeitung:
-- process(): Wendet alle Operationen an (mit Cache)
-- processUpTo(): Verarbeitet bis zu bestimmter Operation
+### Processing:
+- `process()`: Applies all operations (with caching)
+- `processUpTo()`: Processes up to a specific operation
 
-### Echtzeit-Vorschau:
-- setLiveOperation(): Setzt temporäre Live-Operation
-- clearLiveOperation(): Entfernt Live-Operation
+### Real-time Preview:
+- `setLiveOperation()`: Sets temporary live operation
+- `clearLiveOperation()`: Removes live operation
 
 ### Undo/Redo:
-- undo(): Macht letzte Operation rückgängig
-- redo(): Stellt letzte Operation wieder her
-- canUndo()/canRedo(): Prüft ob Aktion möglich
+- `undo()`: Undoes last operation
+- `redo()`: Restores last operation
+- `canUndo()`/`canRedo()`: Checks if action is possible
 
-### Cache-Management:
-- invalidateCache(): Markiert Cache als ungültig
-- isCacheValid(): Prüft Cache-Gültigkeit
+### Cache Management:
+- `invalidateCache()`: Marks cache as invalid
+- `isCacheValid()`: Checks cache validity
 
 ## 🔄 WORKFLOWS
 
-### Normaler Bearbeitungsflow:
-1. setImage() - Bild laden
-2. addOperation() - Bearbeitungsschritte hinzufügen
-3. process() - Ergebnis berechnen und anzeigen
+### Normal Editing Flow:
+1. `setImage()` - Load image
+2. `addOperation()` - Add editing steps
+3. `process()` - Calculate and display result
 
-### Echtzeit-Slider Flow:
-1. setLiveOperation() - Temporäre Operation setzen
-2. process() - Sofortige Vorschau anzeigen
-3. Bei Loslassen: addOperation() + clearLiveOperation()
+### Real-time Slider Flow:
+1. `setLiveOperation()` - Set temporary operation
+2. `process()` - Show immediate preview
+3. On release: `addOperation()` + `clearLiveOperation()`
 
 ### Undo/Redo Flow:
-1. undo() - Operation in Undo-Historie verschieben
-2. redo() - Operation zurück in aktive Liste
+1. `undo()` - Move operation to undo history
+2. `redo()` - Move operation back to active list
 
-## 🎯 BESONDERHEITEN
+## 🎯 KEY FEATURES
 
 ### Non-destructive Editing:
-- Originalbild bleibt immer unverändert
-- Alle Bearbeitungen sind reproduzierbar
-- Volle Bearbeitungshistorie verfügbar
+- Original image always remains unchanged
+- All edits are reproducible
+- Full editing history available
 
-### Performance-Optimierungen:
-- Cache-System vermeidet wiederholte Berechnungen
-- Live-Operations für flüssige Echtzeit-Vorschau
-- Exception-Safety bei Fehlern in Operationen
+### Performance Optimizations:
+- Cache system avoids repeated calculations
+- Live operations for smooth real-time preview
+- Exception safety on operation errors
 
-### Farbraum-Behandlung:
-- Pipeline kümmert sich nicht um Farbraum
-- Jede Operation entscheidet selbst (BGR/HSL)
-- Geometrische Operationen: Direkt auf BGR
-- Farboperationen: Automatische HSL-Konvertierung
+### Color Space Handling:
+- Pipeline does not manage color space
+- Each operation decides for itself (BGR/HSL)
+- Geometric operations: Direct on BGR
+- Color operations: Automatic HSL conversion
 
-## 💡 VERWENDUNG IN GUI
+## 💡 GUI USAGE
 
-### Für HSL-Slider (Helligkeit, Kontrast, Sättigung):
-- Während Bewegung: setLiveOperation() für Echtzeit-Vorschau
-- Bei Loslassen: addOperation() für dauerhafte Änderung
+### For HSL Sliders (Brightness, Contrast, Saturation):
+- During movement: `setLiveOperation()` for real-time preview
+- On release: `addOperation()` for permanent change
 
-### Für geometrische Operationen (Crop, Rotate, Flip):
-- Direkt addOperation() - keine Live-Operation nötig
+### For Geometric Operations (Crop, Rotate, Flip):
+- Direct `addOperation()` - no live operation needed
 
-### Für Undo/Redo:
-- undo()/redo() aufrufen
-- UI-Status mit canUndo()/canRedo() aktualisieren
+### For Undo/Redo:
+- Call `undo()`/`redo()`
+- Update UI state with `canUndo()`/`canRedo()`
 
-## Beispiele für Brightness Slider
-```bash
-// Verbindung im Konstruktor
+## 📝 Example: Brightness Slider
+
+```cpp
+// Connection in constructor
 connect(ui->brightnessSlider, &QSlider::valueChanged, 
         this, &MainWindow::onBrightnessChanged);
 connect(ui->brightnessSlider, &QSlider::sliderReleased,
         this, &MainWindow::onBrightnessReleased);
 
 void MainWindow::onBrightnessChanged(int value) {
-    // Live-Operation für Echtzeit-Vorschau
+    // Live operation for real-time preview
     if (!liveBrightness) {
         liveBrightness = std::make_shared<BrightnessAdjust>();
     }
     liveBrightness->setBrightness(value);
     
-    // Kombinierte Live-Operation setzen
+    // Set combined live operation
     auto combinedOp = createCombinedHSLOperation();
     pipeline.setLiveOperation(combinedOp);
     
-    updatePreview(); // Sofortige Vorschau
+    updatePreview(); // Immediate preview
 }
 
 void MainWindow::onBrightnessReleased() {
-    // Auto-Apply: Finale Operation zur Pipeline
+    // Auto-Apply: Final operation to pipeline
     int finalValue = ui->brightnessSlider->value();
     auto finalOp = std::make_shared<BrightnessAdjust>(finalValue);
     pipeline.addOperation(finalOp);
     pipeline.clearLiveOperation();
     
-    // Undo verfügbar machen
+    // Enable undo
     ui->undoButton->setEnabled(true);
     updatePreview();
 }
 ```
-🎯 Was das für den Benutzer bedeutet:
-Während Slider bewegt:
 
-- 🔄 Sofortige Vorschau -> Bild ändert sich live
-- ⏳ Temporäre Änderung -> Noch nicht gespeichert
-- ↶ Noch kein Undo -> Kann einfach Slider zurückziehen
+### 🎯 What This Means for the User:
 
-Nach Loslassen:
+**While slider is moving:**
+- 🔄 Immediate preview → Image changes live
+- ⏳ Temporary change → Not saved yet
+- ↶ No undo yet → Can simply move slider back
 
-- ✅ Änderung gespeichert -> In Pipeline-Historie
-- ↶ Undo verfügbar -> Kann rückgängig gemacht werden
-- 💾 In Projekt enthalten -> Wird mitgespeichert
+**After releasing:**
+- ✅ Change saved → In pipeline history
+- ↶ Undo available → Can be undone
+- 💾 In project → Will be saved with project
 
+## ⚠️ ERROR HANDLING
 
-## ⚠️ FEHLERBEHANDLUNG
+- Empty images are caught
+- Missing operations are skipped
+- On processing errors: Fallback to previous state
+- Exception safety in `process()` methods
 
-- Leere Bilder werden abgefangen
-- Fehlende Operationen werden übersprungen
-- Bei Verarbeitungsfehlern: Fallback zum vorherigen Zustand
-- Exception-Safety in process()-Methoden
+## 🚀 PERFORMANCE TIPS
 
-## 🚀 PERFORMANCE-TIPPS
+- Use cache optimally (for unchanged operations)
+- Use live operations for smooth slider movements
+- Frame rate limiting for frequent updates
+- Use `processUpTo()` for history display instead of `process()`
 
-- Cache optimal nutzen (bei unveränderten Operationen)
-- Live-Operations für flüssige Slider-Bewegungen
-- Frame-Rate Limiting bei häufigen Updates
-- processUpTo() für Historie-Anzeige statt process()
+## 📈 STATE MANAGEMENT
 
-## 📈 ZUSTANDSMANAGEMENT
+Pipeline state after:
+- **New image**: operations empty, cache invalid
+- **Operation added**: operations grows, cache invalid
+- **Live operation**: cache invalid, temporary preview
+- **Undo**: Operation moves from operations → undoneOperations
+- **Redo**: Operation moves from undoneOperations → operations
 
-Pipeline-Zustand bei:
-- Neues Bild: operations leer, cache invalid
-- Operation hinzugefügt: operations wächst, cache invalid
-- Live-Operation: cache invalid, temporäre Vorschau
-- Undo: Operation von operations → undoneOperations
-- Redo: Operation von undoneOperations → operations
-
-Diese Architektur ermöglicht professionelle Bildbearbeitung mit voller Historie und Echtzeit-Vorschau.
+This architecture enables professional image editing with full history and real-time preview.
