@@ -9,7 +9,7 @@
 
 CanvasWidget::CanvasWidget(QWidget* parent)
     : QOpenGLWidget(parent),
-      texture(nullptr),
+      m_texture(nullptr),
       m_shaderProgram(nullptr),
       m_zoomFactor(1.0),
       m_panOffset(0, 0),
@@ -17,8 +17,9 @@ CanvasWidget::CanvasWidget(QWidget* parent)
 
 CanvasWidget::~CanvasWidget() {
     makeCurrent();
-    delete texture;
-    delete m_shaderProgram;
+    // Reset smart pointers while OpenGL context is current
+    m_texture.reset();
+    m_shaderProgram.reset();
     doneCurrent();
 }
 
@@ -29,13 +30,13 @@ void CanvasWidget::setImage(const QImage& image) {
     makeCurrent();
 
     // Clean up old texture
-    delete texture;
+    m_texture.reset();
 
     // Create new texture
     QImage rgbaImage = image.convertToFormat(QImage::Format_RGBA8888);
-    texture = new QOpenGLTexture(rgbaImage);
-    texture->setMinificationFilter(QOpenGLTexture::Linear);
-    texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    m_texture = std::make_unique<QOpenGLTexture>(rgbaImage);
+    m_texture->setMinificationFilter(QOpenGLTexture::Linear);
+    m_texture->setMagnificationFilter(QOpenGLTexture::Linear);
 
     m_imageSize = image.size();
     updateMatrices();
@@ -59,7 +60,7 @@ void CanvasWidget::initializeGL() {
 }
 
 void CanvasWidget::setupShaders() {
-    m_shaderProgram = new QOpenGLShaderProgram(this);
+    m_shaderProgram = std::make_unique<QOpenGLShaderProgram>(this);
 
     // Vertex shader (GLSL 120 for macOS compatibility)
     const char* vertexShaderSource = R"(
@@ -163,7 +164,7 @@ void CanvasWidget::updateMatrices() {
 void CanvasWidget::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (!texture || !m_shaderProgram) {
+    if (!m_texture || !m_shaderProgram) {
         return;
     }
 
@@ -171,7 +172,7 @@ void CanvasWidget::paintGL() {
     m_shaderProgram->bind();
 
     // Bind texture to texture unit 0
-    texture->bind(0);
+    m_texture->bind(0);
     m_shaderProgram->setUniformValue("u_texture", 0);
 
     // Set transformation matrices for zoom/pan
@@ -183,7 +184,7 @@ void CanvasWidget::paintGL() {
     m_quadVAO.release();
 
     // Cleanup
-    texture->release();
+    m_texture->release();
     m_shaderProgram->release();
 }
 
@@ -261,5 +262,11 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
         m_lastPanPoint = event->pos();
         updateMatrices();
         update();
+    }
+}
+
+void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton) {
+        m_panning = false;
     }
 }

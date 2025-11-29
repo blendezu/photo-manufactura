@@ -9,6 +9,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
 #include <QWheelEvent>
+#include <memory>
 
 class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
@@ -36,12 +37,13 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
 
    private:
-    // OpenGL Resources
-    QOpenGLTexture* texture;
-    QOpenGLShaderProgram* m_shaderProgram;
+    // OpenGL Resources (smart pointers for automatic cleanup)
+    std::unique_ptr<QOpenGLTexture> m_texture;
+    std::unique_ptr<QOpenGLShaderProgram> m_shaderProgram;
     QOpenGLVertexArrayObject m_quadVAO;
     QOpenGLBuffer m_vertexBuffer;
     QOpenGLBuffer m_indexBuffer;
