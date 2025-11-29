@@ -9,7 +9,9 @@
                 "-B",
                 "build",
                 "-S",
-                "."
+                ".",
+                "-G",
+                "Ninja"
             ],
             "group": "build",
             "options": {
@@ -74,7 +76,9 @@
                 "-B",
                 "build",
                 "-S",
-                "."
+                ".",
+                "-G",
+                "Ninja"
             ],
             "group": "build",
             "options": {
@@ -111,7 +115,9 @@
                 "-B",
                 "build",
                 "-S",
-                "."
+                ".",
+                "-G",
+                "Ninja"
             ],
             "group": "build",
             "options": {
@@ -141,12 +147,117 @@
             "dependsOn": "Configure Image Processing Component"
         },
         {
+            "label": "Configure Tasks Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure Tasks component CMake"
+        },
+        {
+            "label": "Build Tasks Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Tasks component independently",
+            "dependsOn": "Configure Tasks Component"
+        },
+        {
+            "label": "Clean Tasks Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks"
+            },
+            "detail": "Clean Tasks component build directory"
+        },
+        {
+            "label": "Configure Tasks Tests",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks/test"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure Tasks tests CMake"
+        },
+        {
+            "label": "Build Tasks Tests",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks/test"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Tasks tests",
+            "dependsOn": "Configure Tasks Tests"
+        },
+        {
+            "label": "Run Tasks Tests",
+            "type": "shell",
+            "command": "./build/tasks_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks/test"
+            },
+            "dependsOn": "Build Tasks Tests",
+            "detail": "Run Tasks component tests"
+        },
+        {
             "label": "Build All Components",
             "dependsOrder": "parallel",
             "dependsOn": [
                 "Build UI Component",
                 "Build Controller Component",
-                "Build Image Processing Component"
+                "Build Image Processing Component",
+                "Build Raw Processing Component",
+                "Build Tasks Component"
             ],
             "group": {
                 "kind": "build",
@@ -162,7 +273,9 @@
                 "-B",
                 "build",
                 "-S",
-                "."
+                ".",
+                "-G",
+                "Ninja"
             ],
             "group": "build",
             "options": {
