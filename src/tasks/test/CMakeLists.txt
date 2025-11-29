@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(scheduler_worker_test LANGUAGES CXX)
+project(tasks_test LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,7 +15,7 @@ set(CMAKE_AUTOMOC ON)
 
 # Test executable
 add_executable(${PROJECT_NAME}
-    test_scheduler.cpp
+    test_tasks.cpp
 )
 
 # Include directories
@@ -34,15 +34,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Test
     opencv_core
     OpenMP::OpenMP_CXX
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/lib/libscheduler_worker.a
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/lib/libtasks.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/lib/libimage_processing.a
 )
 
 # Add test to CTest
-add_test(NAME SchedulerWorkerTest COMMAND ${PROJECT_NAME})
+add_test(NAME TasksTest COMMAND ${PROJECT_NAME})
 
 # Set test properties
-set_tests_properties(SchedulerWorkerTest PROPERTIES
+set_tests_properties(TasksTest PROPERTIES
     TIMEOUT 30
-    LABELS "unit;scheduler"
+    LABELS "unit;tasks"
 )
