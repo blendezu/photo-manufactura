@@ -1,25 +1,22 @@
 #include "ApplicationController.h"
 
-#include "ICommand.h"
-
-// UI includes
-#include "../ui/mainwindow.h"
-#include "../ui/widgets/canvasWidget.h"
-
-// Service includes (when implemented)
-// #include "../image_processing/ImageProcessingService.h"
-// #include "../raw_processing/RawProcessingService.h"
-// #include "../document/DocumentManager.h"
-
 #include <QApplication>
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QWidget>
+
+#include "ICommand.h"
 
 ApplicationController::ApplicationController(QObject* parent)
-    : QObject(parent), m_mainWindow(nullptr), m_canvas(nullptr) {
+    : QObject(parent),
+      m_mainWindow(nullptr),
+      m_canvas(nullptr),
+      m_documentManager(std::make_unique<DocumentManager>(this)),
+      m_appState(std::make_unique<AppState>(this)) {
     qDebug() << "ApplicationController created";
+    connectModelSignals();
 }
 
 ApplicationController::~ApplicationController() {
@@ -32,13 +29,14 @@ void ApplicationController::initialize() {
     setupCommands();
     initializeServices();
 
-    // Initialize state
+    // Initialize default state from model
     m_applicationState["currentFile"] = QString();
     m_applicationState["isModified"] = false;
-    m_applicationState["zoomLevel"] = 100;
+    m_applicationState["zoomLevel"] = static_cast<int>(m_appState->zoomLevel() * 100);
+    m_applicationState["theme"] = m_appState->theme();
 }
 
-void ApplicationController::setMainWindow(MainWindow* mainWindow) {
+void ApplicationController::setMainWindow(QWidget* mainWindow) {
     if (m_mainWindow) {
         // Disconnect previous connections
         // TODO: Disconnect signals
@@ -93,16 +91,28 @@ void ApplicationController::openFile() {
         tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff *.raw *.cr2 *.nef *.arw)"));
 
     if (!fileName.isEmpty()) {
-        executeCommand("OpenFile", {{"filePath", fileName}});
+        if (m_documentManager->openDocument(fileName)) {
+            setState("currentFile", fileName);
+            setState("isModified", false);
+            emit fileOpened(fileName);
+        }
     }
 }
 
 void ApplicationController::saveFile() {
-    QString currentFile = getState("currentFile").toString();
+    if (!m_documentManager->hasDocument()) {
+        emit errorOccurred("No document to save");
+        return;
+    }
+
+    QString currentFile = m_documentManager->currentFilePath();
     if (currentFile.isEmpty()) {
         saveAsFile();
     } else {
-        executeCommand("SaveFile", {{"filePath", currentFile}});
+        if (m_documentManager->saveDocument()) {
+            setState("isModified", false);
+            emit fileSaved(currentFile);
+        }
     }
 }
 
@@ -113,17 +123,36 @@ void ApplicationController::saveAsFile() {
         tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff)"));
 
     if (!fileName.isEmpty()) {
-        executeCommand("SaveAsFile", {{"filePath", fileName}});
+        if (m_documentManager->saveDocumentAs(fileName)) {
+            setState("currentFile", fileName);
+            setState("isModified", false);
+            emit fileSaved(fileName);
+        }
     }
 }
 
 void ApplicationController::closeFile() {
-    executeCommand("CloseFile");
+    if (m_documentManager->hasUnsavedChanges()) {
+        int ret = QMessageBox::warning(
+            m_mainWindow, tr("Unsaved Changes"),
+            tr("The document has been modified. Do you want to save your changes?"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+
+        if (ret == QMessageBox::Save) {
+            saveFile();
+        } else if (ret == QMessageBox::Cancel) {
+            return;
+        }
+    }
+
+    m_documentManager->closeDocument();
+    setState("currentFile", QString());
+    setState("isModified", false);
+    emit fileClosed();
 }
 
 void ApplicationController::exitApplication() {
-    // Check for unsaved changes
-    if (getState("isModified").toBool()) {
+    if (m_documentManager->hasUnsavedChanges()) {
         int ret = QMessageBox::warning(
             m_mainWindow, tr("Unsaved Changes"),
             tr("The document has been modified. Do you want to save your changes?"),
@@ -166,11 +195,73 @@ void ApplicationController::applyFilter(const QString& filterName) {
 }
 
 void ApplicationController::adjustBrightness(int value) {
-    executeCommand("AdjustBrightness", {{"value", value}});
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setBrightness(value);
+        setState("isModified", true);
+    }
 }
 
 void ApplicationController::adjustContrast(int value) {
-    executeCommand("AdjustContrast", {{"value", value}});
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setContrast(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustExposure(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setExposure(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustHighlights(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setHighlights(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustShadows(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setShadows(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustWhites(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setWhites(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustBlacks(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setBlacks(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustTemperature(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setTemperature(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustTint(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setTint(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustSaturation(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setSaturation(value);
+        setState("isModified", true);
+    }
 }
 
 void ApplicationController::rotateImage(int degrees) {
@@ -181,39 +272,50 @@ void ApplicationController::cropImage(const QRect& cropArea) {
     executeCommand("CropImage", {{"cropArea", cropArea}});
 }
 
+void ApplicationController::resetAdjustments() {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->resetAll();
+    }
+}
+
 // View operations
 void ApplicationController::zoomIn() {
-    int currentZoom = getState("zoomLevel").toInt();
-    int newZoom = qMin(currentZoom + 25, 500);  // Max 500%
-    setState("zoomLevel", newZoom);
-
-    if (m_canvas) {
-        // m_canvas->setZoom(newZoom / 100.0);
-    }
+    m_appState->zoomIn();
+    setState("zoomLevel", static_cast<int>(m_appState->zoomLevel() * 100));
 }
 
 void ApplicationController::zoomOut() {
-    int currentZoom = getState("zoomLevel").toInt();
-    int newZoom = qMax(currentZoom - 25, 25);  // Min 25%
-    setState("zoomLevel", newZoom);
-
-    if (m_canvas) {
-        // m_canvas->setZoom(newZoom / 100.0);
-    }
+    m_appState->zoomOut();
+    setState("zoomLevel", static_cast<int>(m_appState->zoomLevel() * 100));
 }
 
 void ApplicationController::resetZoom() {
+    m_appState->zoomToActual();
     setState("zoomLevel", 100);
-
-    if (m_canvas) {
-        // m_canvas->setZoom(1.0);
-    }
 }
 
 void ApplicationController::fitToWindow() {
-    if (m_canvas) {
-        // m_canvas->fitToWindow();
-    }
+    m_appState->zoomToFit();
+    setState("zoomLevel", static_cast<int>(m_appState->zoomLevel() * 100));
+}
+
+// Theme operations
+void ApplicationController::setTheme(const QString& themeName) {
+    m_appState->setTheme(themeName);
+    setState("theme", themeName);
+    emit themeChanged(themeName);
+}
+
+void ApplicationController::toggleHistogram() {
+    m_appState->toggleHistogram();
+}
+
+void ApplicationController::toggleToolPanel() {
+    m_appState->toggleToolPanel();
+}
+
+void ApplicationController::toggleAdjustmentPanel() {
+    m_appState->toggleAdjustmentPanel();
 }
 
 // Private methods
@@ -232,11 +334,31 @@ void ApplicationController::connectUISignals() {
     // This will be done when integrating with UI components
 }
 
+void ApplicationController::connectModelSignals() {
+    // Connect DocumentManager signals
+    connect(m_documentManager.get(), &DocumentManager::errorOccurred, this,
+            &ApplicationController::errorOccurred);
+
+    connect(m_documentManager.get(), &DocumentManager::documentOpened, this,
+            &ApplicationController::fileOpened);
+
+    connect(m_documentManager.get(), &DocumentManager::documentSaved, this,
+            &ApplicationController::fileSaved);
+
+    connect(m_documentManager.get(), &DocumentManager::documentClosed, this,
+            &ApplicationController::fileClosed);
+
+    // Connect AppState signals
+    connect(m_appState.get(), &AppState::zoomLevelChanged, this,
+            &ApplicationController::zoomChanged);
+
+    connect(m_appState.get(), &AppState::themeChanged, this, &ApplicationController::themeChanged);
+}
+
 void ApplicationController::initializeServices() {
-    // TODO: Initialize business logic services
+    // TODO: Initialize business logic services when implemented
     // m_imageProcessingService = std::make_unique<ImageProcessingService>();
     // m_rawProcessingService = std::make_unique<RawProcessingService>();
-    // m_documentManager = std::make_unique<DocumentManager>();
 }
 
 void ApplicationController::onImageProcessingComplete() {
@@ -248,17 +370,15 @@ void ApplicationController::onFileOperationComplete() {
     // Handle file operation completion
 }
 
-// Service access methods (to be implemented when services exist)
-/*
-ImageProcessingService* ApplicationController::getImageProcessingService() const {
-    return m_imageProcessingService.get();
-}
+// Service access methods - to be implemented when services exist
+// ImageProcessingService* ApplicationController::getImageProcessingService() const {
+//     return m_imageProcessingService.get();
+// }
 
-RawProcessingService* ApplicationController::getRawProcessingService() const {
-    return m_rawProcessingService.get();
-}
+// RawProcessingService* ApplicationController::getRawProcessingService() const {
+//     return m_rawProcessingService.get();
+// }
 
-DocumentManager* ApplicationController::getDocumentManager() const {
-    return m_documentManager.get();
+AdjustmentSettings* ApplicationController::getAdjustments() const {
+    return m_documentManager ? m_documentManager->adjustments() : nullptr;
 }
-*/

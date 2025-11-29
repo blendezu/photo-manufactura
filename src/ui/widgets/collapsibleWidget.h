@@ -23,5 +23,5 @@ class CollapsibleWidget : public QWidget {
     QFrame* m_headerLine;
     QParallelAnimationGroup* m_toggleAnimation;
     QScrollArea* m_contentArea;
-    int m_animationDuration{300};
+    int m_animationDuration{150};
 };
