@@ -27,14 +27,20 @@ add_executable(${PROJECT_NAME}
 )
 
 # Subdirectories
+add_subdirectory(src/model)
 add_subdirectory(src/raw_processing)
 add_subdirectory(src/image_processing)
+add_subdirectory(src/controller)
+add_subdirectory(src/ui)
 # Weitere Module später hinzufügen
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    model
     raw_processing
     image_processing
+    controller
+    ui
 )
 
 # Warnungen für alle Targets einheitlich setzen

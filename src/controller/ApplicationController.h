@@ -7,13 +7,14 @@
 #include <memory>
 #include <unordered_map>
 
+// Model includes
+#include "../model/AppState.h"
+#include "../model/DocumentManager.h"
+
 // Forward declarations
 class ICommand;
-class MainWindow;
 class CanvasWidget;
-class ImageProcessingService;
-class RawProcessingService;
-class DocumentManager;
+// Future: ImageProcessingService, RawProcessingService
 
 /**
  * @brief Main Application Controller
@@ -30,7 +31,7 @@ class ApplicationController : public QObject {
 
     // Initialization
     void initialize();
-    void setMainWindow(MainWindow* mainWindow);
+    void setMainWindow(QWidget* mainWindow);
 
     // Command execution
     void executeCommand(const QString& commandName, const QVariantMap& parameters = {});
@@ -40,10 +41,16 @@ class ApplicationController : public QObject {
     void setState(const QString& key, const QVariant& value);
     QVariant getState(const QString& key) const;
 
-    // Service access
-    ImageProcessingService* getImageProcessingService() const;
-    RawProcessingService* getRawProcessingService() const;
-    DocumentManager* getDocumentManager() const;
+    // Service access - to be implemented when services exist
+    // ImageProcessingService* getImageProcessingService() const;
+    // RawProcessingService* getRawProcessingService() const;
+    DocumentManager* getDocumentManager() const {
+        return m_documentManager.get();
+    }
+    AppState* getAppState() const {
+        return m_appState.get();
+    }
+    AdjustmentSettings* getAdjustments() const;
 
    public slots:
     // File operations
@@ -64,8 +71,17 @@ class ApplicationController : public QObject {
     void applyFilter(const QString& filterName);
     void adjustBrightness(int value);
     void adjustContrast(int value);
+    void adjustExposure(int value);
+    void adjustHighlights(int value);
+    void adjustShadows(int value);
+    void adjustWhites(int value);
+    void adjustBlacks(int value);
+    void adjustTemperature(int value);
+    void adjustTint(int value);
+    void adjustSaturation(int value);
     void rotateImage(int degrees);
     void cropImage(const QRect& cropArea);
+    void resetAdjustments();
 
     // View operations
     void zoomIn();
@@ -73,13 +89,22 @@ class ApplicationController : public QObject {
     void resetZoom();
     void fitToWindow();
 
+    // Theme operations
+    void setTheme(const QString& themeName);
+    void toggleHistogram();
+    void toggleToolPanel();
+    void toggleAdjustmentPanel();
+
    signals:
     // State change notifications
     void stateChanged(const QString& key, const QVariant& value);
     void fileOpened(const QString& filePath);
     void fileSaved(const QString& filePath);
+    void fileClosed();
     void imageProcessed();
     void errorOccurred(const QString& message);
+    void themeChanged(const QString& theme);
+    void zoomChanged(double level);
 
    private slots:
     void onImageProcessingComplete();
@@ -88,16 +113,20 @@ class ApplicationController : public QObject {
    private:
     void setupCommands();
     void connectUISignals();
+    void connectModelSignals();
     void initializeServices();
 
     // UI components
-    MainWindow* m_mainWindow;
+    QWidget* m_mainWindow;
     CanvasWidget* m_canvas;
 
-    // Services (business logic)
-    std::unique_ptr<ImageProcessingService> m_imageProcessingService;
-    std::unique_ptr<RawProcessingService> m_rawProcessingService;
+    // Model layer
     std::unique_ptr<DocumentManager> m_documentManager;
+    std::unique_ptr<AppState> m_appState;
+
+    // Services - to be implemented
+    // std::unique_ptr<ImageProcessingService> m_imageProcessingService;
+    // std::unique_ptr<RawProcessingService> m_rawProcessingService;
 
     // Command management
     std::unordered_map<QString, std::unique_ptr<ICommand>> m_commands;
