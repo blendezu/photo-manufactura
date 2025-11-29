@@ -13,7 +13,7 @@
 
 // Forward declarations
 class ICommand;
-class CanvasWidget;
+class QWidget;
 // Future: ImageProcessingService, RawProcessingService
 
 /**
@@ -29,16 +29,42 @@ class ApplicationController : public QObject {
     explicit ApplicationController(QObject* parent = nullptr);
     ~ApplicationController();
 
-    // Initialization
+    /** Initialize the application controller
+     * Sets up commands, services, and initial state
+     * @return void
+     */
     void initialize();
+
+    /** Set the main application window
+     * Connects UI signals to controller slots
+     * @param mainWindow Pointer to the main window widget
+     */
     void setMainWindow(QWidget* mainWindow);
 
-    // Command execution
+    /**
+     * Execute a registered command by name
+     * @param commandName Name of the command to execute
+     * @param parameters Optional parameters for the command
+     * @return void
+     */
     void executeCommand(const QString& commandName, const QVariantMap& parameters = {});
+    /**
+     * Register a command with the controller
+     * @param name Name of the command
+     * @param command Unique pointer to the command implementation
+     * @return void
+     */
     void registerCommand(const QString& name, std::unique_ptr<ICommand> command);
 
-    // State management
+    /** Set application state value
+     * @param key State key
+     * @param value State value
+     */
     void setState(const QString& key, const QVariant& value);
+    /** Get application state value
+     * @param key State key
+     * @return State value
+     */
     QVariant getState(const QString& key) const;
 
     // Service access - to be implemented when services exist
@@ -116,9 +142,8 @@ class ApplicationController : public QObject {
     void connectModelSignals();
     void initializeServices();
 
-    // UI components
+    // UI components (stored as QWidget* for loose coupling)
     QWidget* m_mainWindow;
-    CanvasWidget* m_canvas;
 
     // Model layer
     std::unique_ptr<DocumentManager> m_documentManager;

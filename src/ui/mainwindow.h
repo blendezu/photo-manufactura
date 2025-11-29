@@ -19,6 +19,21 @@ class MainWindow : public QMainWindow {
     CanvasWidget* getCanvasWidget() const {
         return m_canvasWidget;
     }
+    ToolPanel* getToolPanel() const {
+        return m_toolPanel;
+    }
+    SubMenuFile* getFileMenu() const {
+        return m_fileMenu;
+    }
+    SubMenuEdit* getEditMenu() const {
+        return m_editMenu;
+    }
+    SubMenuView* getViewMenu() const {
+        return m_viewMenu;
+    }
+    InfoPanel* getInfoPanel() const {
+        return m_infoPanel;
+    }
 
    public slots:
     void loadImage(const QString& filePath);

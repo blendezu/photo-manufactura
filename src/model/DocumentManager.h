@@ -6,18 +6,22 @@
 #include "AdjustmentSettings.h"
 #include "ImageDocument.h"
 
+// Forward declaration for ImagePipeline
+class ImagePipeline;
+
 /**
  * @brief Manages document lifecycle and coordinates model components
  *
  * Provides a facade for the Model layer, managing the current document
- * and its associated adjustment settings.
+ * and its associated adjustment settings. Integrates with ImagePipeline
+ * for real image processing.
  */
 class DocumentManager : public QObject {
     Q_OBJECT
 
    public:
     explicit DocumentManager(QObject* parent = nullptr);
-    ~DocumentManager() = default;
+    ~DocumentManager();
 
     // Document access
     ImageDocument* currentDocument() const {
@@ -55,4 +59,5 @@ class DocumentManager : public QObject {
    private:
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
+    std::unique_ptr<ImagePipeline> m_imagePipeline;
 };

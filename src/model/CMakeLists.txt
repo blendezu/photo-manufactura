@@ -9,6 +9,9 @@ set(CMAKE_AUTOMOC ON)
 # Find Qt
 find_package(Qt6 REQUIRED COMPONENTS Core Gui)
 
+# Find OpenCV (required for image processing integration)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs)
+
 # Model sources
 set(MODEL_SOURCES
     ImageDocument.cpp
@@ -27,9 +30,14 @@ set(MODEL_HEADERS
 # Create library
 add_library(model STATIC ${MODEL_SOURCES} ${MODEL_HEADERS})
 
-target_include_directories(model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(model PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
+# image_processing headers are accessed via target's PUBLIC include directories
 target_link_libraries(model PUBLIC
     Qt6::Core
     Qt6::Gui
+    image_processing
+    ${OpenCV_LIBS}
 )
