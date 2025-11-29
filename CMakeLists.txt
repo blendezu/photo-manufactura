@@ -30,7 +30,7 @@ add_executable(${PROJECT_NAME}
 # image_processing must be built before model (model depends on it)
 add_subdirectory(src/image_processing)
 add_subdirectory(src/raw_processing)
-add_subdirectory(src/scheduler_worker)
+add_subdirectory(src/tasks)
 add_subdirectory(src/model)
 add_subdirectory(src/controller)
 add_subdirectory(src/ui)
@@ -40,7 +40,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     model
     raw_processing
     image_processing
-    scheduler_worker
+    tasks
     controller
     ui
 )

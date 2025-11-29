@@ -290,4 +290,4 @@ void TestScheduler::testImageProcessingCancellation() {
 
 // Qt Test main
 QTEST_MAIN(TestScheduler)
-#include "test_scheduler.moc"
+#include "test_tasks.moc"
