@@ -26,10 +26,11 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
 )
 
-# Subdirectories
-add_subdirectory(src/model)
-add_subdirectory(src/raw_processing)
+# Subdirectories - order matters for dependencies
+# image_processing must be built before model (model depends on it)
 add_subdirectory(src/image_processing)
+add_subdirectory(src/raw_processing)
+add_subdirectory(src/model)
 add_subdirectory(src/controller)
 add_subdirectory(src/ui)
 # Weitere Module später hinzufügen

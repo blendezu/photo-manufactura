@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QWidget>
@@ -12,7 +13,6 @@
 ApplicationController::ApplicationController(QObject* parent)
     : QObject(parent),
       m_mainWindow(nullptr),
-      m_canvas(nullptr),
       m_documentManager(std::make_unique<DocumentManager>(this)),
       m_appState(std::make_unique<AppState>(this)) {
     qDebug() << "ApplicationController created";
@@ -330,8 +330,12 @@ void ApplicationController::connectUISignals() {
     if (!m_mainWindow)
         return;
 
-    // TODO: Connect UI signals to controller slots
-    // This will be done when integrating with UI components
+    // UI signal connections are now handled in main.cpp to avoid circular dependencies
+    // between controller and ui libraries.
+    // This method is kept for potential future use when controller needs to
+    // set up internal state based on the main window.
+
+    qDebug() << "MainWindow set, UI signal connections will be done externally";
 }
 
 void ApplicationController::connectModelSignals() {

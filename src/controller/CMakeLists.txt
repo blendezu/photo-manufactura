@@ -18,7 +18,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif()
 
 # Find required Qt6 components for controller
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGL OpenGLWidgets)
 
 # Create the Controller library
 add_library(controller STATIC
@@ -34,6 +34,8 @@ target_link_libraries(controller
         Qt6::Core
         Qt6::Widgets
         Qt6::Gui
+        Qt6::OpenGL
+        Qt6::OpenGLWidgets
         model
 )
 
