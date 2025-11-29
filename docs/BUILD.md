@@ -27,12 +27,12 @@ cmake --preset default && cmake --build --preset default
 
 ## Build Presets
 
-| Preset | Use Case | Command |
-|--------|----------|---------|
-| `default` | Production | `cmake --preset default` |
-| `debug` | Debugging | `cmake --preset debug` |
-| `dev` | Development | `cmake --preset dev` |
-| `release-optimized` | Performance | `cmake --preset release-optimized` |
+| Preset | Use Case |
+|--------|----------|
+| `default` | Production build |
+| `debug` | Debugging with symbols |
+| `dev` | Development (fast builds) |
+| `release-optimized` | Performance testing |
 
 ```bash
 # List all presets
@@ -41,6 +41,8 @@ cmake --list-presets=all
 # Build with preset
 cmake --preset dev && cmake --build --preset dev
 ```
+
+> **Advanced CMake**: See [CMake Development Guide](development/cmake.md) for optimization flags, sanitizers, and testing configuration.
 
 ## Component Builds
 

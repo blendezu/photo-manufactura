@@ -18,13 +18,20 @@ Welcome to Photo Manufactura documentation!
 | [Component Guide](development/components.md) | Architecture & patterns |
 | [Troubleshooting](troubleshooting.md) | Common issues & fixes |
 
-## 🧩 Components
+## 🏗️ Architecture (MVC)
 
-| Component | Documentation |
-|-----------|---------------|
-| UI | [src/ui/README.md](../src/ui/README.md) |
-| Image Processing | [src/image_processing/](../src/image_processing/) |
-| Controller | [src/controller/](../src/controller/) |
+| Layer | Documentation |
+|-------|---------------|
+| **Model** | [Model Layer](development/Model.md) - Document state, settings, app state |
+| **View** | [UI Component](../src/ui/README.md) - Qt6 widgets and panels |
+| **Controller** | [Components Guide](development/components.md) - Business logic orchestration |
+
+## 🖼️ Image Processing
+
+| Topic | Documentation |
+|-------|---------------|
+| Pipeline | [ImagePipeline](development/ImagePipeline.md) - Non-destructive editing |
+| Operations | [OperationRegistry](development/OperationRegistry.md) - Filter management |
 
 ## ⌨️ Quick Commands
 

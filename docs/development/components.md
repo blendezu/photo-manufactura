@@ -2,20 +2,23 @@
 
 Architecture and design patterns for Photo Manufactura components.
 
-## Architecture
+## MVC Architecture
 
 ```
 photo_manufactura (main)
-├── ui              # Qt6 user interface
-├── controller      # Application logic
-├── image_processing # Core algorithms
+├── model           # Application state (ImageDocument, Settings)
+├── controller      # Business logic orchestration
+├── ui              # Qt6 user interface (View)
+├── image_processing # Core algorithms (ImagePipeline)
 ├── raw_processing  # RAW file handling
 └── scheduler_worker # Task management
 ```
 
+> **See also**: [Model Layer](Model.md) for detailed Model documentation.
+
 Each component is:
 - **Self-contained** - builds independently
-- **Loosely coupled** - minimal dependencies
+- **Loosely coupled** - minimal dependencies  
 - **Testable** - has own test suite
 
 ## Component Layout
@@ -90,17 +93,20 @@ public:
 };
 ```
 
-### Event Bus
+### Qt Signals/Slots (Preferred)
 
 ```cpp
-class EventBus {
-public:
-    template<typename Event>
-    void subscribe(std::function<void(const Event&)> handler);
-    
-    template<typename Event>
-    void publish(const Event& event);
+// Model emits signals when data changes
+class ImageDocument : public QObject {
+    Q_OBJECT
+signals:
+    void imageChanged(const QImage& image);
+    void modifiedChanged(bool modified);
 };
+
+// Controller connects Model to View
+connect(document, &ImageDocument::imageChanged,
+        canvas, &CanvasWidget::updateImage);
 ```
 
 ## Best Practices
@@ -138,3 +144,33 @@ std::expected<Result, ErrorCode> process(const Input& input) {
  */
 ProcessResult process(const Image& input, const Params& params = {});
 ```
+
+## Theme System
+
+The UI uses external QSS files for theming, managed via `ThemeManager` singleton.
+
+### File Structure
+```
+src/ui/resources/
+├── resources.qrc           # Qt resources (prefix: /styles)
+├── styles/
+│   ├── dark_theme.qss
+│   └── light_theme.qss
+└── theme/
+    ├── themeManager.h/cpp  # Singleton for theme switching
+    └── styleSheet.h/cpp    # QSS file loader
+```
+
+### Usage
+```cpp
+// Apply theme globally
+ThemeManager::instance().applyTheme(ThemeManager::Theme::Dark);
+
+// Load QSS from resources
+QString qss = StyleSheet::loadQssFile(":/styles/dark_theme.qss");
+```
+
+### Adding New Themes
+1. Create `new_theme.qss` in `resources/styles/`
+2. Add to `resources.qrc`: `<file>styles/new_theme.qss</file>`
+3. Add enum value and case in `ThemeManager`

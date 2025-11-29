@@ -1,80 +1,82 @@
 # OperationRegistry - Filter Management System
 
-## 📋 ÜBERSICHT
-Die `OperationRegistry` ist ein Factory-System zur dynamischen Verwaltung von Bildfiltern. Sie fungiert als zentrale Registrierungsstelle für alle Filter-Operationen.
+## 📋 OVERVIEW
+The `OperationRegistry` is a factory system for dynamic management of image filters. It serves as the central registration point for all filter operations.
 
-## 🎯 WARUM OPERATIONREGISTRY?
+## 🎯 WHY OPERATIONREGISTRY?
 
-### Problem ohne Registry:
-- Jeder neue Filter erfordert manuelle UI-Änderungen
-- Filter müssen hard-coded im GUI-Code referenziert werden
-- Keine einheitliche Verwaltung der Filter
-- Schwer erweiterbar für Plugins
+### Problem without Registry:
+- Every new filter requires manual UI changes
+- Filters must be hard-coded in GUI code
+- No unified filter management
+- Difficult to extend for plugins
 
-### Lösung mit Registry:
-- Filter werden automatisch in der UI angezeigt
-- Neue Filter erfordern keine GUI-Änderungen
-- Zentrale Verwaltung aller Filter
-- Einfache Erweiterbarkeit
+### Solution with Registry:
+- Filters are automatically displayed in the UI
+- New filters require no GUI changes
+- Centralized management of all filters
+- Easy extensibility
 
-## 🏗️ ARCHITEKTUR
+## 🏗️ ARCHITECTURE
 
-### Kernkonzept: Factory Pattern
-Die Registry verwaltet eine Liste von Factory-Funktionen, die Filter-Instanzen erstellen können.
+### Core Concept: Factory Pattern
+The Registry manages a list of factory functions that can create filter instances.
 
-### Kategorien-System:
-Filter werden in Kategorien organisiert:
-- COLOR_EFFECTS: Farbeffekte
-- VINTAGE: Vintage/Looks  
-- BLACK_WHITE: Schwarz-Weiß Filter
-- DETAIL: Detail-Verbesserung
-- CREATIVE: Kreative Effekte
+### Category System:
+Filters are organized into categories:
+- `COLOR_EFFECTS`: Color effects
+- `VINTAGE`: Vintage/Looks  
+- `BLACK_WHITE`: Black & white filters
+- `DETAIL`: Detail enhancement
+- `CREATIVE`: Creative effects
 
 ### Singleton Pattern:
-Die Registry ist als Singleton implementiert - es gibt nur eine Instanz im gesamten Programm.
+The Registry is implemented as a singleton - there is only one instance in the entire program.
 
-### 💡 VORTEILE
-Für Entwickler:
-- Einheitliche Schnittstelle: Alle Filter haben dieselbe API
-- Einfache Erweiterung: Neue Filter ohne GUI-Änderungen
-- Plugins möglich: Externe Filter können registriert werden
-- Konsistente Kategorisierung: Filter sind logisch organisiert
+## 💡 BENEFITS
 
-Für Benutzer:
-- Vollständige Filter-Liste: Keine versteckten Filter
-- Organisierte Oberfläche: Filter nach Kategorien gruppiert
-- Schneller Zugriff: Ein Klick zum Anwenden
-- Beschreibungen: Tooltips erklären jeden Filter
+**For Developers:**
+- Unified interface: All filters have the same API
+- Easy extension: New filters without GUI changes
+- Plugins possible: External filters can be registered
+- Consistent categorization: Filters are logically organized
 
+**For Users:**
+- Complete filter list: No hidden filters
+- Organized interface: Filters grouped by category
+- Quick access: One click to apply
+- Descriptions: Tooltips explain each filter
 
-### 🔧 INTEGRATION MIT PIPELINE
-Die OperationRegistry erstellt Filter, die direkt mit der ImagePipeline kompatibel sind:
+## 🔧 INTEGRATION WITH PIPELINE
 
-1. Filter wird aus Registry erstellt
-2. Filter wird zur Pipeline hinzugefügt
-3. Pipeline wendet Filter auf das Bild an
-4. Ergebnis wird in der GUI angezeigt
+The OperationRegistry creates filters that are directly compatible with the ImagePipeline:
 
-🚀 ZUKUNFTSERWEITERUNGEN
-- Filter-Presets: Voreinstellungen für Filter
-- Benutzer-Filter: Custom Filter speichern
-- Filter-Stärke: Intensität einstellbar
-- Filter-Stapel: Mehrere Filter kombinieren
+1. Filter is created from Registry
+2. Filter is added to Pipeline
+3. Pipeline applies filter to image
+4. Result is displayed in GUI
 
-## 🔧 VERWENDUNG IN DER GUI
+## 🚀 FUTURE EXTENSIONS
+- Filter presets: Preset configurations for filters
+- User filters: Save custom filters
+- Filter strength: Adjustable intensity
+- Filter stacks: Combine multiple filters
 
-### 1. Filter-Menü erstellen
+## 📝 GUI USAGE
+
+### 1. Creating a Filter Menu
+
 ```cpp
-// Filter-Menü dynamisch aus Registry füllen
+// Dynamically fill filter menu from Registry
 void setupFilterMenu() {
     auto& registry = OperationRegistry::getInstance();
     
-    // Für jede Kategorie ein Untermenü erstellen
+    // Create submenu for each category
     for (auto category : categories) {
         auto filters = registry.getFiltersByCategory(category);
         QMenu* categoryMenu = filterMenu->addMenu(categoryName);
         
-        // Jeden Filter als Menu-Eintrag hinzufügen
+        // Add each filter as menu entry
         for (const auto& filterName : filters) {
             QAction* action = new QAction(filterName);
             connect(action, &QAction::triggered, [filterName]() {
@@ -85,35 +87,35 @@ void setupFilterMenu() {
     }
 }
 ```
-### 2. Filter anwenden 
+
+### 2. Applying a Filter
 
 ```cpp
-
 void applyFilter(const std::string& filterName) {
     auto& registry = OperationRegistry::getInstance();
     auto filter = registry.createFilter(filterName);
     
     if (filter) {
-        // Filter zur Pipeline hinzufügen
+        // Add filter to pipeline
         pipeline.addOperation(filter);
         updatePreview();
     }
 }
 ```
 
+### 3. Filter Panel with Preview
 
-## 3. Filter-Panel mit Vorschau
 ```cpp
-// Filter-Buttons mit Vorschau erstellen
+// Create filter buttons with preview
 void createFilterPanel() {
     auto& registry = OperationRegistry::getInstance();
     auto filters = registry.getAvailableFilters();
     
     for (const auto& filterName : filters) {
-        // Button für jeden Filter erstellen
+        // Create button for each filter
         QPushButton* btn = new QPushButton(filterName);
         
-        // Tooltip mit Beschreibung anzeigen
+        // Show tooltip with description
         auto info = registry.getFilterInfo(filterName);
         btn->setToolTip(info.description);
         
@@ -123,3 +125,20 @@ void createFilterPanel() {
     }
 }
 ```
+
+## 🔧 REGISTERING NEW FILTERS
+
+```cpp
+// In your filter's source file
+static bool registered = []() {
+    OperationRegistry::getInstance().registerFilter(
+        "MyFilter",
+        FilterCategory::CREATIVE,
+        "Applies a custom effect",
+        []() { return std::make_shared<MyFilter>(); }
+    );
+    return true;
+}();
+```
+
+This architecture enables a plugin-like system where new filters can be added with minimal code changes.
