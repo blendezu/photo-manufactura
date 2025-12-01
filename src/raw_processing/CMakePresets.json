@@ -60,7 +60,7 @@
             "displayName": "Raw Processing Test Only",
             "configurePreset": "debug",
             "targets": [
-                "test_raw_processing"
+                "raw_processing_test"
             ],
             "jobs": 2
         }

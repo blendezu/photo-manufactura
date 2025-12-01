@@ -1,6 +1,8 @@
 #include "document.h"
 
 #include <QtGui/QImage>
+#include <iostream>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <stdexcept>
 
@@ -84,5 +86,30 @@ cv::Mat Document::Q2Mat(const QImage& img) {
 
         default:
             throw std::runtime_error("Unsupported QImage format");
+    }
+}
+
+cv::Mat Document::loadImg(std::string path) {
+    cv::Mat img = cv::imread(path);
+    if (img.empty()) {
+        std::cerr << "❌Error: Load image failed\n";
+        return cv::Mat();
+    }
+
+    return img;
+}
+
+void Document::saveImg(const cv::Mat& img, std::string fileName) {
+    if (img.empty()) {
+        std::cerr << "❌Error in saveImg: empty input image\n";
+        return;
+    }
+
+    else {
+        if (!cv::imwrite(fileName, img)) {
+            std::cerr << "❌Error: could not save the image\n";
+        } else {
+            std::cout << "✅Image successfully saved\n";
+        }
     }
 }

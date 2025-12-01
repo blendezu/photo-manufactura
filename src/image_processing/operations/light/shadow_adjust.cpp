@@ -2,11 +2,11 @@
 
 #include <opencv2/core/hal/interface.h>
 
-#include <cmath>
 #include <iostream>
 #include <opencv2/core/mat.hpp>
 
 #include "color_space.h"
+#include "image_utils.h"
 
 cv::Mat AdjustShadow::apply(const cv::Mat& srcImg) {
     if (srcImg.empty()) {
@@ -17,33 +17,36 @@ cv::Mat AdjustShadow::apply(const cv::Mat& srcImg) {
     float shadowFactor = shadow / 800.0f;
 
     if (srcImg.type() == CV_8UC3 || srcImg.type() == CV_16UC3) {
-        ColorSpace ColorSpace;
-        cv::Mat hslImg = ColorSpace.convertBGR2HSL(srcImg);
+        cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
 
-        cv::Mat dstImg(hslImg.size(), hslImg.type());
+        auto minMaxVal = ImageUtils::calculateMinMax(hslImg, 2);
+        float minL = std::get<0>(minMaxVal);
+        float maxL = std::get<1>(minMaxVal);
 
+        auto weightParams = ImageUtils::precalculateDarkWeightParams(minL, maxL, 0.3, 0.6);
+
+        int len = hslImg.cols * 3;
+#pragma omp parallel for
         for (int y = 0; y < hslImg.rows; y++) {
-            const cv::Vec3f* hslPtr = hslImg.ptr<cv::Vec3f>(y);
-            cv::Vec3f* dstPtr = dstImg.ptr<cv::Vec3f>(y);
+            float* __restrict hslPtr = hslImg.ptr<float>(y);
 
-            for (int x = 0; x < hslImg.cols; x++) {
-                float H = hslPtr[x][0];
-                float S = hslPtr[x][1];
-                float currL = hslPtr[x][2];
+            for (int x = 2; x < len; x += 3) {
+                float currL = hslPtr[x];
 
-                float gewicht = caculateWeight(currL);
-                float brightnessChange = gewicht * shadowFactor;
+                float weight = ImageUtils::calculateDarkWeight(currL, weightParams);
+                float brightnessChange = weight * shadowFactor;
 
                 float newL = currL + brightnessChange;
                 newL = std::clamp(newL, 0.0f, 1.0f);
 
-                dstPtr[x] = cv::Vec3f(H, S, newL);
+                hslPtr[x] = newL;
             }
         }
-        if (srcImg.depth() == 8U) {
-            return ColorSpace.convertHSL2BGR(dstImg, 8);
+        if (srcImg.type() == CV_8UC3) {
+            std::cout << "Starting clock ...\n";
+            return ColorSpace::convertHSL2BGR(hslImg, 8);
         } else {
-            return ColorSpace.convertHSL2BGR(dstImg, 16);
+            return ColorSpace::convertHSL2BGR(hslImg, 16);
         }
     }
 

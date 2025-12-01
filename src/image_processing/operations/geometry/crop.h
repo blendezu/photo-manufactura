@@ -1,6 +1,7 @@
 #ifndef CROP_H
 #define CROP_H
 
+#include <cstring>
 #include <opencv2/opencv.hpp>
 
 #include "../core/operation_base.h"
@@ -30,6 +31,25 @@ class Crop : public ImageOperation {
 
     cv::Rect getROI() const {
         return roi;
+    }
+
+   private:
+    template <typename T>
+    cv::Mat cropTemplate(const cv::Mat& srcImg) {
+        cv::Mat dstImg(roi.height, roi.width, srcImg.type());
+
+        size_t rowBytes = roi.width * sizeof(T);
+
+        // clang-format off
+        #pragma omp parallel for
+        // clang-format on
+        for (int y = roi.y; y < roi.y + roi.height; y++) {
+            const T* __restrict srcPtr = srcImg.ptr<T>(y);
+            T* __restrict dstPtr = dstImg.ptr<T>(y - roi.y);
+            std::memcpy(dstPtr, srcPtr, rowBytes);
+        }
+
+        return dstImg;
     }
 };
 
