@@ -7,7 +7,7 @@
 #include <opencv2/imgproc.hpp>
 #include <stdexcept>
 
-cv::Mat RawProcessing::getRawImg(const std::string& raw_path) {
+cv::Mat RawProcessing::loadRawImg(const std::string& raw_path) {
     LibRaw processor;
     int ret = 0;
 

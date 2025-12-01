@@ -43,17 +43,21 @@ class AdjustWhite : public ImageOperation {
         } else {
             maxRange = 65535.0f;
         }
-        auto [minVal, maxVal] = ImageUtils::caculateMinMax(srcImg, 0);
+        auto minMaxVal = ImageUtils::calculateMinMax(srcImg, 0);
+        float minL = std::get<0>(minMaxVal);
+        float maxL = std::get<1>(minMaxVal);
 
+        auto weightParams = ImageUtils::precalculateWhiteWeightParams(minL, maxL, 0.7, 0.9);
+
+#pragma omp parallel for
         for (int y = 0; y < srcImg.rows; y++) {
-            const T* srcPtr = srcImg.ptr<T>(y);
-            T* dstPtr = dstImg.ptr<T>(y);
+            const T* __restrict srcPtr = srcImg.ptr<T>(y);
+            T* __restrict dstPtr = dstImg.ptr<T>(y);
 
             for (int x = 0; x < srcImg.cols; x++) {
                 float normedVal = srcPtr[x] / maxRange;
 
-                float weight =
-                    ImageUtils::caculateBrightWeight(normedVal, minVal, maxVal, 0.7, 0.9);
+                float weight = ImageUtils::calculateBrightWeight(normedVal, weightParams);
 
                 float whiteChange = weight * whiteFactor;
                 float newFValue = std::clamp(normedVal + whiteChange, 0.0f, 1.0f);

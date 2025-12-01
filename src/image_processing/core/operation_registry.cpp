@@ -15,13 +15,13 @@ OperationRegistry::OperationRegistry() {
 }
 
 void OperationRegistry::registerDefaultFilters() {
-    // registerFilter(
-    //     "Vintage 1", []() { return std::make_shared<Vintage1>(); }, Category::VINTAGE,
-    //     "Vintage Look mit weichen Farben", "vintage");
+    registerFilter(
+        "Vintage 1", []() { return std::make_shared<Vintage1>(); }, Category::VINTAGE,
+        "Vintage Look mit weichen Farben", "vintage");
 
     registerFilter(
         "Gray Image", []() { return std::make_shared<GrayImage>(); }, Category::MONOCHROME,
-        "Gray image with only one channel", "gray image");
+        "Monochrome image with only one channel", "monochrome");
 }
 
 void OperationRegistry::registerFilter(const std::string& name, OperationFactory factory,

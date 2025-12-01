@@ -15,7 +15,7 @@ class AdjustContrast : public ImageOperation {
         return "Contrast";
     }
 
-    std::string getSettings() {
+    std::string getSettings() const override {
         return "contrast: " + std::to_string(contrast);
     }
 

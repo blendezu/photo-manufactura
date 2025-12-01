@@ -3,6 +3,9 @@
 #include "operation_base.h"
 
 class Vintage1 : public ImageOperation {
+   private:
+    cv::Mat scratchImg = cv::imread("images/9003.jpg");
+
    public:
     Vintage1() {};
 
