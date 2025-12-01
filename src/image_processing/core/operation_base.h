@@ -6,7 +6,7 @@
 
 class ImageOperation {
    public:
-    ~ImageOperation() = default;
+    virtual ~ImageOperation() = default;
 
     // apply this function on the image
     virtual cv::Mat apply(const cv::Mat& srcImg) = 0;
