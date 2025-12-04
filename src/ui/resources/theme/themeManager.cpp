@@ -49,3 +49,8 @@ void ThemeManager::saveThemeToSettings() {
     QSettings settings("PhotoManufactura", "UI");
     settings.setValue("theme", static_cast<int>(m_currentTheme));
 }
+
+void ThemeManager::toggleTheme() {
+    Theme newTheme = (m_currentTheme == Theme::Dark) ? Theme::Light : Theme::Dark;
+    applyTheme(newTheme);
+}
