@@ -2,22 +2,22 @@
 
 #include <QPushButton>
 
-LabeledSlider::LabeledSlider(const QString& label, int min, int max, int defaultValue, QWidget* parent) : QWidget(parent), m_defaultValue(defaultValue) {
+LabeledSlider::LabeledSlider(const QString& label, int min, int max, int defaultValue,
+                             QWidget* parent)
+    : QWidget(parent), m_defaultValue(defaultValue) {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(10, 12, 10, 12);
-    mainLayout->setSpacing(8);
+    mainLayout->setContentsMargins(10, 8, 10, 8);
+    mainLayout->setSpacing(6);
 
     // Label
     m_label = new QLabel(label, this);
     m_label->setStyleSheet("font-weight: bold; color: #8ad618; font-size: 13px;");
-    m_label->setMinimumHeight(20);
-    m_label->setMinimumWidth(100);
     m_label->setWordWrap(false);
-    m_label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     // Horizontal layout for slider and spinbox
     QHBoxLayout* controlLayout = new QHBoxLayout();
-    controlLayout->setSpacing(10);
+    controlLayout->setSpacing(8);
 
     // Slider
     m_slider = new QSlider(Qt::Horizontal, this);
@@ -27,15 +27,14 @@ LabeledSlider::LabeledSlider(const QString& label, int min, int max, int default
     m_slider->setTickPosition(QSlider::TicksBelow);
     m_slider->setTickInterval((max - min) / 4);
     m_slider->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    m_slider->setMinimumHeight(24);
+    m_slider->setMinimumWidth(120);
 
     // SpinBox
     m_spinBox = new QSpinBox(this);
     m_spinBox->setMinimum(min);
     m_spinBox->setMaximum(max);
     m_spinBox->setValue(defaultValue);
-    m_spinBox->setFixedWidth(65);
-    m_spinBox->setMinimumHeight(26);
+    m_spinBox->setFixedWidth(60);
     m_spinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
     m_spinBox->setAlignment(Qt::AlignCenter);
 
@@ -45,14 +44,13 @@ LabeledSlider::LabeledSlider(const QString& label, int min, int max, int default
     mainLayout->addWidget(m_label);
     mainLayout->addLayout(controlLayout);
 
-    // Set minimum size to ensure visibility
-    setMinimumHeight(60);
-    setMinimumWidth(200);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    // Set size policy for responsive behavior
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // Connect signals
     connect(m_slider, &QSlider::valueChanged, this, &LabeledSlider::onSliderChanged);
-    connect(m_spinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, &LabeledSlider::onSpinBoxChanged);
+    connect(m_spinBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
+            &LabeledSlider::onSpinBoxChanged);
 }
 
 int LabeledSlider::value() const {

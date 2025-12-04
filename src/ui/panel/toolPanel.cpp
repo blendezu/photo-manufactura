@@ -30,7 +30,7 @@ void ToolPanel::setupUI() {
     m_contentWidget = new QWidget();
     m_mainLayout = new QVBoxLayout(m_contentWidget);
     m_mainLayout->setContentsMargins(5, 10, 5, 10);
-    m_mainLayout->setSpacing(10);
+    m_mainLayout->setSpacing(12);
 
     // Title and Reset button
     QHBoxLayout* headerLayout = new QHBoxLayout();
@@ -60,8 +60,8 @@ CollapsibleWidget* ToolPanel::createBasicSection() {
     CollapsibleWidget* basicSection = new CollapsibleWidget("Basic Adjustments", this);
     QVBoxLayout* layout = new QVBoxLayout();
 
-    layout->setSpacing(12);
-    layout->setContentsMargins(0, 15, 10, 15);
+    layout->setSpacing(8);
+    layout->setContentsMargins(5, 10, 5, 10);
 
     // Create sliders
     m_exposureSlider = new LabeledSlider("Exposure", -100, 100, 0, this);
@@ -103,8 +103,8 @@ CollapsibleWidget* ToolPanel::createBasicSection() {
 CollapsibleWidget* ToolPanel::createColorSection() {
     CollapsibleWidget* colorSection = new CollapsibleWidget("Color Adjustments", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(12);
-    layout->setContentsMargins(15, 15, 15, 15);
+    layout->setSpacing(8);
+    layout->setContentsMargins(5, 10, 5, 10);
 
     // Create sliders
     m_temperatureSlider = new LabeledSlider("Temperature", -100, 100, 0, this);
@@ -112,7 +112,8 @@ CollapsibleWidget* ToolPanel::createColorSection() {
     m_saturationSlider = new LabeledSlider("Saturation", -100, 100, 0, this);
 
     // Connect signals
-    connect(m_temperatureSlider, &LabeledSlider::valueChanged, this, &ToolPanel::temperatureChanged);
+    connect(m_temperatureSlider, &LabeledSlider::valueChanged, this,
+            &ToolPanel::temperatureChanged);
     connect(m_tintSlider, &LabeledSlider::valueChanged, this, &ToolPanel::tintChanged);
     connect(m_saturationSlider, &LabeledSlider::valueChanged, this, &ToolPanel::saturationChanged);
 
@@ -129,7 +130,7 @@ CollapsibleWidget* ToolPanel::createDetailSection() {
     CollapsibleWidget* detailSection = new CollapsibleWidget("Detail", this);
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setSpacing(8);
-    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setContentsMargins(5, 10, 5, 10);
 
     // Create sliders
     m_brightnessSlider = new LabeledSlider("Brightness", -100, 100, 0, this);

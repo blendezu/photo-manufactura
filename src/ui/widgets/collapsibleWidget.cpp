@@ -20,7 +20,7 @@ CollapsibleWidget::CollapsibleWidget(const QString& title, QWidget* parent) : QW
     // Content area
     m_contentArea = new QScrollArea(this);
     m_contentArea->setStyleSheet("QScrollArea { background-color: transparent; border: none; }");
-    m_contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_contentArea->setWidgetResizable(true);
     m_contentArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_contentArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -34,8 +34,8 @@ CollapsibleWidget::CollapsibleWidget(const QString& title, QWidget* parent) : QW
     m_toggleAnimation->addAnimation(toggleAnim);
     // Layout setup
     m_mainLayout = new QGridLayout(this);
-    m_mainLayout->setVerticalSpacing(5);
-    m_mainLayout->setContentsMargins(0, 5, 0, 8);
+    m_mainLayout->setVerticalSpacing(3);
+    m_mainLayout->setContentsMargins(0, 3, 0, 5);
     m_mainLayout->addWidget(m_toggleButton, 0, 0, 1, 1, Qt::AlignLeft);
     m_mainLayout->addWidget(m_headerLine, 0, 2, 1, 1);
     m_mainLayout->addWidget(m_contentArea, 1, 0, 1, 3);
@@ -46,23 +46,33 @@ CollapsibleWidget::CollapsibleWidget(const QString& title, QWidget* parent) : QW
 
 // Set the layout for the collapsible content area
 void CollapsibleWidget::setContentLayout(QLayout* contentLayout) {
-    // Remove any existing layout
-    delete m_contentArea->layout();
-    // Set new layout
-    m_contentArea->setLayout(contentLayout);
+    // Remove any existing widget
+    if (m_contentArea->widget()) {
+        delete m_contentArea->widget();
+    }
+
+    // Create a container widget for the layout
+    QWidget* contentWidget = new QWidget();
+    contentWidget->setLayout(contentLayout);
+    contentWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    // Set the widget to the scroll area
+    m_contentArea->setWidget(contentWidget);
+
     // Calculate heights for animation
     const auto collapsedHeight = sizeHint().height() - m_contentArea->maximumHeight();
-
-    auto contentHeight = contentLayout->sizeHint().height();
+    auto contentHeight = contentWidget->sizeHint().height();
 
     // Update animation
     for (int i = 0; i < m_toggleAnimation->animationCount() - 1; ++i) {
-        QPropertyAnimation* anim = static_cast<QPropertyAnimation*>(m_toggleAnimation->animationAt(i));
+        QPropertyAnimation* anim =
+            static_cast<QPropertyAnimation*>(m_toggleAnimation->animationAt(i));
         anim->setStartValue(collapsedHeight);
         anim->setEndValue(collapsedHeight + contentHeight);
     }
     // Update content area animation
-    QPropertyAnimation* contentAnimation = static_cast<QPropertyAnimation*>(m_toggleAnimation->animationAt(m_toggleAnimation->animationCount() - 1));
+    QPropertyAnimation* contentAnimation = static_cast<QPropertyAnimation*>(
+        m_toggleAnimation->animationAt(m_toggleAnimation->animationCount() - 1));
     contentAnimation->setStartValue(0);
     contentAnimation->setEndValue(contentHeight);
 
@@ -81,6 +91,7 @@ void CollapsibleWidget::toggle(bool collapsed) {
     // collapsed=true means button is checked (expanded state)
     // collapsed=false means button is unchecked (collapsed state)
     m_toggleButton->setArrowType(collapsed ? Qt::ArrowType::DownArrow : Qt::ArrowType::RightArrow);
-    m_toggleAnimation->setDirection(collapsed ? QAbstractAnimation::Forward : QAbstractAnimation::Backward);
+    m_toggleAnimation->setDirection(collapsed ? QAbstractAnimation::Forward
+                                              : QAbstractAnimation::Backward);
     m_toggleAnimation->start();
 }
