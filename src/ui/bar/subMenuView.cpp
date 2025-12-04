@@ -24,17 +24,23 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
 
     themeMenu->addAction(m_darkThemeAction);
     themeMenu->addAction(m_lightThemeAction);
+    themeMenu->addSeparator();
+
+    // Toggle theme action with keyboard shortcut
+    m_toggleThemeAction = new QAction("Toggle Theme", this);
+    m_toggleThemeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
+    themeMenu->addAction(m_toggleThemeAction);
 
     // Panel visibility
     m_toggleToolPanelAction = new QAction("Show Tool Panel", this);
     m_toggleToolPanelAction->setCheckable(true);
     m_toggleToolPanelAction->setChecked(true);
-    m_toggleToolPanelAction->setShortcut(Qt::Key_T);
+    m_toggleToolPanelAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_L));
 
     m_toggleInfoPanelAction = new QAction("Show Info Panel", this);
     m_toggleInfoPanelAction->setCheckable(true);
     m_toggleInfoPanelAction->setChecked(true);
-    m_toggleInfoPanelAction->setShortcut(Qt::Key_I);
+    m_toggleInfoPanelAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
 
     // Add to menu
     this->addMenu(themeMenu);
@@ -45,10 +51,18 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     // Connect signals
     connect(m_darkThemeAction, &QAction::triggered, this, &SubMenuView::onDarkThemeTriggered);
     connect(m_lightThemeAction, &QAction::triggered, this, &SubMenuView::onLightThemeTriggered);
+    connect(m_toggleThemeAction, &QAction::triggered, this, &SubMenuView::onToggleThemeTriggered);
     connect(m_toggleToolPanelAction, &QAction::triggered, this,
             &SubMenuView::onToggleToolPanelTriggered);
     connect(m_toggleInfoPanelAction, &QAction::triggered, this,
             &SubMenuView::onToggleInfoPanelTriggered);
+
+    // Listen to theme changes to update checkboxes
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this,
+            &SubMenuView::onThemeChanged);
+
+    // Initialize theme state from current theme
+    onThemeChanged(ThemeManager::instance().currentTheme());
 }
 
 SubMenuView::~SubMenuView() {}
@@ -69,6 +83,16 @@ void SubMenuView::onLightThemeTriggered() {
     // See onDarkThemeTriggered() comments for details
 
     ThemeManager::instance().applyTheme(ThemeManager::Theme::Light);
+}
+
+void SubMenuView::onToggleThemeTriggered() {
+    ThemeManager::instance().toggleTheme();
+}
+
+void SubMenuView::onThemeChanged(ThemeManager::Theme theme) {
+    // Update menu checkboxes to reflect current theme
+    m_darkThemeAction->setChecked(theme == ThemeManager::Theme::Dark);
+    m_lightThemeAction->setChecked(theme == ThemeManager::Theme::Light);
 }
 
 void SubMenuView::onToggleToolPanelTriggered() {

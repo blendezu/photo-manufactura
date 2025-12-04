@@ -45,6 +45,19 @@ class ThemeManager : public QObject {
      */
     void saveThemeToSettings();
 
+    /**
+     * @brief Toggle between dark and light theme
+     */
+    void toggleTheme();
+
+    /**
+     * @brief Check if dark theme is active
+     * @return true if dark theme is active
+     */
+    bool isDarkTheme() const {
+        return m_currentTheme == Theme::Dark;
+    }
+
    signals:
     void themeChanged(Theme theme);
 
