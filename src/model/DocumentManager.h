@@ -59,5 +59,6 @@ class DocumentManager : public QObject {
    private:
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
-    std::unique_ptr<ImagePipeline> m_imagePipeline;
+    // TODO: Re-enable when image_processing is available
+    // std::unique_ptr<ImagePipeline> m_imagePipeline;
 };

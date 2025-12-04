@@ -11,22 +11,23 @@ class SubMenuFile : public QMenu {
     ~SubMenuFile();
 
    signals:
-    void imageLoaded(const QString& filePath);
-    void imageSaveRequested(const QString& filePath);
+    void newDocumentRequested();
+    void openFileRequested();
+    void saveFileRequested();
+    void saveAsFileRequested();
+    void exitRequested();
 
    private slots:
     void onNewTriggered();
     void onOpenTriggered();
     void onSaveTriggered();
+    void onSaveAsTriggered();
     void onExitTriggered();
 
    private:
     QAction* newAction;
     QAction* openAction;
     QAction* saveAction;
+    QAction* saveAsAction;
     QAction* exitAction;
-
-    // TODO: MOVE TO CONTROLLER: m_currentFilePath should be managed by ApplicationController state
-    // Use ApplicationController::getState("currentFile") instead
-    QString m_currentFilePath;
 };

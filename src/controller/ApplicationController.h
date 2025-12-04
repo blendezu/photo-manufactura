@@ -124,6 +124,7 @@ class ApplicationController : public QObject {
    signals:
     // State change notifications
     void stateChanged(const QString& key, const QVariant& value);
+    void imageLoaded(const QImage& image, const QString& filePath);
     void fileOpened(const QString& filePath);
     void fileSaved(const QString& filePath);
     void fileClosed();

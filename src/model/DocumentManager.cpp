@@ -6,19 +6,22 @@
 
 // ImagePipeline and operations from image_processing component
 // Note: include paths are relative to image_processing's PUBLIC include directories
-#include "color/saturation_adjust.h"
-#include "color/tint_magenta.h"
-#include "color/white_balance.h"
-#include "image_pipeline.h"
-#include "light/black_adjust.h"
-#include "light/brightness_adjust.h"
-#include "light/contrast_adjust.h"
-#include "light/highlight_adjust.h"
-#include "light/shadow_adjust.h"
-#include "light/white_adjust.h"
+// TODO: Re-enable when building with image_processing component
+// #include "color/saturation_adjust.h"
+// #include "color/tint_magenta.h"
+// #include "color/white_balance.h"
+// #include "image_pipeline.h"
+// #include "light/black_adjust.h"
+// #include "light/brightness_adjust.h"
+// #include "light/contrast_adjust.h"
+// #include "light/highlight_adjust.h"
+// #include "light/shadow_adjust.h"
+// #include "light/white_adjust.h"
 
 namespace {
+// TODO: Re-enable when image_processing is available
 // Helper: Convert QImage to cv::Mat
+/*
 cv::Mat qImageToCvMat(const QImage& image) {
     QImage converted = image.convertToFormat(QImage::Format_RGB888);
     cv::Mat mat(converted.height(), converted.width(), CV_8UC3,
@@ -55,13 +58,15 @@ QImage cvMatToQImage(const cv::Mat& mat) {
                   static_cast<int>(normalized.step), QImage::Format_RGB888)
         .copy();
 }
+*/
 }  // namespace
 
 DocumentManager::DocumentManager(QObject* parent)
     : QObject(parent),
       m_currentDocument(std::make_unique<ImageDocument>(this)),
-      m_adjustments(std::make_unique<AdjustmentSettings>(this)),
-      m_imagePipeline(std::make_unique<ImagePipeline>()) {
+      m_adjustments(std::make_unique<AdjustmentSettings>(this)) {
+    // TODO: Re-enable when image_processing is available
+    // , m_imagePipeline(std::make_unique<ImagePipeline>()) {
     // Connect adjustment changes to document modified state
     connect(m_adjustments.get(), &AdjustmentSettings::anySettingChanged, this, [this]() {
         if (m_currentDocument && !m_currentDocument->originalImage().isNull()) {
@@ -114,7 +119,8 @@ bool DocumentManager::openDocument(const QString& filePath) {
     // Clear any previous state
     m_adjustments->resetAll();
     m_currentDocument->clear();
-    m_imagePipeline->clearOperations();
+    // TODO: Re-enable when image_processing is available
+    // m_imagePipeline->clearOperations();
 
     // Set up new document
     m_currentDocument->setFilePath(filePath);
@@ -123,10 +129,11 @@ bool DocumentManager::openDocument(const QString& filePath) {
     m_currentDocument->setProcessedImage(image);  // Start with unmodified
     m_currentDocument->setModified(false);
 
+    // TODO: Re-enable when image_processing is available
     // Set the image in the pipeline for processing
-    cv::Mat cvImage = qImageToCvMat(image);
-    m_imagePipeline->setImg(cvImage);
-    qDebug() << "Image loaded into pipeline:" << image.width() << "x" << image.height();
+    // cv::Mat cvImage = qImageToCvMat(image);
+    // m_imagePipeline->setImg(cvImage);
+    qDebug() << "Image loaded:" << image.width() << "x" << image.height();
 
     emit documentOpened(filePath);
     emit documentStateChanged();
@@ -184,7 +191,8 @@ bool DocumentManager::saveDocumentAs(const QString& filePath) {
 void DocumentManager::closeDocument() {
     m_adjustments->resetAll();
     m_currentDocument->clear();
-    m_imagePipeline->clearOperations();
+    // TODO: Re-enable when image_processing is available
+    // m_imagePipeline->clearOperations();
 
     emit documentClosed();
     emit documentStateChanged();
@@ -210,68 +218,74 @@ void DocumentManager::applyAdjustments() {
         return;
     }
 
-    if (!m_imagePipeline->hasImg()) {
-        qDebug() << "No image in pipeline, reloading from document";
-        cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
-        m_imagePipeline->setImg(cvImage);
-    }
+    // TODO: Re-enable when image_processing is available
+    // For now, adjustments don't modify the image - just keep original
+    qDebug() << "Adjustments not applied - image_processing component disabled";
+    m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
 
-    // Clear existing operations and rebuild based on current adjustment settings
-    m_imagePipeline->clearOperations();
-
-    // Build a combined operation for real-time preview using liveOperation
-    // For now, we add individual operations for each non-zero adjustment
-
-    // Light operations
-    if (m_adjustments->brightness() != 0) {
-        m_imagePipeline->addOperation(
-            std::make_shared<AdjustBrightness>(m_adjustments->brightness()));
-    }
-
-    if (m_adjustments->contrast() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustContrast>(m_adjustments->contrast()));
-    }
-
-    if (m_adjustments->highlights() != 0) {
-        m_imagePipeline->addOperation(
-            std::make_shared<AdjustHighlight>(m_adjustments->highlights()));
-    }
-
-    if (m_adjustments->shadows() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustShadow>(m_adjustments->shadows()));
-    }
-
-    if (m_adjustments->whites() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustWhite>(m_adjustments->whites()));
-    }
-
-    if (m_adjustments->blacks() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustBlack>(m_adjustments->blacks()));
-    }
-
-    // Color operations
-    if (m_adjustments->temperature() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<WhiteBalance>(m_adjustments->temperature()));
-    }
-
-    if (m_adjustments->tint() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<TintMagenta>(m_adjustments->tint()));
-    }
-
-    if (m_adjustments->saturation() != 0) {
-        m_imagePipeline->addOperation(
-            std::make_shared<AdjustSaturation>(m_adjustments->saturation()));
-    }
-
-    // Process the pipeline
-    cv::Mat result = m_imagePipeline->process();
-
-    if (!result.empty()) {
-        QImage processedQImage = cvMatToQImage(result);
-        m_currentDocument->setProcessedImage(processedQImage);
-        qDebug() << "Image processed with" << m_imagePipeline->getOperationCount() << "operations";
-    } else {
-        qDebug() << "Pipeline processing returned empty result, keeping original";
-        m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
-    }
+/* Original implementation - requires image_processing:
+if (!m_imagePipeline->hasImg()) {
+    qDebug() << "No image in pipeline, reloading from document";
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
+    m_imagePipeline->setImg(cvImage);
 }
+
+// Clear existing operations and rebuild based on current adjustment settings
+m_imagePipeline->clearOperations();
+
+// Build a combined operation for real-time preview using liveOperation
+// For now, we add individual operations for each non-zero adjustment
+
+// Light operations
+if (m_adjustments->brightness() != 0) {
+    m_imagePipeline->addOperation(
+        std::make_shared<AdjustBrightness>(m_adjustments->brightness()));
+}
+
+if (m_adjustments->contrast() != 0) {
+    m_imagePipeline->addOperation(std::make_shared<AdjustContrast>(m_adjustments->contrast()));
+}
+
+if (m_adjustments->highlights() != 0) {
+    m_imagePipeline->addOperation(
+        std::make_shared<AdjustHighlight>(m_adjustments->highlights()));
+}
+
+if (m_adjustments->shadows() != 0) {
+    m_imagePipeline->addOperation(std::make_shared<AdjustShadow>(m_adjustments->shadows()));
+}
+
+if (m_adjustments->whites() != 0) {
+    m_imagePipeline->addOperation(std::make_shared<AdjustWhite>(m_adjustments->whites()));
+}
+
+if (m_adjustments->blacks() != 0) {
+    m_imagePipeline->addOperation(std::make_shared<AdjustBlack>(m_adjustments->blacks()));
+}
+
+// Color operations
+if (m_adjustments->temperature() != 0) {
+    m_imagePipeline->addOperation(std::make_shared<WhiteBalance>(m_adjustments->temperature()));
+}
+
+if (m_adjustments->tint() != 0) {
+    m_imagePipeline->addOperation(std::make_shared<TintMagenta>(m_adjustments->tint()));
+}
+
+if (m_adjustments->saturation() != 0) {
+    m_imagePipeline->addOperation(
+        std::make_shared<AdjustSaturation>(m_adjustments->saturation()));
+}
+
+// Process the pipeline
+cv::Mat result = m_imagePipeline->process();
+
+if (!result.empty()) {
+    QImage processedQImage = cvMatToQImage(result);
+    m_currentDocument->setProcessedImage(processedQImage);
+    qDebug() << "Image processed with" << m_imagePipeline->getOperationCount() << "operations";
+} else {
+    qDebug() << "Pipeline processing returned empty result, keeping original";
+    m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
+}
+*/}

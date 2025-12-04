@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QWidget>
 
@@ -85,44 +86,81 @@ QVariant ApplicationController::getState(const QString& key) const {
 
 // File operations
 void ApplicationController::openFile() {
+    // Load last used directory
+    QSettings settings("PhotoManufactura", "UI");
+    QString lastDir = settings
+                          .value("lastImageDirectory",
+                                 QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
+                          .toString();
+
     QString fileName = QFileDialog::getOpenFileName(
-        m_mainWindow, tr("Open Image"),
-        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
+        m_mainWindow, tr("Open Image"), lastDir,
         tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff *.raw *.cr2 *.nef *.arw)"));
 
     if (!fileName.isEmpty()) {
+        // Save the directory for next time
+        QFileInfo fileInfo(fileName);
+        settings.setValue("lastImageDirectory", fileInfo.absolutePath());
+
         if (m_documentManager->openDocument(fileName)) {
             setState("currentFile", fileName);
             setState("isModified", false);
+
+            // Emit signal with the loaded image
+            if (m_documentManager->currentDocument() &&
+                m_documentManager->currentDocument()->hasImage()) {
+                QImage image = m_documentManager->currentDocument()->originalImage();
+                emit imageLoaded(image, fileName);
+            }
             emit fileOpened(fileName);
         }
     }
 }
 
 void ApplicationController::saveFile() {
+    qDebug() << "saveFile() called";
+
     if (!m_documentManager->hasDocument()) {
+        qDebug() << "No document to save";
         emit errorOccurred("No document to save");
         return;
     }
 
     QString currentFile = m_documentManager->currentFilePath();
+    qDebug() << "Current file path:" << currentFile;
+
     if (currentFile.isEmpty()) {
+        qDebug() << "No file path, calling saveAsFile()";
         saveAsFile();
     } else {
+        qDebug() << "Attempting to save to:" << currentFile;
         if (m_documentManager->saveDocument()) {
             setState("isModified", false);
             emit fileSaved(currentFile);
+            qDebug() << "File saved successfully";
+        } else {
+            qDebug() << "Save failed";
         }
     }
 }
 
 void ApplicationController::saveAsFile() {
-    QString fileName = QFileDialog::getSaveFileName(
-        m_mainWindow, tr("Save Image"),
-        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
-        tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff)"));
+    // Load last used directory
+    QSettings settings("PhotoManufactura", "UI");
+    QString lastDir = settings
+                          .value("lastImageDirectory",
+                                 QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
+                          .toString();
+
+    QString fileName =
+        QFileDialog::getSaveFileName(m_mainWindow, tr("Save Image"), lastDir,
+                                     tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff)"));
 
     if (!fileName.isEmpty()) {
+        // Save the directory for next time
+        QFileInfo fileInfo(fileName);
+        settings.setValue("lastImageDirectory", fileInfo.absolutePath());
+
         if (m_documentManager->saveDocumentAs(fileName)) {
             setState("currentFile", fileName);
             setState("isModified", false);
