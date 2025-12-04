@@ -7,13 +7,7 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 
-CanvasWidget::CanvasWidget(QWidget* parent)
-    : QOpenGLWidget(parent),
-      m_texture(nullptr),
-      m_shaderProgram(nullptr),
-      m_zoomFactor(1.0),
-      m_panOffset(0, 0),
-      m_panning(false) {}
+CanvasWidget::CanvasWidget(QWidget* parent) : QOpenGLWidget(parent), m_texture(nullptr), m_shaderProgram(nullptr), m_zoomFactor(1.0), m_panOffset(0, 0), m_panning(false) {}
 
 CanvasWidget::~CanvasWidget() {
     makeCurrent();
@@ -152,13 +146,32 @@ void CanvasWidget::updateMatrices() {
     m_projectionMatrix.setToIdentity();
     m_projectionMatrix.ortho(-1, 1, -1, 1, -1, 1);
 
+    // Model matrix (aspect ratio correction)
+    QMatrix4x4 modelMatrix;
+    modelMatrix.setToIdentity();
+
+    if (!m_imageSize.isEmpty() && width() > 0 && height() > 0) {
+        // Calculate aspect ratios
+        double widgetAspect = (double)width() / height();
+        double imageAspect = (double)m_imageSize.width() / m_imageSize.height();
+
+        // Scale the quad to match image aspect ratio
+        if (imageAspect > widgetAspect) {
+            // Image is wider than widget - scale height
+            modelMatrix.scale(1.0, widgetAspect / imageAspect, 1.0);
+        } else {
+            // Image is taller than widget - scale width
+            modelMatrix.scale(imageAspect / widgetAspect, 1.0, 1.0);
+        }
+    }
+
     // View matrix (zoom and pan)
     m_viewMatrix.setToIdentity();
     m_viewMatrix.scale(m_zoomFactor);
     m_viewMatrix.translate(m_panOffset.x(), m_panOffset.y());
 
     // Combined MVP matrix
-    m_mvpMatrix = m_projectionMatrix * m_viewMatrix;
+    m_mvpMatrix = m_projectionMatrix * m_viewMatrix * modelMatrix;
 }
 
 void CanvasWidget::paintGL() {
@@ -257,8 +270,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     if (m_panning) {
         QPoint delta = event->pos() - m_lastPanPoint;
-        m_panOffset +=
-            QPointF(delta.x() / (width() * m_zoomFactor), -delta.y() / (height() * m_zoomFactor));
+        m_panOffset += QPointF(delta.x() / (width() * m_zoomFactor), -delta.y() / (height() * m_zoomFactor));
         m_lastPanPoint = event->pos();
         updateMatrices();
         update();
