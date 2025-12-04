@@ -31,6 +31,14 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     m_toggleThemeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
     themeMenu->addAction(m_toggleThemeAction);
 
+    themeMenu->addSeparator();
+
+    // Enable/Disable theme switching
+    m_enableThemeSwitchingAction = new QAction("Enable Theme Switching", this);
+    m_enableThemeSwitchingAction->setCheckable(true);
+    m_enableThemeSwitchingAction->setChecked(true);  // Enabled by default
+    themeMenu->addAction(m_enableThemeSwitchingAction);
+
     // Panel visibility
     m_toggleToolPanelAction = new QAction("Show Tool Panel", this);
     m_toggleToolPanelAction->setCheckable(true);
@@ -61,8 +69,22 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this,
             &SubMenuView::onThemeChanged);
 
+    // Listen to theme switching enabled/disabled changes
+    connect(&ThemeManager::instance(), &ThemeManager::themeSwitchingEnabledChanged, this,
+            &SubMenuView::onThemeSwitchingEnabledChanged);
+
+    // Connect enable/disable action
+    connect(m_enableThemeSwitchingAction, &QAction::toggled, [](bool checked) {
+        if (checked) {
+            ThemeManager::instance().enableThemeSwitching();
+        } else {
+            ThemeManager::instance().disableThemeSwitching();
+        }
+    });
+
     // Initialize theme state from current theme
     onThemeChanged(ThemeManager::instance().currentTheme());
+    onThemeSwitchingEnabledChanged(ThemeManager::instance().isThemeSwitchingEnabled());
 }
 
 SubMenuView::~SubMenuView() {}
@@ -93,6 +115,14 @@ void SubMenuView::onThemeChanged(ThemeManager::Theme theme) {
     // Update menu checkboxes to reflect current theme
     m_darkThemeAction->setChecked(theme == ThemeManager::Theme::Dark);
     m_lightThemeAction->setChecked(theme == ThemeManager::Theme::Light);
+}
+
+void SubMenuView::onThemeSwitchingEnabledChanged(bool enabled) {
+    // Enable or disable theme-related actions
+    m_darkThemeAction->setEnabled(enabled);
+    m_lightThemeAction->setEnabled(enabled);
+    m_toggleThemeAction->setEnabled(enabled);
+    m_enableThemeSwitchingAction->setChecked(enabled);
 }
 
 void SubMenuView::onToggleToolPanelTriggered() {

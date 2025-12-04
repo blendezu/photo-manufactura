@@ -58,8 +58,27 @@ class ThemeManager : public QObject {
         return m_currentTheme == Theme::Dark;
     }
 
+    /**
+     * @brief Enable theme switching
+     */
+    void enableThemeSwitching();
+
+    /**
+     * @brief Disable theme switching (lock current theme)
+     */
+    void disableThemeSwitching();
+
+    /**
+     * @brief Check if theme switching is enabled
+     * @return true if theme switching is enabled
+     */
+    bool isThemeSwitchingEnabled() const {
+        return m_themeSwitchingEnabled;
+    }
+
    signals:
     void themeChanged(Theme theme);
+    void themeSwitchingEnabledChanged(bool enabled);
 
    private:
     ThemeManager();
@@ -69,4 +88,5 @@ class ThemeManager : public QObject {
     ThemeManager& operator=(const ThemeManager&) = delete;
 
     Theme m_currentTheme;
+    bool m_themeSwitchingEnabled;
 };

@@ -11,7 +11,8 @@
     "files.associations": {
         "*.h": "cpp",
         "*.hpp": "cpp",
-        "*.cpp": "cpp"
+        "*.cpp": "cpp",
+        "*.qss": "css"
     },
     "cmake.configureOnOpen": true,
     "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
