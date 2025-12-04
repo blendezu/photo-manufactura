@@ -10,11 +10,15 @@ ThemeManager& ThemeManager::instance() {
     return instance;
 }
 
-ThemeManager::ThemeManager() : m_currentTheme(Theme::Dark) {
+ThemeManager::ThemeManager() : m_currentTheme(Theme::Dark), m_themeSwitchingEnabled(true) {
     loadThemeFromSettings();
 }
 
 void ThemeManager::applyTheme(Theme theme) {
+    if (!m_themeSwitchingEnabled) {
+        return;  // Theme switching is disabled
+    }
+
     m_currentTheme = theme;
 
     QString stylesheet;
@@ -51,6 +55,28 @@ void ThemeManager::saveThemeToSettings() {
 }
 
 void ThemeManager::toggleTheme() {
+    if (!m_themeSwitchingEnabled) {
+        return;  // Theme switching is disabled
+    }
+
     Theme newTheme = (m_currentTheme == Theme::Dark) ? Theme::Light : Theme::Dark;
     applyTheme(newTheme);
+}
+
+void ThemeManager::enableThemeSwitching() {
+    if (m_themeSwitchingEnabled) {
+        return;  // Already enabled
+    }
+
+    m_themeSwitchingEnabled = true;
+    emit themeSwitchingEnabledChanged(true);
+}
+
+void ThemeManager::disableThemeSwitching() {
+    if (!m_themeSwitchingEnabled) {
+        return;  // Already disabled
+    }
+
+    m_themeSwitchingEnabled = false;
+    emit themeSwitchingEnabledChanged(false);
 }

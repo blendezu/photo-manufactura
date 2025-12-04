@@ -18,11 +18,13 @@ class SubMenuView : public QMenu {
     void onToggleToolPanelTriggered();
     void onToggleInfoPanelTriggered();
     void onThemeChanged(ThemeManager::Theme theme);
+    void onThemeSwitchingEnabledChanged(bool enabled);
 
    private:
     QAction* m_darkThemeAction;
     QAction* m_lightThemeAction;
     QAction* m_toggleThemeAction;
+    QAction* m_enableThemeSwitchingAction;
     QAction* m_toggleToolPanelAction;
     QAction* m_toggleInfoPanelAction;
 };
