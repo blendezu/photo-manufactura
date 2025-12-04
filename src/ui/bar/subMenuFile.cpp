@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QSettings>
 
 SubMenuFile::SubMenuFile(QWidget* parent) : QMenu(parent) {
     this->setTitle("File");
@@ -55,12 +56,20 @@ void SubMenuFile::onOpenTriggered() {
     //   4. Coordinating with DocumentManager to load the file
     // The UI should only emit a signal like openRequested() and wait for controller response
 
+    // Load last used directory
+    QSettings settings("PhotoManufactura", "UI");
+    QString lastDir = settings.value("lastImageDirectory", "").toString();
+
     // Open file dialog
     QString fileName = QFileDialog::getOpenFileName(
-        this, tr("Open Image"), "",
+        this, tr("Open Image"), lastDir,
         tr("Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.raw *.cr2 *.nef);;All Files (*)"));
 
     if (!fileName.isEmpty()) {
+        // Save the directory for next time
+        QFileInfo fileInfo(fileName);
+        settings.setValue("lastImageDirectory", fileInfo.absolutePath());
+
         m_currentFilePath =
             fileName;  // TODO: MOVE TO CONTROLLER: State should be managed by ApplicationController
         emit imageLoaded(fileName);
