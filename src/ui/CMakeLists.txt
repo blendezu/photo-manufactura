@@ -139,13 +139,27 @@ target_link_libraries(ui PUBLIC
 # Standalone Executable (Optional)
 # ============================================================
 if(STANDALONE_BUILD)
+    # Add model and controller as subdirectories for standalone build
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../model ${CMAKE_BINARY_DIR}/model)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../controller ${CMAKE_BINARY_DIR}/controller)
+    
     # Create executable
     add_executable(ui_main
         ui_main.cpp
     )
 
-    # Link with UI library
-    target_link_libraries(ui_main PRIVATE ui)
+    # Link with UI library, controller and model
+    target_link_libraries(ui_main PRIVATE 
+        ui
+        controller
+        model
+    )
+    
+    # Add controller and model include directories
+    target_include_directories(ui_main PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/../controller
+        ${CMAKE_CURRENT_SOURCE_DIR}/../model
+    )
 
     # Output directory
     set_target_properties(ui_main PROPERTIES

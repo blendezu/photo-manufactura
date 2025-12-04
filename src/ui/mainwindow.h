@@ -36,8 +36,9 @@ class MainWindow : public QMainWindow {
     }
 
    public slots:
-    void loadImage(const QString& filePath);
-    void saveImage(const QString& filePath);
+    void onImageLoaded(const QImage& image, const QString& filePath);
+    void onFileSaved(const QString& filePath);
+    void onError(const QString& message);
 
    private:
     void setupUi();
@@ -55,9 +56,4 @@ class MainWindow : public QMainWindow {
     SubMenuFile* m_fileMenu;
     SubMenuEdit* m_editMenu;
     SubMenuView* m_viewMenu;
-
-    // TODO: MOVE TO CONTROLLER: m_currentFilePath should be managed by ApplicationController state
-    // Use ApplicationController::getState("currentFile") instead
-    // Current file
-    QString m_currentFilePath;
 };

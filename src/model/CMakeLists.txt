@@ -35,9 +35,10 @@ target_include_directories(model PUBLIC
 )
 
 # image_processing headers are accessed via target's PUBLIC include directories
+# TODO: Re-enable when image_processing is available
 target_link_libraries(model PUBLIC
     Qt6::Core
     Qt6::Gui
-    image_processing
+    # image_processing
     ${OpenCV_LIBS}
 )

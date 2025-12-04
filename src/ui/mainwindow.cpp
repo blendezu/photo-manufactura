@@ -80,58 +80,29 @@ void MainWindow::setupDockPanels() {
 }
 
 void MainWindow::setupConnections() {
-    // Connect File Menu signals to MainWindow slots
-    connect(m_fileMenu, &SubMenuFile::imageLoaded, this, &MainWindow::loadImage);
-    connect(m_fileMenu, &SubMenuFile::imageSaveRequested, this, &MainWindow::saveImage);
+    // File menu signals will be connected to controller by main/ui_main
+    // This method is kept for future internal connections if needed
 }
 
-void MainWindow::loadImage(const QString& filePath) {
-    // TODO: MOVE TO CONTROLLER: Image loading logic should be handled by ApplicationController
-    // The controller should handle:
-    //   1. Loading the image via DocumentManager or ImageProcessingService
-    //   2. Validating the image (null check, format support)
-    //   3. Managing m_currentFilePath state via setState()
-    //   4. Extracting and storing metadata
-    // The MainWindow should receive a signal from controller with the loaded QImage
-    // and only handle UI updates (setImage, zoomToFit, updateWindowTitle)
-
-    QImage image(filePath);  // TODO: MOVE TO CONTROLLER: Use DocumentManager to load image
-
-    if (image.isNull()) {  // TODO: MOVE TO CONTROLLER: Validation should be in controller
-        QMessageBox::warning(this, tr("Error"), tr("Failed to load image: %1").arg(filePath));
-        return;
-    }
-
-    // Store current file path
-    m_currentFilePath = filePath;  // TODO: MOVE TO CONTROLLER: Use
-                                   // ApplicationController::setState("currentFile", filePath)
-
-    // Display image on canvas - This stays in UI
+void MainWindow::onImageLoaded(const QImage& image, const QString& filePath) {
+    // Display image on canvas
     m_canvasWidget->setImage(image);
     m_canvasWidget->zoomToFit();
 
-    // Update info panel with image metadata - This stays in UI, but metadata extraction moves to
-    // controller
-    QFileInfo fileInfo(filePath);  // TODO: MOVE TO CONTROLLER: Metadata extraction
+    // Update info panel with image metadata
+    QFileInfo fileInfo(filePath);
     m_infoPanel->updateImageInfo(fileInfo.fileName(), image.width(), image.height(),
                                  fileInfo.suffix().toUpper());
 
-    // Update window title - This stays in UI
+    // Update window title
     setWindowTitle(tr("Photo Manufactura - %1").arg(fileInfo.fileName()));
 }
 
-void MainWindow::saveImage(const QString& filePath) {
-    // TODO: MOVE TO CONTROLLER: Image saving logic should be handled by
-    // ApplicationController::saveFile() The controller should handle:
-    //   1. Getting the processed image from ImagePipeline
-    //   2. Coordinating with DocumentManager to save the file
-    //   3. Handling save errors and updating state
-    //   4. Emitting fileSaved signal on success
-    // The MainWindow should only receive success/error signals from controller
+void MainWindow::onFileSaved(const QString& filePath) {
+    QFileInfo fileInfo(filePath);
+    setWindowTitle(tr("Photo Manufactura - %1").arg(fileInfo.fileName()));
+}
 
-    // TODO: Implement save using processed image from pipeline
-    // For now, show placeholder message
-    QMessageBox::information(
-        this, tr("Save"),
-        tr("Save functionality will be connected to ImagePipeline.\nPath: %1").arg(filePath));
+void MainWindow::onError(const QString& message) {
+    QMessageBox::warning(this, tr("Error"), message);
 }

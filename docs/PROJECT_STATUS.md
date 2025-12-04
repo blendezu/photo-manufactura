@@ -1,6 +1,6 @@
 # Photo Manufactura - Project Status
 
-**Date:** 29 November 2025  
+**Date:** 4 December 2025  
 **Branch:** `feat/gui-core-components`
 
 ---
@@ -45,7 +45,7 @@
 
 | File | Status | Description |
 |------|--------|-------------|
-| `ApplicationController.h/cpp` | ✅ Updated | Uses Model layer, all adjustment slots |
+| `ApplicationController.h/cpp` | ✅ Complete | Full MVC controller with QSettings, signals for all operations |
 | `ICommand.h` | ✅ Complete | Command pattern interface |
 | `Commands.h` | ✅ Complete | Command implementations |
 
@@ -53,17 +53,18 @@
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| `mainwindow` | ✅ | Main application window |
-| `canvas/canvasWidget` | ✅ | OpenGL image display (GLSL 120) |
+| `mainwindow` | ✅ Refactored | Pure UI display, receives signals from controller |
+| `canvas/canvasWidget` | ✅ | OpenGL image display (GLSL 120), aspect ratio preserved |
 | `bar/toolBar` | ✅ | Main toolbar |
-| `bar/subMenuFile` | ✅ | File menu (TODO: wire to controller) |
+| `bar/subMenuFile` | ✅ Refactored | Signal-only pattern, Save & Save As fully implemented |
 | `bar/subMenuEdit` | ✅ | Edit menu |
-| `bar/subMenuView` | ✅ | View menu with theme switching |
-| `panel/toolPanel` | ✅ | Adjustment sliders (TODO: wire to controller) |
+| `bar/subMenuView` | ✅ | View menu with theme switching (Ctrl+T) |
+| `panel/toolPanel` | ✅ | Adjustment sliders (TODO: connect to controller) |
 | `panel/infoPanel` | ✅ | Image info display |
-| `widgets/collapsibleWidget` | ✅ | Collapsible sections |
+| `widgets/collapsibleWidget` | ✅ | Collapsible sections with animations |
 | `widgets/labeledSlider` | ✅ | Slider with label |
 | `resources/theme/` | ✅ | Theme manager, dark/light QSS |
+| `ui_main.cpp` | ✅ Complete | Full controller wiring including Save & Save As |
 
 ### ✅ Image Processing (`src/image_processing/`)
 
@@ -112,32 +113,103 @@
 
 | Integration | Status | Notes |
 |-------------|--------|-------|
-| Model ↔ Controller | ✅ | DocumentManager, AppState connected |
-| Controller ↔ UI | ⏳ Pending | Signals not yet connected |
-| ImagePipeline ↔ DocumentManager | ⏳ Pending | Placeholder in `applyAdjustments()` |
-| UI Sliders ↔ Controller | ⏳ Pending | Need to emit signals |
-| Canvas ↔ ProcessedImage | ⏳ Pending | Need to display from Model |
+| Model ↔ Controller | ✅ Complete | DocumentManager, AppState fully integrated |
+| Controller ↔ UI (File Ops) | ✅ Complete | Open/Save/Save As with QSettings persistence working |
+| Controller ↔ UI (Display) | ✅ Complete | imageLoaded signal wired, canvas displays correctly |
+| UI Sliders ↔ Controller | ⏳ Pending | ToolPanel needs signal connections |
+| Canvas Zoom ↔ Controller | ⏳ Pending | Zoom operations need controller integration |
+| Theme ↔ Controller | ⏳ Pending | SubMenuView needs controller connection |
+| ImagePipeline ↔ DocumentManager | ⚠️ Disabled | Temporarily disabled (requires ONNX Runtime) |
+
+---
+
+## Recent Updates (December 4, 2025)
+
+### ✅ Completed: MVC Architecture Refactoring
+
+**ApplicationController Integration:**
+- Added QSettings persistence for `lastImageDirectory`
+- Added `imageLoaded(QImage, QString)` signal for UI updates
+- All file operations (open/save/exit) fully implemented
+- All 10 adjustment slots implemented
+- Zoom management via AppState
+- Theme management via AppState
+
+**MainWindow Refactoring:**
+- Removed all business logic and file I/O
+- Changed `loadImage()` → `onImageLoaded(QImage, QString)` (pure UI update)
+- Added `onFileSaved(QString)` and `onError(QString)` slots
+- Removed `m_currentFilePath` member (now in controller)
+
+**SubMenuFile Refactoring:**
+- Converted to signal-only pattern
+- Removed all QFileDialog, QSettings, and business logic
+- Added Save As functionality with Cmd+Shift+S shortcut
+- Signals: `newDocumentRequested()`, `openFileRequested()`, `saveFileRequested()`, `saveAsFileRequested()`, `exitRequested()`
+- All slots are 1-line signal emitters
+
+**ui_main.cpp Wiring:**
+- Complete signal-slot connections established
+- Controller ↔ SubMenuFile: file operations (open, save, save as)
+- Controller ↔ MainWindow: image display, save confirmation, errors
+- Successfully builds and runs
+
+**UI Improvements:**
+- Fixed image aspect ratio preservation in canvasWidget
+- Added theme toggle with Ctrl+T keyboard shortcut
+- Improved collapsible widget animations
+- Fixed spacing for collapsed state
+- Responsive layout improvements
+
+### ⚠️ Temporary Changes for Build
+
+**Image Processing Disabled:**
+- Commented out ONNX Runtime dependencies in `DocumentManager.cpp`
+- Removed `m_imagePipeline` member from `DocumentManager.h`
+- Removed `image_processing` link from `model/CMakeLists.txt`
+- `applyAdjustments()` currently returns original image unchanged
+
+**Reason:** ONNX Runtime library not installed at `/libs/onnxruntime/lib/`
+
+**To Restore Full Functionality:**
+1. Install ONNX Runtime 1.23.2 for macOS ARM64
+2. Uncomment all `// TODO: Re-enable when image_processing is available` sections
+3. Restore `image_processing` link in CMakeLists
+4. Rebuild project
 
 ---
 
 ## Next Steps (Priority Order)
 
-### 1. 🔗 Wire UI to Controller (High Priority)
+### 1. 🔧 Install ONNX Runtime (Blocker)
+```bash
+cd libs/onnxruntime
+curl -L -o onnxruntime.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-osx-arm64-1.23.2.tgz
+tar -xzf onnxruntime.tgz
+mkdir -p lib
+cp onnxruntime-osx-arm64-1.23.2/lib/* lib/
+```
+
+### 2. 🔗 Complete Controller Integration (High Priority)
 - Connect `ToolPanel` sliders → `ApplicationController` adjustment slots
-- Connect `SubMenuFile` actions → `ApplicationController.openFile()`, etc.
-- Connect `CanvasWidget` → display `DocumentManager.processedImage()`
+- Connect `CanvasWidget` zoom → `ApplicationController` zoom management
+- Connect `SubMenuView` theme → `ApplicationController` theme management
 
-### 2. 🖼️ Integrate ImagePipeline (High Priority)
-- Replace placeholder in `DocumentManager::applyAdjustments()`
-- Create operations from `AdjustmentSettings` values
-- Process images in real-time as sliders change
+### 3. 🖼️ Restore ImagePipeline Integration
+- Uncomment image_processing code in DocumentManager
+- Restore library links in CMakeLists
+- Test real-time adjustment preview
 
-### 3. 🧪 Test End-to-End
-- Open image via File menu
-- Adjust sliders and see preview
-- Save processed image
+### 4. 🧪 Test End-to-End
+- ✅ Open image via File menu (WORKING)
+- ✅ Display in canvas with aspect ratio (WORKING)
+- ✅ Save file with directory persistence (WORKING)
+- ✅ Save As with file dialog (WORKING)
+- ⏳ Adjust sliders and see preview (needs ToolPanel connection)
+- ⏳ Zoom operations (needs CanvasWidget connection)
+- ⏳ Theme switching via controller (needs SubMenuView connection)
 
-### 4. ↩️ Add Undo/Redo (Low Priority)
+### 5. ↩️ Add Undo/Redo (Low Priority)
 - Implement Command pattern for adjustments
 - Connect to Edit menu
 
@@ -164,8 +236,21 @@ cmake --build build
 
 ## Dependencies
 
-- **Qt 6**: Core, Gui, Widgets, OpenGL, OpenGLWidgets
-- **OpenCV 4**: Core, ImgProc, ImgCodecs, HighGui
-- **OpenMP**: Parallel processing
-- **LibRaw**: RAW file decoding
-- **CMake 3.21+**: Build system
+- **Qt 6**: Core, Gui, Widgets, OpenGL, OpenGLWidgets ✅ Installed
+- **OpenCV 4.12.0**: Core, ImgProc, ImgCodecs ✅ Installed
+- **ONNX Runtime 1.23.2**: AI model inference ⚠️ **NOT INSTALLED** (blocker for image_processing)
+- **OpenMP**: Parallel processing ✅ Available
+- **LibRaw**: RAW file decoding ✅ Available
+- **CMake 3.21+**: Build system ✅ Installed
+
+---
+
+## Current Build Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Model | ✅ Builds | Image processing disabled |
+| Controller | ✅ Builds | Fully functional |
+| UI | ✅ Builds | Standalone build working |
+| Image Processing | ⚠️ Disabled | Requires ONNX Runtime |
+| Full Project | ⚠️ Blocked | Need ONNX Runtime for complete build |

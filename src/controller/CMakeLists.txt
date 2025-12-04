@@ -52,16 +52,16 @@ target_include_directories(controller PUBLIC
 # If standalone build, create an executable for testing
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # Create a test executable for this component
-    add_executable(controller_test)
+    # add_executable(controller_test)
     
     # target_sources(controller_test PRIVATE
     #     test_main.cpp  # Create this for testing
     # )
     
-    target_link_libraries(controller_test PRIVATE controller)
+    # target_link_libraries(controller_test PRIVATE controller)
     
     # Set output directory
-    set_target_properties(controller_test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-    )
+    # set_target_properties(controller_test PROPERTIES
+    #     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    # )
 endif()
