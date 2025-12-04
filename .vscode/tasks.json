@@ -108,6 +108,20 @@
             "dependsOn": "Configure Controller Component"
         },
         {
+            "label": "Clean Controller Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/controller"
+            },
+            "detail": "Clean Controller component build directory"
+        },
+        {
             "label": "Configure Image Processing Component",
             "type": "shell",
             "command": "cmake",
@@ -145,6 +159,20 @@
             ],
             "detail": "Build Image Processing component independently",
             "dependsOn": "Configure Image Processing Component"
+        },
+        {
+            "label": "Clean Image Processing Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "detail": "Clean Image Processing component build directory"
         },
         {
             "label": "Configure Tasks Component",
@@ -306,6 +334,20 @@
             ],
             "detail": "Build Raw Processing component independently",
             "dependsOn": "Configure Raw Processing Component"
+        },
+        {
+            "label": "Clean Raw Processing Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "detail": "Clean Raw Processing component build directory"
         },
         {
             "label": "Launch Raw Processing Component",

@@ -17,23 +17,25 @@ ToolPanel::~ToolPanel() {
 void ToolPanel::setupUI() {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(0);
+    mainLayout->setSpacing(10);
 
     // Create scroll area for the content
     m_scrollArea = new QScrollArea(this);
     m_scrollArea->setWidgetResizable(true);
     m_scrollArea->setFrameShape(QFrame::NoFrame);
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     // Content widget
     m_contentWidget = new QWidget();
     m_mainLayout = new QVBoxLayout(m_contentWidget);
-    m_mainLayout->setContentsMargins(10, 10, 10, 10);
+    m_mainLayout->setContentsMargins(5, 10, 5, 10);
     m_mainLayout->setSpacing(10);
 
     // Title and Reset button
     QHBoxLayout* headerLayout = new QHBoxLayout();
     QLabel* title = new QLabel(tr("<b>Adjustments</b>"), this);
+
     QPushButton* resetBtn = new QPushButton(tr("Reset All"), this);
     resetBtn->setMaximumWidth(80);
     connect(resetBtn, &QPushButton::clicked, this, &ToolPanel::resetAllAdjustments);
@@ -46,9 +48,7 @@ void ToolPanel::setupUI() {
     // Create collapsible sections
     m_mainLayout->addWidget(createBasicSection());
     m_mainLayout->addWidget(createColorSection());
-    m_mainLayout->addWidget(createDetailSection());
-
-    // Add stretch at the end
+    m_mainLayout->addWidget(createDetailSection());  // Add stretch at the end
     m_mainLayout->addStretch();
 
     m_scrollArea->setWidget(m_contentWidget);
@@ -59,8 +59,9 @@ void ToolPanel::setupUI() {
 CollapsibleWidget* ToolPanel::createBasicSection() {
     CollapsibleWidget* basicSection = new CollapsibleWidget("Basic Adjustments", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(8);
-    layout->setContentsMargins(10, 10, 10, 10);
+
+    layout->setSpacing(12);
+    layout->setContentsMargins(0, 15, 10, 15);
 
     // Create sliders
     m_exposureSlider = new LabeledSlider("Exposure", -100, 100, 0, this);
@@ -95,14 +96,15 @@ CollapsibleWidget* ToolPanel::createBasicSection() {
     layout->addWidget(m_blacksSlider);
 
     basicSection->setContentLayout(layout);
+    basicSection->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     return basicSection;
 }
 
 CollapsibleWidget* ToolPanel::createColorSection() {
     CollapsibleWidget* colorSection = new CollapsibleWidget("Color Adjustments", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(8);
-    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(12);
+    layout->setContentsMargins(15, 15, 15, 15);
 
     // Create sliders
     m_temperatureSlider = new LabeledSlider("Temperature", -100, 100, 0, this);
@@ -110,8 +112,7 @@ CollapsibleWidget* ToolPanel::createColorSection() {
     m_saturationSlider = new LabeledSlider("Saturation", -100, 100, 0, this);
 
     // Connect signals
-    connect(m_temperatureSlider, &LabeledSlider::valueChanged, this,
-            &ToolPanel::temperatureChanged);
+    connect(m_temperatureSlider, &LabeledSlider::valueChanged, this, &ToolPanel::temperatureChanged);
     connect(m_tintSlider, &LabeledSlider::valueChanged, this, &ToolPanel::tintChanged);
     connect(m_saturationSlider, &LabeledSlider::valueChanged, this, &ToolPanel::saturationChanged);
 
