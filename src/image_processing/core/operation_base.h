@@ -30,8 +30,9 @@ class ImageOperation {
     virtual cv::Mat apply(const cv::Mat& srcImg) = 0;
 
     // For Fused Engine
-    virtual Halide::Func applyHalide(Halide::Func input, Halide::Var x, Halide::Var y,
-                                     Halide::Var c) {
+    virtual Halide::Func applyHalide(Halide::Func input, [[maybe_unused]] Halide::Var x,
+                                     [[maybe_unused]] Halide::Var y,
+                                     [[maybe_unused]] Halide::Var c) {
         return input;
     }
 
@@ -64,7 +65,7 @@ class HalideOperation : public ImageOperation {
      * @brief Calculates parameters in CPU before GPU
      * Standard: doing nothing
      */
-    virtual void prepareParameters(const cv::Mat& srcImg) {}
+    virtual void prepareParameters([[maybe_unused]] const cv::Mat& srcImg) {}
 
     // Implementation for fusion interface
     Halide::Func applyHalide(Halide::Func input, Halide::Var x, Halide::Var y,
