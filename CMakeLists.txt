@@ -50,4 +50,15 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>
 )
 
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)#
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/AI_models")
+    message(STATUS "Copying Style Transfer Models to bin folder...")
+
+file(COPY ...) kopiert Dateien/Ordner während des CMake-Laufs
+    file(COPY "${CMAKE_SOURCE_DIR}/AI_models" 
+         DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+else()
+    message(WARNING "⚠️
+  Folder 'AI_models' not found in root!")
+endif()
