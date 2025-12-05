@@ -23,7 +23,7 @@ CollapsibleWidget::CollapsibleWidget(const QString& title, QWidget* parent) : QW
     m_contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_contentArea->setWidgetResizable(true);
     m_contentArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_contentArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_contentArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_contentArea->setMaximumHeight(0);  // Start collapsed visually
     m_contentArea->setMinimumHeight(0);
     // Animation setup

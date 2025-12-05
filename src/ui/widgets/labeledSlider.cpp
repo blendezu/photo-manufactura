@@ -11,7 +11,7 @@ LabeledSlider::LabeledSlider(const QString& label, int min, int max, int default
 
     // Label
     m_label = new QLabel(label, this);
-    m_label->setStyleSheet("font-weight: bold; color: #8ad618; font-size: 13px;");
+    m_label->setStyleSheet("font-weight: bold; color: #3030f5ff; font-size: 13px;");
     m_label->setWordWrap(false);
     m_label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
