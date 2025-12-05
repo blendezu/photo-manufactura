@@ -1,11 +1,19 @@
 #include "image_pipeline.h"
 
+#include <Halide.h>
+
 #include <cstddef>
+#include <exception>
 #include <iostream>
 #include <memory>
+#include <opencv2/core/mat.hpp>
+#include <ostream>
 #include <sstream>
 
-ImagePipeline::ImagePipeline() : cacheValid(false) {}
+#include "halide_wrapper.h"
+#include "operation_base.h"
+
+ImagePipeline::ImagePipeline() : m_cacheValid(false), m_useFusedPipeline(false) {}
 
 void ImagePipeline::setImg(const cv::Mat& img) {
     if (img.empty()) {
@@ -13,7 +21,7 @@ void ImagePipeline::setImg(const cv::Mat& img) {
         return;
     }
 
-    originalImg = img.clone();
+    m_originalImg = img.clone();
     invalidateCache();
     clearUndoHistory();
     std::cout << "Image set to pipeline: " << img.cols << "x" << img.rows
@@ -26,11 +34,11 @@ void ImagePipeline::addOperation(std::shared_ptr<ImageOperation> operation) {
         return;
     }
 
-    operations.push_back(operation);
-    undoneOperations.clear();  // delete Redo history when new operation
+    m_operations.push_back(operation);
+    m_undoneOperations.clear();  // delete Redo history when new operation
     invalidateCache();
 
-    std::cout << "Operation added: " << operation->getName() << " (Total: " << operations.size()
+    std::cout << "Operation added: " << operation->getName() << " (Total: " << m_operations.size()
               << ")" << std::endl;
 }
 
@@ -40,94 +48,124 @@ void ImagePipeline::insertOperation(int index, std::shared_ptr<ImageOperation> o
         return;
     }
 
-    if (index < 0 || index > static_cast<int>(operations.size())) {
+    if (index < 0 || index > static_cast<int>(m_operations.size())) {
         std::cerr << "Error: Invalid index for operation insertion: " << index << std::endl;
         return;
     }
 
-    operations.insert(operations.begin() + index, operation);
-    undoneOperations.clear();
+    m_operations.insert(m_operations.begin() + index, operation);
+    m_undoneOperations.clear();
     invalidateCache();
 
     std::cout << "Operation inserted at " << index << ": " << operation->getName() << std::endl;
 }
 
 void ImagePipeline::removeOperation(int index) {
-    if (index < 0 || index >= static_cast<int>(operations.size())) {
+    if (index < 0 || index >= static_cast<int>(m_operations.size())) {
         std::cerr << "Error: Invalid index for operation removal: " << index << std::endl;
         return;
     }
 
-    std::string opName = operations[index]->getName();
-    operations.erase(operations.begin() + index);
+    std::string opName = m_operations[index]->getName();
+    m_operations.erase(m_operations.begin() + index);
     invalidateCache();
 
     std::cout << "Operation removed at " << index << ": " << opName << std::endl;
 }
 
 void ImagePipeline::clearOperations() {
-    if (!operations.empty()) {
-        std::cout << "Clearing all operations (" << operations.size() << " total)" << std::endl;
-        operations.clear();
+    if (!m_operations.empty()) {
+        std::cout << "Clearing all operations (" << m_operations.size() << " total)" << std::endl;
+        m_operations.clear();
         invalidateCache();
     }
 }
 
 void ImagePipeline::clearUndoHistory() {
-    if (!undoneOperations.empty()) {
-        undoneOperations.clear();
+    if (!m_undoneOperations.empty()) {
+        m_undoneOperations.clear();
         std::cout << "Undo history cleared" << std::endl;
     }
 }
 
 std::shared_ptr<ImageOperation> ImagePipeline::getOperation(int index) {
-    if (index < 0 || index >= static_cast<int>(operations.size())) {
+    if (index < 0 || index >= static_cast<int>(m_operations.size())) {
         std::cerr << "Error: Invalid operation index: " << index << std::endl;
         return nullptr;
     }
 
-    return operations[index];
+    return m_operations[index];
 }
 
 void ImagePipeline::setLiveOperation(std::shared_ptr<ImageOperation> operation) {
-    liveOperation = operation;
+    m_liveOperation = operation;
 }
 
 void ImagePipeline::clearLiveOperations() {
-    liveOperation = nullptr;
+    m_liveOperation = nullptr;
+}
+
+void ImagePipeline::setFusionMode(bool enabled) {
+    if (m_useFusedPipeline != enabled) {
+        m_useFusedPipeline = enabled;
+        invalidateCache();
+        std::cout << "[Pipeline] Mode switched to: " << (enabled ? "GPU Fused" : "CPU Sequential")
+                  << std::endl;
+    }
 }
 
 cv::Mat ImagePipeline::process() {
-    if (originalImg.empty()) {
+    if (m_originalImg.empty()) {
         std::cerr << "Error: Cannot process pipeline - no image loaded" << std::endl;
         return cv::Mat();
     }
 
-    // ✅ Cache für normale Operationen (ohne Live-Op)
-    if (cacheValid && !cachedResult.empty() && !liveOperation) {
-        return cachedResult.clone();
+    // 1. Check Cache
+    if (m_cacheValid && !m_cachedResult.empty() && !m_liveOperation) {
+        return m_cachedResult.clone();
     }
 
-    // ✅ OPTIMIERT: Cache für Vorschau (mit Live-Op) - NUR Live-Op wird berechnet!
-    if (cacheValid && !cachedResult.empty() && liveOperation) {
-        cv::Mat result = cachedResult.clone();
+    cv::Mat result;
 
-        cv::Mat previous = result.clone();
-        result = liveOperation->apply(result);
-
-        if (result.empty()) {
-            std::cerr << "Error: Live operation returned empty image" << std::endl;
-            return previous;
+    // 2. Reuse Cache or  Calculate fresh
+    if (m_cacheValid && !m_cachedResult.empty()) {
+        result = m_cachedResult.clone();
+    } else {
+        if (m_useFusedPipeline) {
+            result = processFused();
         }
-        return result;  // ⚡ Nur Live-Op auf Cache angewendet!
+
+        else {
+            result = processSequential();
+        }
+
+        updateCache(result);
     }
 
-    // ❌ Cache ungültig - normale Berechnung
-    cv::Mat result = originalImg.clone();
+    // 3. Live Operation Overlay
+    if (m_liveOperation) {
+        cv::Mat previous = result.clone();
+
+        // Apply Live Operation
+        cv::Mat liveResult = m_liveOperation->apply(result);
+
+        if (liveResult.empty()) {
+            std::cerr << "[Pipeline] Error: Live operation returned empty image" << std::endl;
+            result = previous;
+        } else {
+            result = liveResult;
+        }
+    }
+    return result;
+}
+
+// --- ENGINE 1: SEQUENTIAL ---
+cv::Mat ImagePipeline::processSequential() {
+    cv::Mat result = m_originalImg.clone();
 
     try {
-        for (size_t i = 0; i < operations.size(); i++) {
-            auto& operation = operations[i];
+        for (size_t i = 0; i < m_operations.size(); i++) {
+            auto& operation = m_operations[i];
             if (!operation) {
                 std::cerr << "Warning: Null operation at index " << i << ", skipping" << std::endl;
                 continue;
@@ -138,51 +176,181 @@ cv::Mat ImagePipeline::process() {
 
             if (result.empty()) {
                 std::cerr << "Error: Operation " << operation->getName() << " at index " << i
-                          << " returned empty image" << std::endl;
-                result = previous;  // back to the last one
+                          << " returned empty image\n";
                 break;
             }
         }
-
-        // Live-Operation apply if active
-        if (liveOperation) {
-            cv::Mat previous = result.clone();
-            result = liveOperation->apply(result);
-
-            if (result.empty()) {
-                std::cerr << "Error: Live operation returned empty image" << std::endl;
-                result = previous;
-            }
-        }
-
-        // Cache update
-        updateCache(result);
     } catch (const std::exception& e) {
-        std::cerr << "Error during pipeline processing: " << e.what() << std::endl;
-        invalidateCache();
-        return originalImg.clone();  // fallback to original
+        std::cerr << "Error during sequential processing: " << e.what() << std::endl;
+        return m_originalImg.clone();
     }
-
     return result;
 }
 
+// --- ENGINE 2: FUSED ---
+cv::Mat ImagePipeline::processFused() {
+    cv::Mat currentImg = m_originalImg.clone();
+
+    // Queue for operations that can be used on GPU
+    std::vector<std::shared_ptr<HalideOperation>> halideChain;
+
+    // Helper lambda to execute pending GPU ops
+    auto flushChain = [&](cv::Mat& img) {
+        if (halideChain.empty()) {
+            return;
+        }
+
+        try {
+            img = runFusedHalideChain(img, halideChain);
+        } catch (const std::exception& e) {
+            std::cerr << "[Pipeline] Chain execution failed: " << e.what() << std::endl;
+        }
+
+        // clear the pipeline
+        halideChain.clear();
+    };
+
+    for (const auto& op : m_operations) {
+        if (!op)
+            continue;
+
+        // Check compatbility
+        if (op->supportsHalide()) {
+            auto halideOp = std::dynamic_pointer_cast<HalideOperation>(op);
+            if (halideOp) {
+                //
+                if (halideOp->requiresFreshStats()) {
+                    flushChain(currentImg);
+                }
+                // IMPORTANT: Prepare stats/parameters on CPU befor queuing
+                halideOp->prepareParameters(currentImg);
+                halideChain.push_back(halideOp);
+                continue;
+            }
+        }
+
+        // --- BARRIER: CPU Filter encountered
+
+        // 1. Finishing pending GPU work
+        flushChain(currentImg);
+
+        // 2. Run the CPU operation
+        try {
+            cv::Mat next = op->apply(currentImg);
+            if (!next.empty()) {
+                currentImg = next;
+            } else {
+                std::cerr << "[Pipeline] Warning: CPU Op returned empty" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[Pipeline] CPU Fallback Error: " << e.what() << std::endl;
+        }
+    }
+
+    // Finish remaining GPU work
+    flushChain(currentImg);
+
+    return currentImg;
+}
+
+cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& src,
+                                           std::vector<std::shared_ptr<HalideOperation>>& ops) {
+    if (ops.empty())
+        return src;
+
+    HalideWrapper hw;
+
+    try {
+        Halide::Var x("x"), y("y"), c("c");
+
+        int depth = src.depth();
+        bool is8Bit = (depth == CV_8U);
+        bool is16Bit = (depth == CV_16U);
+
+        if (!is8Bit && !is16Bit) {
+            std::cerr << "[Pipeline] Unsupported depth for fusion." << std::endl;
+            return src;
+        }
+
+        // 1. Setup Input Buffer
+        Halide::Func currentFunc("chain_start");
+
+        Halide::Buffer<uint8_t> inBuf8;
+        Halide::Buffer<uint16_t> inBuf16;
+
+        if (is8Bit) {
+            inBuf8 = hw.wrap<uint8_t>(src);
+            currentFunc(x, y, c) = Halide::BoundaryConditions::repeat_edge(inBuf8)(x, y, c);
+        } else {
+            inBuf16 = hw.wrap<uint16_t>(src);
+            currentFunc(x, y, c) = Halide::BoundaryConditions::repeat_edge(inBuf16)(x, y, c);
+        }
+
+        // 2. Build the Graph (Chaining)
+        // Passes the output of one function as input to the next
+        for (auto& op : ops) {
+            currentFunc = op->buildGraph(currentFunc, x, y, c);
+        }
+
+        // 3. Final Output Handling (Clamp & Cast)
+        Halide::Func finalFunc("chain_end");
+        float maxVal = is8Bit ? 255.0f : 65535.0f;
+
+        if (is8Bit) {
+            finalFunc(x, y, c) =
+                Halide::cast<uint8_t>(Halide::clamp(currentFunc(x, y, c), 0.0f, maxVal));
+        } else {
+            finalFunc(x, y, c) =
+                Halide::cast<uint16_t>(Halide::clamp(currentFunc(x, y, c), 0.0f, maxVal));
+        }
+
+        // 4. Schedule & Execution
+        hw.applySchedule(finalFunc, x, y);
+
+        cv::Mat dst = src.clone();
+
+        if (is8Bit) {
+            Halide::Buffer<uint8_t> outBuf = hw.wrap<uint8_t>(dst);
+
+            finalFunc.realize(outBuf, hw.getTarget());
+
+            if (hw.isGPU())
+                outBuf.device_sync();
+        } else {
+            Halide::Buffer<uint16_t> outBuf = hw.wrap<uint16_t>(dst);
+            finalFunc.realize(outBuf, hw.getTarget());
+            if (hw.isGPU())
+                outBuf.device_sync();
+        }
+
+        return dst;
+
+    } catch (const Halide::Error& e) {
+        std::cerr << "[Pipeline] JIT Compilation Error: " << e.what() << std::endl;
+        return src;  // Fail-safe: Return input unmodifed
+    } catch (const std::exception& e) {
+        std::cerr << "[Pipeline] Fused Runtime Error: " << e.what() << std::endl;
+        return src;
+    }
+}
+
 cv::Mat ImagePipeline::processUpTo(int operationIndex) {
-    if (originalImg.empty()) {
+    if (m_originalImg.empty()) {
         std::cerr << "Error: Cannot process pipeline - no image loaded\n";
         return cv::Mat();
     }
 
-    if (operationIndex < 0 || operationIndex > static_cast<int>(operations.size())) {
+    if (operationIndex < 0 || operationIndex > static_cast<int>(m_operations.size())) {
         std::cerr << "Error: Invalid operation index for partial processing: " << operationIndex
                   << std::endl;
         return process();
     }
 
-    cv::Mat result = originalImg.clone();
+    cv::Mat result = m_originalImg.clone();
 
     try {
         for (int i = 0; i < operationIndex; i++) {
-            auto& operation = operations[i];
+            auto& operation = m_operations[i];
             if (!operation) {
                 std::cerr << "Warning: Null operation at index " << i << ", skipping" << std::endl;
                 continue;
@@ -193,66 +361,66 @@ cv::Mat ImagePipeline::processUpTo(int operationIndex) {
             if (result.empty()) {
                 std::cerr << "Error: Operation " << operation->getName() << " at index " << i
                           << "returned empty image\n";
-                return originalImg.clone();
+                return m_originalImg.clone();
             }
         }
     } catch (const std::exception& e) {
         std::cerr << "Error during partial pipeline processing: " << e.what() << std::endl;
-        return originalImg.clone();
+        return m_originalImg.clone();
     }
 
     return result;
 }
 
 void ImagePipeline::undo() {
-    if (operations.empty()) {
+    if (m_operations.empty()) {
         std::cout << "Nothing to undo\n";
         return;
     }
 
-    auto lastOp = operations.back();
-    undoneOperations.push_back(lastOp);
-    operations.pop_back();
+    auto lastOp = m_operations.back();
+    m_undoneOperations.push_back(lastOp);
+    m_operations.pop_back();
     invalidateCache();
 
     std::cout << "Undo: " << lastOp->getName() << std::endl;
 }
 
 void ImagePipeline::redo() {
-    if (undoneOperations.empty()) {
+    if (m_undoneOperations.empty()) {
         std::cout << "Nothing to redo" << std::endl;
         return;
     }
 
-    auto lastUndone = undoneOperations.back();
-    operations.push_back(lastUndone);
-    undoneOperations.pop_back();
+    auto lastUndone = m_undoneOperations.back();
+    m_operations.push_back(lastUndone);
+    m_undoneOperations.pop_back();
     invalidateCache();
 
     std::cout << "Redo: " << lastUndone->getName() << std::endl;
 }
 
 void ImagePipeline::invalidateCache() {
-    cacheValid = false;
-    cachedResult.release();
+    m_cacheValid = false;
+    m_cachedResult.release();
 }
 
 void ImagePipeline::updateCache(const cv::Mat& result) {
     if (!result.empty()) {
-        cachedResult = result.clone();
-        cacheValid = true;
+        m_cachedResult = result.clone();
+        m_cacheValid = true;
     }
 }
 
 std::string ImagePipeline::serializePipeline() const {
     std::stringstream ss;
     ss << "ImagePipeline v1.0|";
-    ss << "Operations:" << operations.size() << "|";
+    ss << "Operations:" << m_operations.size() << "|";
 
-    for (size_t i = 0; i < operations.size(); i++) {
-        if (operations[i]) {
-            ss << operations[i]->getName() << ":" << operations[i]->getSettings();
-            if (i < operations.size() - 1) {
+    for (size_t i = 0; i < m_operations.size(); i++) {
+        if (m_operations[i]) {
+            ss << m_operations[i]->getName() << ":" << m_operations[i]->getSettings();
+            if (i < m_operations.size() - 1) {
                 ss << ";";
             }
         }
@@ -261,6 +429,6 @@ std::string ImagePipeline::serializePipeline() const {
     return ss.str();
 }
 
-void ImagePipeline::deserialziePipeline(const std::string& data) {
+void ImagePipeline::deserializePipeline(const std::string& data) {
     std::cout << "Deserializing pipeline: " << data.substr(0, 50) << "..." << std::endl;
 }

@@ -8,31 +8,57 @@
 
 #include "../core/operation_base.h"
 
+/**
+ * @class ImagePipeline
+ * @brief Manages the image processing pipeline.
+ * * This class holds the original image an a list of operations.
+ * It supports:
+ * - Sequential CPU processing (legacy/stable mode).
+ * - Experimental Fused GPU processing via Halide.
+ * - Dual-Engine execution: Switching between sequential CPU processing and GPU fusion via Halide
+ * - Undo/Redo history.
+ * - Result caching to optimize live previews.
+ */
 class ImagePipeline {
    private:
-    cv::Mat originalImg;
-    std::vector<std::shared_ptr<ImageOperation>> operations;
-    std::vector<std::shared_ptr<ImageOperation>> undoneOperations;
-    cv::Mat cachedResult;
-    bool cacheValid;
-    std::shared_ptr<ImageOperation> liveOperation;
+    cv::Mat m_originalImg;                                     /**< The immutable source image. */
+    std::vector<std::shared_ptr<ImageOperation>> m_operations; /**< List of active operations. */
+    std::vector<std::shared_ptr<ImageOperation>> m_undoneOperations; /**< Stack for Undo/Redo. */
+
+    // --- Cache State ---
+    cv::Mat m_cachedResult; /** Cached image. */
+    bool m_cacheValid;      /**  */
+    std::shared_ptr<ImageOperation>
+        m_liveOperation; /** Temporary operation for realtime sliders. */
+
+    // --- Configuration --
+    bool m_useFusedPipeline; /**< If true, attempts to fuse Halide operations on the GPU */
 
    public:
     ImagePipeline();
+    ~ImagePipeline() = default;
 
-    // set and manage the image
-    void setImg(const cv::Mat& img);
+    // --- Image Management ---
+
+    /**
+     * @brief Loads a new image into the pipeline. Resets history and cache.
+     * @param srcImg
+     */
+    void setImg(const cv::Mat& srcImg);
+
     cv::Mat getOriginalImg() const {
-        return originalImg.clone();
+        return m_originalImg.clone();
     }
     bool hasImg() const {
-        return !originalImg.empty();
+        return !m_originalImg.empty();
     }
 
-    // operations management
+    // --- Operation Stack Management ---
+
+    // add an operation to the end of the pipeline
     void addOperation(std::shared_ptr<ImageOperation> operation);
 
-    // add a operation to any position
+    // add an operation to any position
     void insertOperation(int index, std::shared_ptr<ImageOperation>);
 
     // When a slider set to 0 --> remove that operation
@@ -45,45 +71,81 @@ class ImagePipeline {
 
     // call the operation
     size_t getOperationCount() const {
-        return operations.size();
+        return m_operations.size();
     }
     std::shared_ptr<ImageOperation> getOperation(int index);
     const std::vector<std::shared_ptr<ImageOperation>>& getOperations() const {
-        return operations;
+        return m_operations;
     }
 
-    // Live-Operation for realtime preview
+    // --- Live Preview ---
+
+    /**
+     * @brief Set an operation that is applied temporarily on top of the cached result.
+     * Used for slider interactions to ensure high FPS
+     */
     void setLiveOperation(std::shared_ptr<ImageOperation> operation);
     void clearLiveOperations();
 
-    // Pipeline
+    // --- Processing ---
+
+    /**
+     * @brief Executes the pipeline.
+     * Decisions regarding caching and
+     */
     cv::Mat process();
     cv::Mat processUpTo(int operationIndex);
+
+    /**
+     * @brief Toogles between Sequential and Fused mode
+     * @param enabled True enables the Halide fustion engine.
+     */
+    void setFusionMode(bool enabled);
+    bool isFusionMode() const {
+        return m_useFusedPipeline;
+    }
 
     // Undo/Redo
     void undo();
     void redo();
     bool canUndo() const {
-        return !operations.empty();
+        return !m_operations.empty();
     }
     bool canRedo() const {
-        return !undoneOperations.empty();
+        return !m_undoneOperations.empty();
     }
     size_t getUndoCount() const {
-        return undoneOperations.size();
+        return m_undoneOperations.size();
     }
 
     // Cache management
     void invalidateCache();
     bool isCacheValid() const {
-        return cacheValid;
+        return m_cacheValid;
     }
 
     std::string serializePipeline() const;
-    void deserialziePipeline(const std::string& data);
+    void deserializePipeline(const std::string& data);
 
    private:
     void updateCache(const cv::Mat& result);
+
+    /**
+     * @brief Legacy Engine: Excecutes operations sequentially on CPU.
+     */
+    cv::Mat processSequential();
+
+    /**
+     * @brief GPU Engine: Excecutes opertaions on GPU
+     * Use fallback to CPU for unsupported filters.
+     */
+    cv::Mat processFused();
+
+    /**
+     * @brief Helper to execute a batch of Halide operations
+     */
+    cv::Mat runFusedHalideChain(const cv::Mat& srcImg,
+                                std::vector<std::shared_ptr<HalideOperation>>& ops);
 };
 
 #endif
