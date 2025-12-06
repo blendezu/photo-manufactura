@@ -14,7 +14,7 @@
 // Forward declarations
 class ICommand;
 class QWidget;
-// Future: ImageProcessingService, RawProcessingService
+class ImageProcessingService;  // Service layer for image processing
 
 /**
  * @brief Main Application Controller
@@ -150,9 +150,9 @@ class ApplicationController : public QObject {
     std::unique_ptr<DocumentManager> m_documentManager;
     std::unique_ptr<AppState> m_appState;
 
-    // Services - to be implemented
+    // Services layer
+    // Uncomment when image_processing component is linked:
     // std::unique_ptr<ImageProcessingService> m_imageProcessingService;
-    // std::unique_ptr<RawProcessingService> m_rawProcessingService;
 
     // Command management
     std::unordered_map<QString, std::unique_ptr<ICommand>> m_commands;
