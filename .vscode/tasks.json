@@ -359,6 +359,73 @@
             },
             "dependsOn": "Build Raw Processing Component",
             "detail": "Launch Raw Processing Component"
+        },
+        {
+            "label": "Configure Application",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure main application CMake"
+        },
+        {
+            "label": "Build Application",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build main application (photo_manufactura)",
+            "dependsOn": "Configure Application"
+        },
+        {
+            "label": "Clean Application",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Clean main application build directory"
+        },
+        {
+            "label": "Launch Application",
+            "type": "shell",
+            "command": "./build/bin/photo_manufactura",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "Build Application",
+            "detail": "Launch Photo Manufactura application"
         }
     ]
 }
