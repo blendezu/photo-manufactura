@@ -255,8 +255,9 @@ cv::Mat ImagePipeline::processFused() {
 
 cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& src,
                                            std::vector<std::shared_ptr<HalideOperation>>& ops) {
-    if (ops.empty())
+    if (ops.empty()) {
         return src;
+    }
 
     HalideWrapper hw;
 
@@ -265,18 +266,12 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& src,
 
         int depth = src.depth();
         bool is8Bit = (depth == CV_8U);
-        bool is16Bit = (depth == CV_16U);
 
-        if (!is8Bit && !is16Bit) {
-            std::cerr << "[Pipeline] Unsupported depth for fusion." << std::endl;
-            return src;
-        }
-
-        // 1. Setup Input Buffer
-        Halide::Func currentFunc("chain_start");
-
+        // 1. SETUP INPUT BUFFER
         Halide::Buffer<uint8_t> inBuf8;
         Halide::Buffer<uint16_t> inBuf16;
+
+        Halide::Func currentFunc("chain_start");
 
         if (is8Bit) {
             inBuf8 = hw.wrap<uint8_t>(src);
@@ -286,13 +281,12 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& src,
             currentFunc(x, y, c) = Halide::BoundaryConditions::repeat_edge(inBuf16)(x, y, c);
         }
 
-        // 2. Build the Graph (Chaining)
-        // Passes the output of one function as input to the next
+        // 2. BUILD GRAPH
         for (auto& op : ops) {
-            currentFunc = op->buildGraph(currentFunc, x, y, c);
+            currentFunc = op->applyHalide(currentFunc, x, y, c);
         }
 
-        // 3. Final Output Handling (Clamp & Cast)
+        // 3. OUTPUT HANDLING
         Halide::Func finalFunc("chain_end");
         float maxVal = is8Bit ? 255.0f : 65535.0f;
 
@@ -304,29 +298,47 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& src,
                 Halide::cast<uint16_t>(Halide::clamp(currentFunc(x, y, c), 0.0f, maxVal));
         }
 
-        // 4. Schedule & Execution
+        // 4.
+        finalFunc.output_buffer().dim(0).set_stride(src.channels());
+        finalFunc.output_buffer().dim(2).set_stride(1);
+
+        // 5. SCHEDULING
+        finalFunc.bound(c, 0, 3);
+        finalFunc.reorder(c, x, y).unroll(c);
+
         hw.applySchedule(finalFunc, x, y);
 
+        // 4. EXECUTION
         cv::Mat dst = src.clone();
 
         if (is8Bit) {
             Halide::Buffer<uint8_t> outBuf = hw.wrap<uint8_t>(dst);
 
+            if (is8Bit)
+                inBuf8.set_host_dirty();
+
             finalFunc.realize(outBuf, hw.getTarget());
 
-            if (hw.isGPU())
+            if (hw.isGPU()) {
+                outBuf.copy_to_host();
                 outBuf.device_sync();
+            }
+
         } else {
             Halide::Buffer<uint16_t> outBuf = hw.wrap<uint16_t>(dst);
+            if (!is8Bit)
+                inBuf16.set_host_dirty();
+
             finalFunc.realize(outBuf, hw.getTarget());
-            if (hw.isGPU())
+            if (hw.isGPU()) {
+                outBuf.copy_to_host();
                 outBuf.device_sync();
+            }
         }
 
         return dst;
 
     } catch (const Halide::Error& e) {
-        std::cerr << "[Pipeline] JIT Compilation Error: " << e.what() << std::endl;
         return src;  // Fail-safe: Return input unmodifed
     } catch (const std::exception& e) {
         std::cerr << "[Pipeline] Fused Runtime Error: " << e.what() << std::endl;

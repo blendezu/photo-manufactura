@@ -43,7 +43,9 @@ HalideWrapper::HalideWrapper(Backend backendForce) {
 
 // 3. Optimization Flags (Critical for Performance)
 #ifdef NDEBUG
+    // No safety check for math such as zero division
     m_target.set_feature(Halide::Target::NoAsserts);
+    // No checking, if the size & stride of input match the requirement of the compiled code
     m_target.set_feature(Halide::Target::NoBoundsQuery);
 #endif
 
@@ -105,8 +107,8 @@ void HalideWrapper::applySchedule(Halide::Func& f, Halide::Var x, Halide::Var y)
         f.gpu_tile(x, y, xi, yi, 16, 16, Halide::TailStrategy::GuardWithIf);
     } else {
         // --- CPU SCHEDULE (Debug / Fallback only) ---
-        // Since your app uses OpenMP for CPU tasks, this path is rarely used.
-        // We keep it simple: just parallelize rows.
+        // Since the app uses OpenMP for CPU tasks, this path is rarely used.
+        // Keep it simple: just parallelize rows.
         f.parallel(y);
     }
 }
