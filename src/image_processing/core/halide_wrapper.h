@@ -55,7 +55,7 @@ class HalideWrapper {
         int h = mat.rows;
         int c = mat.channels();
 
-        // create buffer (Interleaved RGB RBG ...)
+        // create buffer (Interleaved BGR BGR ...)
         return Halide::Buffer<T>::make_interleaved(reinterpret_cast<T*>(mat.data), w, h, c);
     }
 
