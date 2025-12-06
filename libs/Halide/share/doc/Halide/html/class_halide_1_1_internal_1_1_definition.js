@@ -1,0 +1,25 @@
+var class_halide_1_1_internal_1_1_definition =
+[
+    [ "Definition", "class_halide_1_1_internal_1_1_definition.html#a4cc10787ebd2b308b4c4f1aabb049707", null ],
+    [ "Definition", "class_halide_1_1_internal_1_1_definition.html#aff003cd3ef0e580de1192d06d9d799ec", null ],
+    [ "Definition", "class_halide_1_1_internal_1_1_definition.html#a4a0f2701eb589a41a768a9306b83f513", null ],
+    [ "Definition", "class_halide_1_1_internal_1_1_definition.html#a619b9c93da2ed9e569a3d91aa4ee5ccf", null ],
+    [ "get_copy", "class_halide_1_1_internal_1_1_definition.html#aeabab013e38edce5a0c1ce6d01eea5a5", null ],
+    [ "same_as", "class_halide_1_1_internal_1_1_definition.html#a240ca6e22ff4a6796240659f1cd58196", null ],
+    [ "defined", "class_halide_1_1_internal_1_1_definition.html#add2ca6ed247cf025facda56bd82da44c", null ],
+    [ "is_init", "class_halide_1_1_internal_1_1_definition.html#a8378e598454bc28bcf1556e9e6683257", null ],
+    [ "accept", "class_halide_1_1_internal_1_1_definition.html#ae0a52d75df0dd2ec49ccb596bdfae7fe", null ],
+    [ "mutate", "class_halide_1_1_internal_1_1_definition.html#a6de7f4d76339d93b4338c1ed48fb75f3", null ],
+    [ "args", "class_halide_1_1_internal_1_1_definition.html#a79b6581a7346b5f381f495853efed1f6", null ],
+    [ "args", "class_halide_1_1_internal_1_1_definition.html#a4470bb25361592d4128a706ce6f883be", null ],
+    [ "values", "class_halide_1_1_internal_1_1_definition.html#a0dab19f2b1408b7c58f49b36bfa868f2", null ],
+    [ "values", "class_halide_1_1_internal_1_1_definition.html#a62c7837690a25ff48c1e82e71f6477c8", null ],
+    [ "predicate", "class_halide_1_1_internal_1_1_definition.html#a5cc7804357b7c700fd3b7d45cc7dffb1", null ],
+    [ "predicate", "class_halide_1_1_internal_1_1_definition.html#a3e8f5fa3a62700f63f52282ab2998cb8", null ],
+    [ "split_predicate", "class_halide_1_1_internal_1_1_definition.html#a3db426db41d1523332714ed9f2fefe08", null ],
+    [ "schedule", "class_halide_1_1_internal_1_1_definition.html#ad0cdab27ae97e245c88225078b9e264f", null ],
+    [ "schedule", "class_halide_1_1_internal_1_1_definition.html#a64f93fe9041c72ec38a6c837898882bb", null ],
+    [ "specializations", "class_halide_1_1_internal_1_1_definition.html#aa023b0cf3acddf3d02aa9df8935403cd", null ],
+    [ "specializations", "class_halide_1_1_internal_1_1_definition.html#af014cd76feff181cc51e74b4493e19a6", null ],
+    [ "add_specialization", "class_halide_1_1_internal_1_1_definition.html#a60b2e45cc249af12d43938fcf864cf5a", null ]
+];
