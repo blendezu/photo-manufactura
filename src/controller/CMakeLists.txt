@@ -24,8 +24,14 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGL OpenGLWidgets)
 add_library(controller STATIC
     ApplicationController.cpp
     ApplicationController.h
+    ApplicationWiring.cpp
+    ApplicationWiring.h
     ICommand.h
     Commands.h
+    # ImageProcessingService requires image_processing component
+    # Uncomment when linking with image_processing:
+    # ImageProcessingService.cpp
+    # ImageProcessingService.h
 )
 
 # Link Qt6 libraries and model
