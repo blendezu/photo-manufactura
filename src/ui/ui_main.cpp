@@ -2,6 +2,7 @@
 
 #include "../controller/ApplicationController.h"
 #include "bar/subMenuFile.h"
+#include "canvas/canvasWidget.h"
 #include "mainwindow.h"
 
 int main(int argc, char* argv[]) {
@@ -37,6 +38,18 @@ int main(int argc, char* argv[]) {
                      &MainWindow::onFileSaved);
     QObject::connect(&controller, &ApplicationController::errorOccurred, &window,
                      &MainWindow::onError);
+
+    // Connect Canvas zoom requests to Controller
+    QObject::connect(window.getCanvasWidget(), &CanvasWidget::zoomInRequested, &controller,
+                     &ApplicationController::zoomIn);
+    QObject::connect(window.getCanvasWidget(), &CanvasWidget::zoomOutRequested, &controller,
+                     &ApplicationController::zoomOut);
+    QObject::connect(window.getCanvasWidget(), &CanvasWidget::fitToWindowRequested, &controller,
+                     &ApplicationController::fitToWindow);
+
+    // Connect Controller zoom changes to Canvas
+    QObject::connect(&controller, &ApplicationController::zoomChanged, window.getCanvasWidget(),
+                     &CanvasWidget::setZoomLevel);
 
     window.show();
     return app.exec();
