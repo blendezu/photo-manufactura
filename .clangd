@@ -1,0 +1,12 @@
+Diagnostics:
+  Suppress:
+    # Das ist der Hauptgrund: Highway inkludiert die Datei rekursiv.
+    # Clangd mag das nicht, aber für Highway ist es notwendig.
+    - pp_including_mainfile_in_preamble
+    
+    # Das sind die Folgefehler daraus ("int HWY_BEFORE_NAMESPACE")
+    - missing_type_specifier
+    
+    # Weitere Folgefehler durch fehlende Highway-Definitionen
+    - no_member_template
+    - undeclared_var_use
