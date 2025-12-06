@@ -51,6 +51,8 @@ class ImageUtils {
 
     static cv::Mat copyMakeBorder(const cv::Mat& srcImg, int borderSize);
 
+    static cv::Mat createThumbnail(const cv::Mat& srcImg, int targetSize = 512);
+
    private:
     template <typename T>
     static cv::Mat blendScratchRGBTemplate(const cv::Mat srcImg, cv::Mat scratchImg) {

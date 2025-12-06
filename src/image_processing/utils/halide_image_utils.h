@@ -1,8 +1,6 @@
 #ifndef HALIDE_IMAGE_UTILS_H
 #define HALIDE_IMAGE_UTILS_H
 
-#include <vector>
-
 #include "Halide.h"
 
 class HalideImageUtils {

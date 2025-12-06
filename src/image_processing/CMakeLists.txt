@@ -3,6 +3,16 @@ project(image_processing LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ==========================================
+# FIX: RPATH für lokale Libs (Wichtig für macOS!)
+# ==========================================
+# Damit das Programm beim Start weiß, wo die .dylib Dateien liegen
+set(CMAKE_MACOSX_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+# Füge hier beide Pfade hinzu (ONNX und Halide)
+set(CMAKE_INSTALL_RPATH "${CMAKE_SOURCE_DIR}/libs/Halide/lib;${CMAKE_SOURCE_DIR}/libs/onnxruntime/lib")
+
+# ==========================================
 # FIX 1: Build-Type auf Release erzwingen
 # ==========================================
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -50,7 +60,6 @@ endif()
 # ---------------------------------------------------------
 
 # --- OpenMP ---
-# WICHTIG: Erst Pfade setzen, DANN suchen!
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if(EXISTS "/opt/homebrew/opt/libomp")
         set(OpenMP_ROOT "/opt/homebrew/opt/libomp")
@@ -69,37 +78,25 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 endif()
 
-# Jetzt erst suchen, da die Pfade bekannt sind
 find_package(OpenMP REQUIRED)
-
 
 # --- OpenCV ---
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn) 
 
-# --- Google Highway ---
-# list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
-# find_package(hwy REQUIRED)
-
 # =========================================================
-# ⚠️ NEU: LOKALE ONNX RUNTIME (Kein Homebrew mehr!)
+# LOKALE ONNX RUNTIME (Struktur: libs/onnxruntime)
 # =========================================================
-
-# Pfad zu deinem lokalen libs Ordner (Relativ zum Projekt-Root)
 set(OR_ROOT "${CMAKE_SOURCE_DIR}/libs/onnxruntime")
-
-# 1. Header Pfad setzen
 set(ONNXRUNTIME_INCLUDE_DIR "${OR_ROOT}/include")
 
-# Sicherheitscheck: Haben wir den Ordner wirklich gefunden?
 if(NOT EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime_cxx_api.h")
-    message(FATAL_ERROR "❌ ONNX Runtime Headers nicht gefunden in: ${ONNXRUNTIME_INCLUDE_DIR}.\nBitte prüfe, ob der Ordner 'libs/onnxruntime/include' existiert!")
+    message(FATAL_ERROR "❌ ONNX Runtime Headers nicht gefunden in: ${ONNXRUNTIME_INCLUDE_DIR}")
 endif()
 
-# 2. Library finden (Nur im lokalen Ordner suchen!)
 find_library(ONNXRUNTIME_LIB 
     NAMES onnxruntime
     PATHS "${OR_ROOT}/lib"
-    NO_DEFAULT_PATH  # WICHTIG: Verhindert Suche in /usr/local oder Homebrew
+    NO_DEFAULT_PATH
 )
 
 if(ONNXRUNTIME_LIB)
@@ -107,16 +104,38 @@ if(ONNXRUNTIME_LIB)
 else()
     message(FATAL_ERROR "❌ Local ONNX Runtime Lib not found in ${OR_ROOT}/lib")
 endif()
-# =========================================================
 
+# =========================================================
+# LOKALE HALIDE LIB (Struktur: libs/Halide)
+# =========================================================
+set(HALIDE_ROOT "${CMAKE_SOURCE_DIR}/libs/Halide")
+set(HALIDE_INCLUDE_DIR "${HALIDE_ROOT}/include")
+
+# 1. Header Pfad prüfen
+if(NOT EXISTS "${HALIDE_INCLUDE_DIR}/Halide.h")
+    message(FATAL_ERROR "❌ Halide Headers nicht gefunden in: ${HALIDE_INCLUDE_DIR}")
+endif()
+
+# 2. Library finden
+find_library(HALIDE_LIB 
+    NAMES Halide 
+    PATHS "${HALIDE_ROOT}/lib"
+    NO_DEFAULT_PATH
+)
+
+if(HALIDE_LIB)
+    message(STATUS "✅ Using Local Halide Lib: ${HALIDE_LIB}")
+else()
+    message(FATAL_ERROR "❌ Local Halide Lib not found in ${HALIDE_ROOT}/lib")
+endif()
 
 # ---------------------------------------------------------
 # 3. Quellen
 # ---------------------------------------------------------
-file(GLOB_RECURSE CORE_SOURCES       CONFIGURE_DEPENDS "core/*.cpp")
-file(GLOB_RECURSE OPERATION_SOURCES  CONFIGURE_DEPENDS "operations/*.cpp")
-file(GLOB_RECURSE UTILS_SOURCES      CONFIGURE_DEPENDS "utils/*.cpp")
-file(GLOB_RECURSE STYLE_SOURCES      CONFIGURE_DEPENDS "style_transfer/*.cpp")
+file(GLOB_RECURSE CORE_SOURCES        CONFIGURE_DEPENDS "core/*.cpp")
+file(GLOB_RECURSE OPERATION_SOURCES   CONFIGURE_DEPENDS "operations/*.cpp")
+file(GLOB_RECURSE UTILS_SOURCES       CONFIGURE_DEPENDS "utils/*.cpp")
+file(GLOB_RECURSE STYLE_SOURCES       CONFIGURE_DEPENDS "style_transfer/*.cpp")
 
 target_sources(image_processing PRIVATE
     ${CORE_SOURCES}
@@ -135,8 +154,9 @@ target_include_directories(image_processing PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/style_transfer>
     
-    # --- NEU: Lokale ONNX Runtime Headers ---
+    # --- Externe Libraries Includes ---
     ${ONNXRUNTIME_INCLUDE_DIR}
+    ${HALIDE_INCLUDE_DIR}
     
     $<INSTALL_INTERFACE:include/image_processing>
 )
@@ -153,8 +173,12 @@ target_compile_features(image_processing PUBLIC cxx_std_17)
 target_link_libraries(image_processing 
     PUBLIC 
         ${OpenCV_LIBS}
-        ${ONNXRUNTIME_LIB} # Linkt gegen deine lokale Datei
-        # hwy::hwy
+        ${ONNXRUNTIME_LIB}
+        ${HALIDE_LIB}
+        
+        # System Libraries für Halide JIT auf macOS (Wichtig!)
+        $<$<PLATFORM_ID:Darwin>:dl>
+        $<$<PLATFORM_ID:Darwin>:pthread>
 )
 
 if(OpenMP_CXX_FOUND)
@@ -164,7 +188,7 @@ elseif(APPLE AND OpenMP_omp_LIBRARY)
     target_compile_options(image_processing PRIVATE "-Xpreprocessor" "-fopenmp")
 endif()
 
-# --- NEU: CoreML Frameworks linken (Wichtig für M1 Pro!) ---
+# --- CoreML Frameworks linken (Wichtig für M1 Pro!) ---
 if(APPLE)
     find_library(COREML_LIB CoreML)
     find_library(FOUNDATION_LIB Foundation)
@@ -219,4 +243,5 @@ else()
     message(STATUS "PERFORMANCE: ❌  SLOW MODE DETECTED (Debug active)")
 endif()
 message(STATUS "ONNX Runtime: ✅  Local Lib (${ONNXRUNTIME_LIB})")
+message(STATUS "Halide:       ✅  Local Lib (${HALIDE_LIB})")
 message(STATUS "---------------------------------------------------")
