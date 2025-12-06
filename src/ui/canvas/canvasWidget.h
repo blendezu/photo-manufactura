@@ -19,16 +19,20 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     ~CanvasWidget() override;
 
     void setImage(const QImage& image);
-    void zoomIn();
-    void zoomOut();
-    void zoomToFit();
     double getZoomFactor() const {
         return m_zoomFactor;
     }
 
+   public slots:
+    // Receive zoom level from controller (0.1 to 10.0)
+    void setZoomLevel(double level);
+
    signals:
     void imageClicked(QPoint position);
-    void zoomChanged(double factor);
+    // Request zoom changes from controller
+    void zoomInRequested();
+    void zoomOutRequested();
+    void fitToWindowRequested();
 
    protected:
     void initializeGL() override;

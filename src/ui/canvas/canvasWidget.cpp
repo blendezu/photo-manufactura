@@ -7,7 +7,13 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 
-CanvasWidget::CanvasWidget(QWidget* parent) : QOpenGLWidget(parent), m_texture(nullptr), m_shaderProgram(nullptr), m_zoomFactor(1.0), m_panOffset(0, 0), m_panning(false) {}
+CanvasWidget::CanvasWidget(QWidget* parent)
+    : QOpenGLWidget(parent),
+      m_texture(nullptr),
+      m_shaderProgram(nullptr),
+      m_zoomFactor(1.0),
+      m_panOffset(0, 0),
+      m_panning(false) {}
 
 CanvasWidget::~CanvasWidget() {
     makeCurrent();
@@ -201,61 +207,21 @@ void CanvasWidget::paintGL() {
     m_shaderProgram->release();
 }
 
-void CanvasWidget::zoomIn() {
-    // TODO: MOVE TO CONTROLLER: Zoom state management should be handled by
-    // ApplicationController::zoomIn() The controller should handle:
-    //   1. Managing zoom level state via setState("zoomLevel", value)
-    //   2. Enforcing zoom limits (MIN_ZOOM, MAX_ZOOM)
-    //   3. Emitting zoomChanged signal for other UI components
-    // The CanvasWidget should receive zoom level from controller and only handle rendering
-
-    m_zoomFactor = qMin(m_zoomFactor * ZOOM_STEP, MAX_ZOOM);
-    updateMatrices();
-    update();
-    emit zoomChanged(m_zoomFactor);
-}
-
-void CanvasWidget::zoomOut() {
-    // TODO: MOVE TO CONTROLLER: Zoom state management should be handled by
-    // ApplicationController::zoomOut() See zoomIn() comments for details
-
-    m_zoomFactor = qMax(m_zoomFactor / ZOOM_STEP, MIN_ZOOM);
-    updateMatrices();
-    update();
-    emit zoomChanged(m_zoomFactor);
-}
-
-void CanvasWidget::zoomToFit() {
-    // TODO: MOVE TO CONTROLLER: Fit-to-window calculation should be handled by
-    // ApplicationController::fitToWindow() The controller should handle:
-    //   1. Getting image dimensions from DocumentManager
-    //   2. Calculating appropriate zoom level
-    //   3. Updating zoom state
-    // The CanvasWidget should receive the calculated zoom level from controller
-
-    if (m_imageSize.isEmpty())
-        return;
-
-    double widgetAspect = (double)width() / height();
-    double imageAspect = (double)m_imageSize.width() / m_imageSize.height();
-
-    if (imageAspect > widgetAspect) {
-        m_zoomFactor = (double)width() / m_imageSize.width();
-    } else {
-        m_zoomFactor = (double)height() / m_imageSize.height();
+void CanvasWidget::setZoomLevel(double level) {
+    // Receive zoom level from controller and update rendering
+    if (m_zoomFactor != level) {
+        m_zoomFactor = level;
+        updateMatrices();
+        update();
     }
-
-    m_panOffset = QPointF(0, 0);
-    updateMatrices();
-    update();
-    emit zoomChanged(m_zoomFactor);
 }
 
 void CanvasWidget::wheelEvent(QWheelEvent* event) {
+    // Request zoom change from controller instead of changing directly
     if (event->angleDelta().y() > 0) {
-        zoomIn();
+        emit zoomInRequested();
     } else {
-        zoomOut();
+        emit zoomOutRequested();
     }
     event->accept();
 }
@@ -270,7 +236,8 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     if (m_panning) {
         QPoint delta = event->pos() - m_lastPanPoint;
-        m_panOffset += QPointF(delta.x() / (width() * m_zoomFactor), -delta.y() / (height() * m_zoomFactor));
+        m_panOffset +=
+            QPointF(delta.x() / (width() * m_zoomFactor), -delta.y() / (height() * m_zoomFactor));
         m_lastPanPoint = event->pos();
         updateMatrices();
         update();

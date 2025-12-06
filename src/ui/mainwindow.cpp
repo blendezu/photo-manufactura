@@ -87,7 +87,8 @@ void MainWindow::setupConnections() {
 void MainWindow::onImageLoaded(const QImage& image, const QString& filePath) {
     // Display image on canvas
     m_canvasWidget->setImage(image);
-    m_canvasWidget->zoomToFit();
+    // Request fit-to-window from controller via signal
+    emit m_canvasWidget->fitToWindowRequested();
 
     // Update info panel with image metadata
     QFileInfo fileInfo(filePath);
