@@ -24,18 +24,21 @@ void AdjustWhite::prepareParameters(const cv::Mat& srcImg) {
 
     // --- A. Find the Min & Max Value (Statistic) ---
 
-    // Find min/max in a 512x 512 thumbnail image for better performance
+    // 1. Find min/max in a 512x 512 thumbnail image for better performance
     cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
 
     // Since 'requiresFreshStats' is true, srcImg contains the result of all previous operations.
+    // 2. Calculate min/max if Color Image
     if (srcImg.channels() == 3) {
+        // Convert to HSL before calculate min/max because of Color Image
         cv::Mat hslThumbnail = ColorSpace::convertBGR2HSL(thumbnail);
         auto minMax = ImageUtils::calculateMinMax(hslThumbnail, 2);  // channel 2 is Luminance
         m_minL = std::get<0>(minMax);
         m_maxL = std::get<1>(minMax);
     }
-    // If gray image
+    // 3.Calculate min/max if gray image
     else {
+        // Don't need to convert to HSL because of Gray Image
         auto minMax = ImageUtils::calculateMinMax(thumbnail, 0);
         m_minL = std::get<0>(minMax);
         m_maxL = std::get<1>(minMax);
@@ -44,7 +47,7 @@ void AdjustWhite::prepareParameters(const cv::Mat& srcImg) {
     // --- B. Calculate Logic Parameters ---
     float range = m_maxL - m_minL;
 
-    // Determine the dynamic threshold based on the image's actual dynamic range
+    // 3. Determine the dynamic thresholds based on the image's actual dynamic range
     float underVal = m_minL + (range * WEIGHT_RANGE_LOWER);
     float upperVal = m_minL + (range * WEIGHT_RANGE_UPPER);
 
@@ -56,10 +59,6 @@ void AdjustWhite::prepareParameters(const cv::Mat& srcImg) {
     p_upperVal.set(upperVal);
     p_whiteFactor.set(factor);
     p_maxRange.set(maxRange);
-
-    std::cout << "[DEBUG] AdjustWhite::prepareParameters() called" << std::endl;
-    std::cout << "[DEBUG] m_white = " << m_white << std::endl;
-    std::cout << "[DEBUG] Setting p_whiteFactor = " << factor << std::endl;
 }
 
 // ===================================================================
@@ -68,10 +67,6 @@ void AdjustWhite::prepareParameters(const cv::Mat& srcImg) {
 
 Halide::Func AdjustWhite::buildGraph(Halide::Func srcImg, Halide::Var x, Halide::Var y,
                                      Halide::Var c) {
-    std::cout << "[DEBUG] AdjustWhite::buildGraph() called" << std::endl;
-    std::cout << "[DEBUG] p_whiteFactor value = " << p_whiteFactor.get() << std::endl;
-    std::cout << "[DEBUG] p_underVal = " << p_underVal.get() << std::endl;
-    std::cout << "[DEBUG] p_upperVal = " << p_upperVal.get() << std::endl;
     // Inversed max range to avoid Division later
     Halide::Expr invMaxRange = 1.0f / p_maxRange;
 
@@ -86,17 +81,9 @@ Halide::Func AdjustWhite::buildGraph(Halide::Func srcImg, Halide::Var x, Halide:
         Halide::Func dstImg("adjust_white_gray_image");
 
         // Convert back to original Bit Depth
-
-        std::cout << "[DEBUG] AdjustWhite::buildGraph() Gray image" << std::endl;
-        std::cout << "[DEBUG] AdjustWhite::buildGraph() called" << std::endl;
-        std::cout << "[DEBUG] Current p_whiteFactor = " << p_whiteFactor.get() << std::endl;
         dstImg(x, y) = newVal * p_maxRange;
         return dstImg;
     }
-    std::cout << "[DEBUG] AdjustWhite::buildGraph() color image" << std::endl;
-    std::cout << "[DEBUG] AdjustWhite::buildGraph() called" << std::endl;
-    std::cout << "[DEBUG] Current p_whiteFactor = " << p_whiteFactor.get() << std::endl;
-
     // --- Path B. Color Image ---
 
     // 1. Channel Splitting & HSL Conversion
@@ -104,25 +91,25 @@ Halide::Func AdjustWhite::buildGraph(Halide::Func srcImg, Halide::Var x, Halide:
     Halide::Expr G = srcImg(x, y, 1) * invMaxRange;
     Halide::Expr R = srcImg(x, y, 2) * invMaxRange;
 
+    // 2. Convert to HSL
     std::vector<Halide::Expr> hslImg = HalideColorSpace::BGR2HSL(B, G, R);
     Halide::Expr currL = hslImg[2];  // Current Luminance
 
-    // 2. Weight Calculation
+    // 3. Weight Calculation
     Halide::Expr weight = HalideImageUtils::calculateBrightWeight(currL, p_underVal, p_upperVal);
 
-    // 3. Apply Adjustment
+    // 4. Apply Adjustment
     Halide::Expr deltaL = weight * p_whiteFactor;
     Halide::Expr newL = Halide::clamp(currL + deltaL, 0.0f, 1.0f);
 
-    // 4. Convert back to BGR
+    // 5. Convert back to BGR
     std::vector<Halide::Expr> bgr = HalideColorSpace::HSL2BGR(hslImg[0], hslImg[1], newL);
 
-    // 5. Channel Selection (Re-interleave)
+    // 6. Channel Selection (Re-interleave)
     Halide::Expr outColor = Halide::select(c == 0, bgr[0], Halide::select(c == 1, bgr[1], bgr[2]));
 
+    // 7. Denormalize to original bit depth image
     Halide::Func dstImg("adjust_white_image");  // output image
-
-    // 6. Denormalize to original bit depth image
     dstImg(x, y, c) = outColor * p_maxRange;
     return dstImg;
 }
@@ -156,8 +143,6 @@ cv::Mat AdjustWhite::apply(const cv::Mat& srcImg) {
 
         // 3. Convert to HSL
         cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
-        float testL = hslImg.at<cv::Vec3f>(100, 100)[2];  // Luminance
-        std::cout << "[DEBUG] CPU HSL-L at (100,100): " << testL << std::endl;
 
 // 4. Parallel Pixel Processing
 // clang-format off
