@@ -1,6 +1,54 @@
 {
     "version": "2.0.0",
     "tasks": [
+        // --- 0. Main App ---
+        {
+            "label": "Configure Main App",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                "."
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Configure main application CMake"
+        },
+        {
+            "label": "Build Main App",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Build main application",
+            "dependsOn": "Configure Main App"
+        },
+        {
+            "label": "Launch Main App",
+            "type": "shell",
+            "command": "./build/bin/photo_manufactura",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "Build Main App",
+            "detail": "Launch main application"
+        },
+
+        // ---  1. UI ---
         {
             "label": "Configure UI Component",
             "type": "shell",
@@ -15,9 +63,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Configure UI component CMake"
         },
         {
@@ -35,9 +81,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Build UI component independently",
             "dependsOn": "Configure UI Component"
         },
@@ -66,6 +110,8 @@
             "dependsOn": "Build UI Component",
             "detail": "Run UI component tests"
         },
+
+        // --- 2. Controller ---
         {
             "label": "Configure Controller Component",
             "type": "shell",
@@ -80,9 +126,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/controller"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Configure Controller component CMake"
         },
         {
@@ -97,30 +141,26 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/controller"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Build Controller component independently",
             "dependsOn": "Configure Controller Component"
         },
+
+        // --- 3. Image Processing ---
         {
             "label": "Configure Image Processing Component",
             "type": "shell",
             "command": "cmake",
             "args": [
-                "-B",
-                "build",
-                "-S",
-                "."
+                "--preset",
+                "debug"
             ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}/src/image_processing"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "Configure Image Processing component CMake"
+
+            "detail": "Configure Image Processing component CMake" 
         },
         {
             "label": "Build Image Processing Component",
@@ -128,32 +168,33 @@
             "command": "cmake",
             "args": [
                 "--build",
-                "build"
+                "--preset",
+                "debug"
             ],
-            "group": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
             "options": {
                 "cwd": "${workspaceFolder}/src/image_processing"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Build Image Processing component independently",
             "dependsOn": "Configure Image Processing Component"
         },
         {
-            "label": "Build All Components",
-            "dependsOrder": "parallel",
-            "dependsOn": [
-                "Build UI Component",
-                "Build Controller Component",
-                "Build Image Processing Component"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            "label": "Launch Image Processing Component",
+            "type": "shell",
+            "command": "./image_processing_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing/build/bin"
             },
-            "detail": "Build all components in parallel"
+            "dependsOn": "Build Image Processing Component",
+            "detail": "Launch Image Processing Components"
         },
+
+        // --- 4. Raw Processing ---
         {
             "label": "Configure Raw Processing Component",
             "type": "shell",
@@ -168,9 +209,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/raw_processing"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Configure UI component CMake" 
         },
         {
@@ -188,22 +227,20 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/raw_processing"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
+
             "detail": "Build UI component independently",
             "dependsOn": "Configure Raw Processing Component"
         },
         {
             "label": "Launch Raw Processing Component",
             "type": "shell",
-            "command": "./build/bin/test_mainwindow",
+            "command": "./build/bin/raw_processing_test",
             "group": "test",
             "options": {
-                "cwd": "${workspaceFolder}/src/ui"
+                "cwd": "${workspaceFolder}/src/raw_processing"
             },
             "dependsOn": "Build Raw Processing Component",
             "detail": "Launch Raw Processing Components"
-        },
+        }
     ]
 }

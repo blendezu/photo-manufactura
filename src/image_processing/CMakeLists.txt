@@ -13,12 +13,12 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "${CMAKE_SOURCE_DIR}/libs/Halide/lib;${CMAKE_SOURCE_DIR}/libs/onnxruntime/lib")
 
 # ==========================================
-# FIX 1: Build-Type auf Release erzwingen
+# FIX 1: Build-Type wird nun über CMakePresets gesteuert
 # ==========================================
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "Setting build type to 'Release' as none was specified.")
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-endif()
+# if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+#     message(STATUS "Setting build type to 'Release' as none was specified.")
+#     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+# endif()
 
 add_library(image_processing STATIC)
 
@@ -86,7 +86,7 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn)
 # =========================================================
 # LOKALE ONNX RUNTIME (Struktur: libs/onnxruntime)
 # =========================================================
-set(OR_ROOT "${CMAKE_SOURCE_DIR}/libs/onnxruntime")
+set(OR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/onnxruntime")
 set(ONNXRUNTIME_INCLUDE_DIR "${OR_ROOT}/include")
 
 if(NOT EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime_cxx_api.h")
@@ -108,7 +108,7 @@ endif()
 # =========================================================
 # LOKALE HALIDE LIB (Struktur: libs/Halide)
 # =========================================================
-set(HALIDE_ROOT "${CMAKE_SOURCE_DIR}/libs/Halide")
+set(HALIDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/Halide")
 set(HALIDE_INCLUDE_DIR "${HALIDE_ROOT}/include")
 
 # 1. Header Pfad prüfen
@@ -128,6 +128,22 @@ if(HALIDE_LIB)
 else()
     message(FATAL_ERROR "❌ Local Halide Lib not found in ${HALIDE_ROOT}/lib")
 endif()
+
+
+# =========================================================
+# RAW_PROCESSING
+# =========================================================
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../raw_processing/CMakeLists.txt")
+    message(STATUS "🔗 Einbinden von raw_processing...")
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../raw_processing" 
+                     "${CMAKE_CURRENT_BINARY_DIR}/raw_processing_build")
+else()
+    message(FATAL_ERROR "❌ raw_processing nicht gefunden! Erwarteter Pfad: ${CMAKE_CURRENT_SOURCE_DIR}/../raw_processing")
+endif()
+
+
+
 
 # ---------------------------------------------------------
 # 3. Quellen
@@ -154,18 +170,20 @@ target_include_directories(image_processing PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/style_transfer>
     
+    $<INSTALL_INTERFACE:include/image_processing>
+)
+
+target_include_directories(image_processing SYSTEM PUBLIC
     # --- Externe Libraries Includes ---
     ${ONNXRUNTIME_INCLUDE_DIR}
     ${HALIDE_INCLUDE_DIR}
-    
-    $<INSTALL_INTERFACE:include/image_processing>
 )
 
 if(OpenMP_ROOT)
     target_include_directories(image_processing PRIVATE "${OpenMP_ROOT}/include")
 endif()
 
-target_compile_features(image_processing PUBLIC cxx_std_17)
+target_compile_features(image_processing PUBLIC cxx_std_20)
 
 # ---------------------------------------------------------
 # 5. Linking
@@ -175,7 +193,7 @@ target_link_libraries(image_processing
         ${OpenCV_LIBS}
         ${ONNXRUNTIME_LIB}
         ${HALIDE_LIB}
-        
+        raw_processing
         # System Libraries für Halide JIT auf macOS (Wichtig!)
         $<$<PLATFORM_ID:Darwin>:dl>
         $<$<PLATFORM_ID:Darwin>:pthread>
@@ -204,20 +222,29 @@ endif()
 # ---------------------------------------------------------
 # 6. Test & Installation
 # ---------------------------------------------------------
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
-    add_executable(image_processing_test "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
+    add_executable(image_processing_test "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
     target_link_libraries(image_processing_test PRIVATE image_processing)
     
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
          target_compile_options(image_processing_test PRIVATE "-Xpreprocessor" "-fopenmp")
     endif()
 
+    # Output-Pfad festlegen (damit es in build/bin landet)
+    set_target_properties(image_processing_test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test_data")
         file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/test_data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
     endif()
     
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/models")
-        file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/models" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../AI_models")
+        file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../../AI_models" DESTINATION "${CMAKE_BINARY_DIR}/bin")
+    endif()
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../images")
+        file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../../images" DESTINATION "${CMAKE_BINARY_DIR}/bin")
     endif()
 endif()
 
