@@ -65,13 +65,22 @@ int main() {
             cv::Mat currentResult;
 
             // Pipeline verarbeiten und Ergebnis für Anzeige vorbereiten
+
+            cv::Mat processed;
+            cv::Mat processed1 = pipeline.process();
+            processed = processed1.clone();
+            pipeline.invalidateCache();
+
             auto start = std::chrono::high_resolution_clock::now();
 
-            cv::Mat processed = pipeline.process();
-
+            for (int i = 0; i < 10; i++) {
+                cv::Mat processed1 = pipeline.process();
+                processed = processed1.clone();
+                pipeline.invalidateCache();
+            }
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-            std::cout << "Time for processing: " << duration.count() << std::endl;
+            std::cout << "Time for processing: " << duration.count() / 10 << std::endl;
 
             currentResult = processed.clone();
 
