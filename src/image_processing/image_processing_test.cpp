@@ -53,7 +53,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(false);
+        pipeline.setFusionMode(true);
 
         pipeline.setImg(testImage);
 
@@ -99,7 +99,7 @@ int main() {
 
                     // pipeline.addOperation(std::make_shared<ResizeImage>(1000u, 1000u));
                     // pipeline.addOperation(std::make_shared<StyleTransfer>(StyleType::Candy));
-                    pipeline.addOperation(std::make_shared<AdjustWhite>(-10));
+                    pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
                 }
 
                 // Zweite Operation: Bild auf Höhe von 1500 und das originale Verhältnis

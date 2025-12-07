@@ -37,9 +37,9 @@ class AdjustWhite : public HalideOperation {
 
     // Define the range of luminance affected by the white adjustment.
     static constexpr float WEIGHT_RANGE_LOWER =
-        0.1f; /**< 0.7 means the effect starts at 70% brightness */
+        0.7f; /**< 0.7 means the effect starts at 70% brightness */
     static constexpr float WEIGHT_RANGE_UPPER =
-        0.2f; /**< 0.9 means the effect starts at 90% brightness */
+        0.9f; /**< 0.9 means the effect starts at 90% brightness */
 
    public:
     /**
@@ -123,10 +123,11 @@ class AdjustWhite : public HalideOperation {
         float minVal = std::get<0>(minMaxVal);
         float maxVal = std::get<1>(minMaxVal);
 
-        // Calculate Parameters for Weight Calculation later
+        // 4. Calculate Parameters for Weight Calculation later
         auto weightParams = ImageUtils::precalculateWhiteWeightParams(
             minVal, maxVal, WEIGHT_RANGE_LOWER, WEIGHT_RANGE_UPPER);
 
+        // 5. Parallelize over rows
         // clang-format off
         #pragma omp parallel for
         // clang-format on
