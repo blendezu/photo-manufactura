@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 project(RawProcessing LANGUAGES CXX)
 
+if(TARGET raw_processing)
+    message(STATUS "ℹ️ Target 'raw_processing' existiert bereits. Überspringe erneute Definition.")
+    return()  # Beendet das Verarbeiten dieser Datei hier sofort
+endif()
 
 # Library
 add_library(raw_processing STATIC)

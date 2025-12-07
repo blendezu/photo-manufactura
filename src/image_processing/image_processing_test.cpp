@@ -25,6 +25,7 @@
 #include "operations/geometry/flip.h"
 #include "operations/geometry/rotate.h"
 #include "raw_processing.h"
+#include "style_transfer.h"
 #include "utils/color_space.h"
 #include "utils/histogram.h"
 #include "utils/image_resize.h"
@@ -32,7 +33,9 @@
 int main() {
     try {
         // Bild laden
-        cv::Mat testImage = cv::imread("images/Baum.jpg");
+        // cv::Mat testImage = cv::imread("images/Baum.jpg");
+
+        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
         if (testImage.empty()) {
             std::cerr << "❌ Bild konnte nicht geladen werden!" << std::endl;
@@ -50,6 +53,8 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
+        pipeline.setFusionMode(true);
+
         pipeline.setImg(testImage);
 
         // Zähler für die Schritte
@@ -85,7 +90,9 @@ int main() {
                     std::cout << std::endl;
                     std::cout << "➡️  Resize-Operation\n";
 
-                    pipeline.addOperation(std::make_shared<ResizeImage>(1000u, 1000u));
+                    // pipeline.addOperation(std::make_shared<ResizeImage>(1000u, 1000u));
+                    // pipeline.addOperation(std::make_shared<StyleTransfer>(StyleType::Candy));
+                    pipeline.addOperation(std::make_shared<AdjustWhite >(-10));
                 }
 
                 // Zweite Operation: Bild auf Höhe von 1500 und das originale Verhältnis
@@ -103,7 +110,7 @@ int main() {
                     std::cout << std::endl;
                     std::cout << std::endl;
                     std::cout << "➡️  Brightness-Operation hinzugefügt (+50)" << std::endl;
-                    pipeline.addOperation(std::make_shared<BrightnessAdjust>(50));
+                    pipeline.addOperation(std::make_shared<AdjustBrightness>(50));
                 }
 
                 // Dritte Operation: Helligkeit erhöhen
@@ -139,7 +146,7 @@ int main() {
                     std::cout << std::endl;
                     std::cout << std::endl;
                     std::cout << "➡️  Brightness -50" << std::endl;
-                    pipeline.addOperation(std::make_shared<BrightnessAdjust>(-50));
+                    pipeline.addOperation(std::make_shared<AdjustBrightness>(-50));
                 }
 
                 // 7. Operation: Histogram anzeigen

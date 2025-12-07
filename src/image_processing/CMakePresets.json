@@ -1,0 +1,57 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "debug",
+            "displayName": "Image Processing Component Debug",
+            "description": "Debug build for Image Processing component standalone development",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+                "CMAKE_CXX_FLAGS": "-Wall -Wextra -g -O0"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Image Processing Component Release",
+            "description": "Release build for Image Processing component standalone development",
+            "inherits": [
+                "debug"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_FLAGS": "-O3 -DNDEBUG"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "displayName": "Debug Build",
+            "configurePreset": "debug",
+            "jobs": 4
+        },
+        {
+            "name": "release",
+            "displayName": "Release Build",
+            "configurePreset": "release",
+            "jobs": 4
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "debug",
+            "displayName": "Image Processing Component Tests",
+            "configurePreset": "debug"
+        }
+    ]
+}
