@@ -53,7 +53,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(true);
+        pipeline.setFusionMode(false);
 
         pipeline.setImg(testImage);
 
