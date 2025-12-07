@@ -53,7 +53,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(true);
+        pipeline.setFusionMode(false);
 
         pipeline.setImg(testImage);
 
@@ -66,16 +66,13 @@ int main() {
 
             // Pipeline verarbeiten und Ergebnis für Anzeige vorbereiten
 
-            cv::Mat processed;
-            cv::Mat processed1 = pipeline.process();
-            processed = processed1.clone();
+            cv::Mat processed = pipeline.process();
             pipeline.invalidateCache();
 
             auto start = std::chrono::high_resolution_clock::now();
 
             for (int i = 0; i < 10; i++) {
-                cv::Mat processed1 = pipeline.process();
-                processed = processed1.clone();
+                processed = pipeline.process();
                 pipeline.invalidateCache();
             }
             auto end = std::chrono::high_resolution_clock::now();
