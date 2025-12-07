@@ -146,6 +146,17 @@ class ImagePipeline {
      */
     cv::Mat runFusedHalideChain(const cv::Mat& srcImg,
                                 std::vector<std::shared_ptr<HalideOperation>>& ops);
+
+    // --- JIT Caching ---
+    struct CachedPipeline {
+        std::vector<std::shared_ptr<HalideOperation>> ops;
+        Halide::Pipeline pipeline;
+        Halide::ImageParam inputParam;
+        int inputDepth = -1;
+        int inputChannels = -1;
+    };
+
+    CachedPipeline m_pipelineCache;
 };
 
 #endif
