@@ -65,7 +65,14 @@ int main() {
             cv::Mat currentResult;
 
             // Pipeline verarbeiten und Ergebnis für Anzeige vorbereiten
+            auto start = std::chrono::high_resolution_clock::now();
+
             cv::Mat processed = pipeline.process();
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            std::cout << "Time for processing: " << duration.count() << std::endl;
+
             currentResult = processed.clone();
 
             if (currentResult.depth() == CV_16U) {
@@ -92,7 +99,7 @@ int main() {
 
                     // pipeline.addOperation(std::make_shared<ResizeImage>(1000u, 1000u));
                     // pipeline.addOperation(std::make_shared<StyleTransfer>(StyleType::Candy));
-                    pipeline.addOperation(std::make_shared<AdjustWhite >(-10));
+                    pipeline.addOperation(std::make_shared<AdjustWhite>(-10));
                 }
 
                 // Zweite Operation: Bild auf Höhe von 1500 und das originale Verhältnis

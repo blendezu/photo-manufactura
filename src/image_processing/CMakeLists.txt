@@ -47,6 +47,7 @@ else()
     if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         target_compile_options(image_processing PRIVATE 
             $<$<CONFIG:Release>:-mcpu=native>
+            $<$<CONFIG:Release>:-mtune=native>
         )
     else()
         target_compile_options(image_processing PRIVATE 
@@ -61,6 +62,7 @@ endif()
 
 # --- OpenMP ---
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # First check standard Homebrew paths
     if(EXISTS "/opt/homebrew/opt/libomp")
         set(OpenMP_ROOT "/opt/homebrew/opt/libomp")
     elseif(EXISTS "/usr/local/opt/libomp")

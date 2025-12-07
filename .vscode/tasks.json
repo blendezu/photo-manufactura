@@ -183,15 +183,56 @@
             "dependsOn": "Configure Image Processing Component"
         },
         {
+            "label": "Launch Image Processing Component (Debug)",
+            "type": "shell",
+            "command": "./image_processing_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing/build/debug/bin"
+            },
+            "dependsOn": "Build Image Processing Component",
+            "detail": "Launch Image Processing Components"
+        },
+        {
+            "label": "Configure Image Processing Component (Release)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "release"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "detail": "Configure Image Processing component CMake (Release)"
+        },
+        {
+            "label": "Build Image Processing Component (Release)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "--preset",
+                "release"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "detail": "Build Image Processing component independently (Release)",
+            "dependsOn": "Configure Image Processing Component (Release)"
+        },
+        {
             "label": "Launch Image Processing Component",
             "type": "shell",
             "command": "./image_processing_test",
             "group": "test",
             "options": {
-                "cwd": "${workspaceFolder}/src/image_processing/build/bin"
+                "cwd": "${workspaceFolder}/src/image_processing/build/release/bin"
             },
-            "dependsOn": "Build Image Processing Component",
-            "detail": "Launch Image Processing Components"
+            "dependsOn": "Build Image Processing Component (Release)",
+            "detail": "Launch Image Processing Components (Release)"
         },
 
         // --- 4. Raw Processing ---
