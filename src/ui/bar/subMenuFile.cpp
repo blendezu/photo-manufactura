@@ -9,18 +9,24 @@ SubMenuFile::SubMenuFile(QWidget* parent) : QMenu(parent) {
     // Create actions with shortcuts
     newAction = new QAction("New", this);
     newAction->setShortcut(QKeySequence::New);
+    newAction->setIcon(QIcon::fromTheme("document-new"));  // Use a standard icon if available
 
     openAction = new QAction("Open...", this);
     openAction->setShortcut(QKeySequence::Open);
+    openAction->setIcon(QIcon::fromTheme("document-open"));  // Use a standard icon if available
 
     saveAction = new QAction("Save", this);
     saveAction->setShortcut(QKeySequence::Save);
+    saveAction->setIcon(QIcon::fromTheme("document-save"));  // Use a standard icon if available
 
     saveAsAction = new QAction("Save As...", this);
     saveAsAction->setShortcut(QKeySequence::SaveAs);
+    saveAsAction->setIcon(
+        QIcon::fromTheme("document-save-as"));  // Use a standard icon if available
 
     exitAction = new QAction("Exit", this);
     exitAction->setShortcut(QKeySequence::Quit);
+    exitAction->setIcon(QIcon::fromTheme("application-exit"));  // Use a standard icon if available
 
     // Connect actions to slots
     connect(newAction, &QAction::triggered, this, &SubMenuFile::onNewTriggered);
