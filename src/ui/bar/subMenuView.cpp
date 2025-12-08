@@ -11,12 +11,17 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     QMenu* themeMenu = new QMenu("Theme", this);
 
     m_darkThemeAction = new QAction("Dark Theme", this);
+    m_darkThemeAction->setIcon(
+        QIcon::fromTheme("view-dark-theme"));  // Use a standard icon if available
+    m_darkThemeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_D));
     m_darkThemeAction->setCheckable(true);
     m_darkThemeAction->setChecked(true);
 
     m_lightThemeAction = new QAction("Light Theme", this);
+    m_lightThemeAction->setIcon(
+        QIcon::fromTheme("view-light-theme"));  // Use a standard icon if available
     m_lightThemeAction->setCheckable(true);
-
+    m_lightThemeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_L));
     // Group actions so only one can be checked
     QActionGroup* themeGroup = new QActionGroup(this);
     themeGroup->addAction(m_darkThemeAction);

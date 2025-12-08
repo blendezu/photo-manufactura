@@ -9,9 +9,12 @@ SubMenuEdit::SubMenuEdit(QWidget* parent) : QMenu(parent) {
 
     undoAction = new QAction("Undo", this);
     undoAction->setShortcut(QKeySequence::Undo);
+    // add icon to
+    undoAction->setIcon(QIcon::fromTheme("edit-undo"));  // Use a standard icon if available
     // Toggle for undo action
     undoAction->toggle();
     redoAction = new QAction("Redo", this);
+    redoAction->setIcon(QIcon::fromTheme("edit-redo"));  // Use a standard icon if available
     redoAction->setShortcut(QKeySequence::Redo);
 
     // TODO: Move the slots to ApplicationController
