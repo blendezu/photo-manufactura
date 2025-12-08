@@ -13,69 +13,103 @@
 #include "halide_wrapper.h"
 #include "operation_base.h"
 
+/**
+ * @brief Constructs a new ImagePipeline object.
+ * Cache is invalid and fused pipeline is disabled by default.
+ */
 ImagePipeline::ImagePipeline() : m_cacheValid(false), m_useFusedPipeline(false) {}
 
 void ImagePipeline::setImg(const cv::Mat& img) {
+    // 1. Check if image is empty
     if (img.empty()) {
-        std::cerr << "Warning: Setting empty image to pipeline\n";
+        std::cerr << "[ImagePipeline] Error: Setting empty image to pipeline\n";
         return;
     }
 
+    // 2. Set image to pipeline. Clone to avoid modifying original image
     m_originalImg = img.clone();
+
+    // 3. Invalidate cache and clear undo history for new image
     invalidateCache();
     clearUndoHistory();
-    std::cout << "Image set to pipeline: " << img.cols << "x" << img.rows
+
+    // 4. Print image info
+    std::cout << "[ImagePipeline] Image set to pipeline: " << img.cols << "x" << img.rows
               << " channels: " << img.channels() << std::endl;
 }
 
 void ImagePipeline::addOperation(std::shared_ptr<ImageOperation> operation) {
+    // 1. Check if operation is null
     if (!operation) {
-        std::cerr << "Error: cannot add null operation to pipeline\n";
+        std::cerr << "[ImagePipeline] Error: cannot add null operation to pipeline\n";
         return;
     }
 
+    // 2. Add operation to pipeline
     m_operations.push_back(operation);
-    m_undoneOperations.clear();  // delete Redo history when new operation
+
+    // 3. Clear redo history to avoid conflicts
+    m_undoneOperations.clear();
+
+    // 4. Invalidate cache to force reprocessing
     invalidateCache();
 
-    std::cout << "Operation added: " << operation->getName() << " (Total: " << m_operations.size()
-              << ")" << std::endl;
+    // 5. Print operation info
+    std::cout << "[ImagePipeline] Operation added: " << operation->getName()
+              << " (Total: " << m_operations.size() << ")" << std::endl;
 }
 
 void ImagePipeline::insertOperation(int index, std::shared_ptr<ImageOperation> operation) {
+    // 1. Check if operation is null
     if (!operation) {
-        std::cerr << "Error: Cannot insert null operation\n";
+        std::cerr << "[ImagePipeline] Error: Cannot insert null operation\n";
         return;
     }
 
+    // 2. Check if index is valid
     if (index < 0 || index > static_cast<int>(m_operations.size())) {
-        std::cerr << "Error: Invalid index for operation insertion: " << index << std::endl;
+        std::cerr << "[ImagePipeline] Error: Invalid index for operation insertion: " << index
+                  << std::endl;
         return;
     }
 
+    // 3. Insert an operation at the specified index
     m_operations.insert(m_operations.begin() + index, operation);
+
+    // 4. Clear redo history to avoid conflicts
     m_undoneOperations.clear();
+
+    // 5. Invalidate cache to force reprocessing
     invalidateCache();
 
-    std::cout << "Operation inserted at " << index << ": " << operation->getName() << std::endl;
+    // 6. Print operation info
+    std::cout << "[ImagePipeline] Operation inserted at " << index << ": " << operation->getName()
+              << std::endl;
 }
 
 void ImagePipeline::removeOperation(int index) {
+    // 1. Check if index is valid
     if (index < 0 || index >= static_cast<int>(m_operations.size())) {
-        std::cerr << "Error: Invalid index for operation removal: " << index << std::endl;
+        std::cerr << "[ImagePipeline] Error: Invalid index for operation removal: " << index
+                  << std::endl;
         return;
     }
 
+    // 2. Get operation name for logging
     std::string opName = m_operations[index]->getName();
+
+    // 3. Remove an operation at the specified index
     m_operations.erase(m_operations.begin() + index);
+
     invalidateCache();
 
-    std::cout << "Operation removed at " << index << ": " << opName << std::endl;
+    std::cout << "[ImagePipeline] Operation removed at " << index << ": " << opName << std::endl;
 }
 
 void ImagePipeline::clearOperations() {
     if (!m_operations.empty()) {
-        std::cout << "Clearing all operations (" << m_operations.size() << " total)" << std::endl;
+        std::cout << "[ImagePipeline] Clearing all operations (" << m_operations.size() << " total)"
+                  << std::endl;
         m_operations.clear();
         invalidateCache();
     }
@@ -433,41 +467,55 @@ cv::Mat ImagePipeline::processUpTo(int operationIndex) {
 }
 
 void ImagePipeline::undo() {
+    // 1. Check if there are any operations to undo
     if (m_operations.empty()) {
-        std::cout << "Nothing to undo\n";
+        std::cout << "[ImagePipeline] Nothing to undo\n";
         return;
     }
 
+    // 2. Move last operation to undone operations
     auto lastOp = m_operations.back();
     m_undoneOperations.push_back(lastOp);
     m_operations.pop_back();
+
+    // 3. Invalidate cache to force reprocessing
     invalidateCache();
 
-    std::cout << "Undo: " << lastOp->getName() << std::endl;
+    std::cout << "[ImagePipeline] Undo: " << lastOp->getName() << std::endl;
 }
 
 void ImagePipeline::redo() {
+    // 1. Check if there are any operations to redo
     if (m_undoneOperations.empty()) {
-        std::cout << "Nothing to redo" << std::endl;
+        std::cout << "[ImagePipeline] Nothing to redo" << std::endl;
         return;
     }
 
+    // 2. Move last undone operation to operations
     auto lastUndone = m_undoneOperations.back();
     m_operations.push_back(lastUndone);
     m_undoneOperations.pop_back();
+
+    // 3. Invalidate cache to force reprocessing
     invalidateCache();
 
-    std::cout << "Redo: " << lastUndone->getName() << std::endl;
+    std::cout << "[ImagePipeline] Redo: " << lastUndone->getName() << std::endl;
 }
 
 void ImagePipeline::invalidateCache() {
+    // 1. Invalidate cache to force reprocessing
     m_cacheValid = false;
+
+    // 2. Release memory of cached result
     m_cachedResult.release();
 }
 
 void ImagePipeline::updateCache(const cv::Mat& result) {
     if (!result.empty()) {
+        // 1. Update cache
         m_cachedResult = result.clone();
+
+        // 2. Mark cache as valid
         m_cacheValid = true;
     }
 }
@@ -489,6 +537,132 @@ std::string ImagePipeline::serializePipeline() const {
     return ss.str();
 }
 
+// --- Includes for Factory (Deserialization) ---
+#include "../operations/color/saturation_adjust.h"
+#include "../operations/color/tint_magenta.h"
+#include "../operations/color/vibrance_adjust.h"
+#include "../operations/color/white_balance.h"
+#include "../operations/detail/clarity.h"
+#include "../operations/detail/sharpen.h"
+#include "../operations/effects/gray_image.h"
+#include "../operations/effects/vintage1.h"
+#include "../operations/light/auto_light.h"
+#include "../operations/light/black_adjust.h"
+#include "../operations/light/brightness_adjust.h"
+#include "../operations/light/contrast_adjust.h"
+#include "../operations/light/highlight_adjust.h"
+#include "../operations/light/shadow_adjust.h"
+#include "../operations/light/white_adjust.h"
+#include "../utils/image_resize.h"
+
 void ImagePipeline::deserializePipeline(const std::string& data) {
-    std::cout << "Deserializing pipeline: " << data.substr(0, 50) << "..." << std::endl;
+    if (data.empty())
+        return;
+
+    // Clear current state
+    clearOperations();
+    clearUndoHistory();
+
+    std::stringstream ss(data);
+    std::string segment;
+
+    // Check Header "ImagePipeline v1.0"
+    if (!std::getline(ss, segment, '|') || segment.find("ImagePipeline") == std::string::npos) {
+        std::cerr << "[ImagePipeline] Error: Invalid pipeline data format\n";
+        return;
+    }
+
+    // Skip "Operations:N" header part for now (we read until end anyway)
+    std::getline(ss, segment, '|');
+
+    // Read Operations
+    while (std::getline(ss, segment, ';')) {
+        size_t colonPos = segment.find(':');
+        if (colonPos == std::string::npos)
+            continue;
+
+        std::string name = segment.substr(0, colonPos);
+        std::string settings = segment.substr(colonPos + 1);
+
+        std::shared_ptr<ImageOperation> op = nullptr;
+
+        try {
+            // --- Factory Logic ---
+            // Light
+            if (name == "AdjustBrightness")
+                op = std::make_shared<AdjustBrightness>(std::stof(settings));
+            else if (name == "AdjustContrast")
+                op = std::make_shared<AdjustContrast>(std::stof(settings));
+            else if (name == "AdjustWhite")
+                op = std::make_shared<AdjustWhite>(std::stof(settings));
+            else if (name == "AdjustBlack")
+                op = std::make_shared<AdjustBlack>(std::stof(settings));
+            else if (name == "AdjustHighlight")
+                op = std::make_shared<AdjustHighlight>(std::stof(settings));
+            else if (name == "AdjustShadow")
+                op = std::make_shared<AdjustShadow>(std::stof(settings));
+            else if (name == "AutoLight")
+                op = std::make_shared<AutoLight>();  // ⚠️
+
+            // Color
+            else if (name == "AdjustSaturation")
+                op = std::make_shared<AdjustSaturation>(std::stof(settings));
+            else if (name == "AdjustVibrance")
+                op = std::make_shared<AdjustVibrance>(std::stof(settings));
+            else if (name == "WhiteBalance") {
+                // Settings format: "temperature: 50" (from getSettings)
+                // We need to robustly parse the number from the string
+                std::string numStr = settings;
+                size_t colon = settings.find(':');
+                if (colon != std::string::npos) {
+                    numStr = settings.substr(colon + 1);
+                }
+
+                try {
+                    int val = std::stoi(numStr);
+                    op = std::make_shared<WhiteBalance>(val);
+                } catch (...) {
+                    // Fallback or ignore
+                }
+            } else if (name == "TintMagenta")
+                op = std::make_shared<TintMagenta>(std::stof(settings));
+
+            // Effects
+            else if (name == "GrayImage")
+                op = std::make_shared<GrayImage>();
+            else if (name == "Vintage1")
+                op = std::make_shared<Vintage1>();
+
+            // Detail
+            else if (name == "Sharpen")
+                op = std::make_shared<Sharpen>(std::stof(settings));
+            else if (name == "Clarity")
+                op = std::make_shared<Clarity>(std::stof(settings));
+
+            // Geometry
+            else if (name == "Linksdrehen")
+                op = std::make_shared<RotateImage>(-90);
+            else if (name == "Rechtsdrehen")
+                op = std::make_shared<RotateImage>(90);
+            // TODO: Parse Crop/Resize params if they are complex strings
+            // else if (name == "ResizeImage") ...
+
+            // Style
+            // else if (name == "StyleTransfer") ...
+
+            if (op) {
+                addOperation(op);
+            } else {
+                std::cerr << "[ImagePipeline] Warning: Unknown operation or parse error: " << name
+                          << std::endl;
+            }
+
+        } catch (const std::exception& e) {
+            std::cerr << "[ImagePipeline] Error parsing settings for " << name << ": " << e.what()
+                      << std::endl;
+        }
+    }
+
+    std::cout << "[ImagePipeline] Deserialization complete. " << m_operations.size()
+              << " operations loaded.\n";
 }
