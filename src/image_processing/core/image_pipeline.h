@@ -23,62 +23,94 @@ class ImagePipeline {
    private:
     cv::Mat m_originalImg;                                     /**< The immutable source image. */
     std::vector<std::shared_ptr<ImageOperation>> m_operations; /**< List of active operations. */
-    std::vector<std::shared_ptr<ImageOperation>> m_undoneOperations; /**< Stack for Undo/Redo. */
+    std::vector<std::shared_ptr<ImageOperation>>
+        m_undoneOperations; /**< Stack of removed operations with Undo. Use for Redo.*/
 
     // --- Cache State ---
     cv::Mat m_cachedResult; /** Cached image. */
-    bool m_cacheValid;      /**  */
+    bool m_cacheValid;      /** True if the cache is valid. */
     std::shared_ptr<ImageOperation>
         m_liveOperation; /** Temporary operation for realtime sliders. */
 
     // --- Configuration --
-    bool m_useFusedPipeline; /**< If true, attempts to fuse Halide operations on the GPU */
+    bool m_useFusedPipeline; /** If true, attempts to fuse Halide operations on the GPU */
 
    public:
     ImagePipeline();
     ~ImagePipeline() = default;
 
-    // --- Image Management ---
+    // --- A. Image Management ---
 
     /**
      * @brief Loads a new image into the pipeline. Resets history and cache.
-     * @param srcImg
+     * @param srcImg The image to load.
      */
     void setImg(const cv::Mat& srcImg);
 
+    /**
+     * @brief Returns a clone of the original image.
+     */
     cv::Mat getOriginalImg() const {
         return m_originalImg.clone();
     }
+
+    /**
+     * @brief Checks if the pipeline has an image loaded.
+     */
     bool hasImg() const {
         return !m_originalImg.empty();
     }
 
-    // --- Operation Stack Management ---
+    // --- B. Operation Stack Management ---
 
-    // add an operation to the end of the pipeline
+    /**
+     * @brief Adds an operation to the end of the pipeline.
+     */
     void addOperation(std::shared_ptr<ImageOperation> operation);
 
-    // add an operation to any position
+    /**
+     * @brief Adds an operation to any position in the pipeline.
+     * @param index The index at which to insert the operation.
+     * @param operation The operation to insert.
+     */
     void insertOperation(int index, std::shared_ptr<ImageOperation>);
 
-    // When a slider set to 0 --> remove that operation
+    /**
+     * @brief Removes an operation at a specific index from the pipeline.
+     * @param index The index of the operation to remove.
+     */
     void removeOperation(int index);
 
-    // mainly for the Reset button (undo still works)
+    /**
+     * @brief Clears all operations from the pipeline.
+     */
     void clearOperations();
 
+    /**
+     * @brief Clears the undo history.
+     */
     void clearUndoHistory();
 
-    // call the operation
+    /**
+     * @brief Returns the number of operations in the pipeline.
+     */
     size_t getOperationCount() const {
         return m_operations.size();
     }
+
+    /**
+     * @brief Returns the operation at the specified index.
+     */
     std::shared_ptr<ImageOperation> getOperation(int index);
+
+    /**
+     * @brief Returns a reference to the list of operations.
+     */
     const std::vector<std::shared_ptr<ImageOperation>>& getOperations() const {
         return m_operations;
     }
 
-    // --- Live Preview ---
+    // --- C. Live Preview ---
 
     /**
      * @brief Set an operation that is applied temporarily on top of the cached result.
@@ -87,7 +119,7 @@ class ImagePipeline {
     void setLiveOperation(std::shared_ptr<ImageOperation> operation);
     void clearLiveOperations();
 
-    // --- Processing ---
+    // --- D. Processing ---
 
     /**
      * @brief Executes the pipeline.
@@ -105,29 +137,69 @@ class ImagePipeline {
         return m_useFusedPipeline;
     }
 
-    // Undo/Redo
+    /**
+     * @brief Undo the last operation.
+     * Takes the last operation from the pipeline (m_operations) and puts it back into the undone
+     * operations stack (m_undoneOperations).
+     */
     void undo();
+
+    /**
+     * @brief Redo the last undone operation.
+     * Takes the last operation from the undone operations stack (m_undoneOperations) and puts it
+     * back into the pipeline (m_operations).
+     */
     void redo();
+
+    /**
+     * @brief Checks if there are any operations to undo.
+     */
     bool canUndo() const {
         return !m_operations.empty();
     }
+
+    /**
+     * @brief Checks if there are any operations to redo.
+     */
     bool canRedo() const {
         return !m_undoneOperations.empty();
     }
+
+    /**
+     * @brief Returns the number of operations that can be undone.
+     */
     size_t getUndoCount() const {
         return m_undoneOperations.size();
     }
 
-    // Cache management
+    /**
+     * @brief Invalidates the cache.
+     */
     void invalidateCache();
+
+    /**
+     * @brief Checks if the cache is valid.
+     */
     bool isCacheValid() const {
         return m_cacheValid;
     }
 
+    /**
+     * @brief Serializes the pipeline to a JSON string.
+     * Use for saving the pipeline state as a preset.
+     */
     std::string serializePipeline() const;
+
+    /**
+     * @brief Deserializes the pipeline from a JSON string.
+     * Use for loading the pipeline state from a preset.
+     */
     void deserializePipeline(const std::string& data);
 
    private:
+    /**
+     * @brief Updates the cache with a new result.
+     */
     void updateCache(const cv::Mat& result);
 
     /**
@@ -148,15 +220,51 @@ class ImagePipeline {
                                 std::vector<std::shared_ptr<HalideOperation>>& ops);
 
     // --- JIT Caching ---
+    /**
+     * @brief Cached pipeline for Halide operations.
+     *
+     */
     struct CachedPipeline {
+        /**
+         * @brief The key for the cache: Unique sequence of operations.
+         * If the list of operations (or their order/parameters) changes, the cache is invalid.
+         */
         std::vector<std::shared_ptr<HalideOperation>> ops;
+
+        /**
+         * @brief The compiled Halide program (The "Machine").
+         * This object holds the JIT-compiled assembly code. Reusing this avoids
+         * expensive recompilation (JIT overhead) when processing subsequent frames
+         * with the same structure.
+         */
         Halide::Pipeline pipeline;
+
+        /**
+         * @brief Abstract placeholder for the input image during compilation.
+         * The JIT compiler needs to know "There will be an image here" without
+         * knowing the exact pixel data yet.
+         * During execution (.realize()), we plug the real cv::Mat into this socket.
+         */
         Halide::ImageParam inputParam;
+
+        /**
+         * @brief Context validation: Input Bit Depth.
+         * Initialized to -1 (Invalid) to force a compilation on the very first run.
+         * If the input image changes from 8-bit to 16-bit, the compiled code
+         * (which assumes specific data types) becomes invalid and must be recompiled.
+         */
         int inputDepth = -1;
+
+        /**
+         * @brief Context validation: Number of Channels.
+         * Initialized to -1 (Invalid).
+         * If the input changes from RGB (3) to RGBA (4) or Grayscale (1),
+         * the memory layout stride changes, requiring a recompile.
+         */
         int inputChannels = -1;
     };
 
-    CachedPipeline m_pipelineCache;
+    CachedPipeline m_pipelineCache; /** Cached pipeline for Halide operations. */
 };
 
 #endif
