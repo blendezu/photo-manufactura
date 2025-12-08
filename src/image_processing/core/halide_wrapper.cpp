@@ -10,7 +10,7 @@ bool HalideWrapper::s_initialized = false;
 std::mutex HalideWrapper::s_initMutex;
 
 HalideWrapper::HalideWrapper(Backend backendForce) {
-    // 1. Thread-safe initialization (Runs only one)
+    // 1. Thread-safe initialization (Runs only once)
     if (!s_initialized || backendForce != Backend::AUTO) {
         std::lock_guard<std::mutex> Lock(s_initMutex);
         if (!s_initialized) {
@@ -107,7 +107,7 @@ void HalideWrapper::applySchedule(Halide::Func& f, Halide::Var x, Halide::Var y)
         f.gpu_tile(x, y, xi, yi, 16, 16, Halide::TailStrategy::GuardWithIf);
     } else {
         // --- CPU SCHEDULE (Debug / Fallback only) ---
-        // Since the app uses OpenMP for CPU tasks, this path is rarely used.
+        // Since the app uses OpenMP for CPU tasks, this path is not used.
         // Keep it simple: just parallelize rows.
         f.parallel(y);
     }
