@@ -21,16 +21,17 @@
  */
 class HalideWrapper {
    public:
+    // Backend enum
     enum class Backend { AUTO, CPU, CUDA, METAL, OPENCL };
 
    private:
-    Halide::Target m_target;
-    bool m_isGPU;
+    Halide::Target m_target; /**< Target used by Halide */
+    bool m_isGPU;            /**< Whether the target is a GPU */
 
     // Static cache for the best detected target to avoid querying OS every time.
-    static Halide::Target s_bestTarget;
-    static bool s_initialized;
-    static std::mutex s_initMutex;
+    static Halide::Target s_bestTarget; /**< Static cache for the best detected target */
+    static bool s_initialized;          /**< Whether the wrapper is initialized */
+    static std::mutex s_initMutex;      /**< Mutex for thread-safe initialization */
 
    public:
     /**
@@ -40,7 +41,7 @@ class HalideWrapper {
      * - If set to Backend::AUTO (default), it detects and uses the best available hardware
      * (cached).
      * - If set to explicit backend (e.g. CPU, METAL), it ignores the cache and forces that specific
-     * target (not recommended).
+     * target.
      */
     HalideWrapper(Backend backendForce = Backend::AUTO);
 
@@ -77,15 +78,19 @@ class HalideWrapper {
         // 2. Check if the input image is continuous
         if (!mat.isContinuous()) {
             throw std::runtime_error(
-                "[HalideWrapper] Error: cv::Mat is not continuous. Please clone() before calling!");
+                "[HalideWrapper] Error: cv::Mat is not continuous. Please use OpenCV clone() "
+                "before calling!");
         }
 
-        // check OpenCV dimension
+        // 3. Get OpenCV dimension
         int w = mat.cols;
         int h = mat.rows;
         int c = mat.channels();
 
-        // create buffer (Interleaved BGR BGR ...)
+        // 4. Create Buffer - Tell Halide that the data is interleaved (BGR BGR ...)
+        // Dimensions 0: width; Stride (to the next element) c
+        // Dimensions 1: height; Stride (to the next row) w * c
+        // Dimensions 2: channels; Stride (to the next channel) 1
         return Halide::Buffer<T>::make_interleaved(reinterpret_cast<T*>(mat.data), w, h, c);
     }
 
