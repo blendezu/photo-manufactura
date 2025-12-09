@@ -102,20 +102,16 @@ int main() {
                     std::cout << std::endl;
                     std::cout << std::endl;
                     std::cout << "➡️  Resize-Operation\n";
-
-                    // pipeline.addOperation(std::make_shared<ResizeImage>(1000u, 1000u));
-                    // pipeline.addOperation(std::make_shared<StyleTransfer>(StyleType::Candy));
                     pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
                 }
 
-                // Zweite Operation: Bild auf Höhe von 1500 und das originale Verhältnis
+                // Zweite Operation: Ändern des Werts von -100 auf 50 (Modify)
                 else if (stepCounter == 2) {
                     std::cout << std::endl;
                     std::cout << std::endl;
-                    pipeline.undo();
-                    std::cout << "➡️  Resize-Operation" << std::endl;
-                    double oriRatio = (double)testImage.cols / testImage.rows;
-                    pipeline.addOperation(std::make_shared<ResizeImage>(1500u, oriRatio));
+
+                    std::cout << "➡️  Modify-Operation: White -100 -> 50" << std::endl;
+                    pipeline.modifyOperation(0, std::make_shared<AdjustWhite>(50));
                 }
 
                 // Dritte Operation: Helligkeit erhöhen
@@ -124,6 +120,11 @@ int main() {
                     std::cout << std::endl;
                     std::cout << "➡️  Brightness-Operation hinzugefügt (+50)" << std::endl;
                     pipeline.addOperation(std::make_shared<AdjustBrightness>(50));
+                    pipeline.addOperation(std::make_shared<AdjustContrast>(50));
+                    pipeline.addOperation(std::make_shared<AdjustSaturation>(50));
+                    pipeline.addOperation(std::make_shared<AdjustWhite>(50));
+                    pipeline.addOperation(std::make_shared<AdjustBlack>(50));
+                    pipeline.addOperation(std::make_shared<AdjustHighlight>(50));
                 }
 
                 // Dritte Operation: Helligkeit erhöhen
