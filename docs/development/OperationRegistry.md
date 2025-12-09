@@ -1,125 +1,135 @@
-# OperationRegistry - Filter Management System
+# OperationRegistry: Effects Integration Guide
 
-## 📋 ÜBERSICHT
-Die `OperationRegistry` ist ein Factory-System zur dynamischen Verwaltung von Bildfiltern. Sie fungiert als zentrale Registrierungsstelle für alle Filter-Operationen.
+**Purpose**: This registry manages "One-Click Effects" (Presets/Filters) like *Vintage*, *Black & White*, etc.
+**Goal**: Decouple the GUI from specific filter classes. You ask for "Vintage", the registry gives you the object.
 
-## 🎯 WARUM OPERATIONREGISTRY?
+---
 
-### Problem ohne Registry:
-- Jeder neue Filter erfordert manuelle UI-Änderungen
-- Filter müssen hard-coded im GUI-Code referenziert werden
-- Keine einheitliche Verwaltung der Filter
-- Schwer erweiterbar für Plugins
+## 1. How it works
 
-### Lösung mit Registry:
-- Filter werden automatisch in der UI angezeigt
-- Neue Filter erfordern keine GUI-Änderungen
-- Zentrale Verwaltung aller Filter
-- Einfache Erweiterbarkeit
+The registry is a **Singleton** that organizes effects into categories (right now only 3 categories):
+*   `MONOCHROME` (Black & White, Sepia...)
+*   `VINTAGE` (Retro looks, Grain...)
+*   `GENERAL` (Auto-Enhance, etc.)
 
-## 🏗️ ARCHITEKTUR
+---
 
-### Kernkonzept: Factory Pattern
-Die Registry verwaltet eine Liste von Factory-Funktionen, die Filter-Instanzen erstellen können.
+## 2. Integration with GUI
 
-### Kategorien-System:
-Filter werden in Kategorien organisiert:
-- COLOR_EFFECTS: Farbeffekte
-- VINTAGE: Vintage/Looks  
-- BLACK_WHITE: Schwarz-Weiß Filter
-- DETAIL: Detail-Verbesserung
-- CREATIVE: Kreative Effekte
+### Step A: Populating the Menu / Panel
+Instead of hardcoding buttons ("Add Vintage Filter"), you ask the registry what is available. This allows us to add new filters in the backend without changing a single line of GUI code.
 
-### Singleton Pattern:
-Die Registry ist als Singleton implementiert - es gibt nur eine Instanz im gesamten Programm.
-
-### 💡 VORTEILE
-Für Entwickler:
-- Einheitliche Schnittstelle: Alle Filter haben dieselbe API
-- Einfache Erweiterung: Neue Filter ohne GUI-Änderungen
-- Plugins möglich: Externe Filter können registriert werden
-- Konsistente Kategorisierung: Filter sind logisch organisiert
-
-Für Benutzer:
-- Vollständige Filter-Liste: Keine versteckten Filter
-- Organisierte Oberfläche: Filter nach Kategorien gruppiert
-- Schneller Zugriff: Ein Klick zum Anwenden
-- Beschreibungen: Tooltips erklären jeden Filter
-
-
-### 🔧 INTEGRATION MIT PIPELINE
-Die OperationRegistry erstellt Filter, die direkt mit der ImagePipeline kompatibel sind:
-
-1. Filter wird aus Registry erstellt
-2. Filter wird zur Pipeline hinzugefügt
-3. Pipeline wendet Filter auf das Bild an
-4. Ergebnis wird in der GUI angezeigt
-
-🚀 ZUKUNFTSERWEITERUNGEN
-- Filter-Presets: Voreinstellungen für Filter
-- Benutzer-Filter: Custom Filter speichern
-- Filter-Stärke: Intensität einstellbar
-- Filter-Stapel: Mehrere Filter kombinieren
-
-## 🔧 VERWENDUNG IN DER GUI
-
-### 1. Filter-Menü erstellen
 ```cpp
-// Filter-Menü dynamisch aus Registry füllen
-void setupFilterMenu() {
+#include "core/operation_registry.h"
+
+void populateFilterMenu() {
     auto& registry = OperationRegistry::getInstance();
     
-    // Für jede Kategorie ein Untermenü erstellen
-    for (auto category : categories) {
-        auto filters = registry.getFiltersByCategory(category);
-        QMenu* categoryMenu = filterMenu->addMenu(categoryName);
-        
-        // Jeden Filter als Menu-Eintrag hinzufügen
-        for (const auto& filterName : filters) {
-            QAction* action = new QAction(filterName);
-            connect(action, &QAction::triggered, [filterName]() {
-                applyFilter(filterName);
-            });
-            categoryMenu->addAction(action);
+    // 1. Define Categories to show
+    std::vector<OperationRegistry::Category> categories = {
+        OperationRegistry::Category::VINTAGE,
+        OperationRegistry::Category::MONOCHROME,
+        OperationRegistry::Category::GENERAL
+    };
+
+    // 2. Iterate and Create UI Elements
+    for (auto cat : categories) {
+        // Get friendly name (e.g., "Vintage Effects")
+        std::string catName = OperationRegistry::categoryToString(cat);
+        createMenuSection(catName);
+
+        // Get list of filters in this category
+        auto filterNames = registry.getFiltersByCategory(cat);
+
+        for (const auto& name : filterNames) {
+            // Get details (Icon, Description)
+            auto info = registry.getFilterInfo(name);
+            
+            // Create Button/Action
+            createButton(info.name, info.iconName, info.description);
         }
     }
 }
 ```
-### 2. Filter anwenden 
+
+### Step B: Applying an Effect
+When the user clicks a button, use the name to create and add the effect to the pipeline.
 
 ```cpp
-
-void applyFilter(const std::string& filterName) {
+void onFilterClicked(const std::string& filterName) {
+    // 1. Get Factory Instance
     auto& registry = OperationRegistry::getInstance();
-    auto filter = registry.createFilter(filterName);
     
-    if (filter) {
-        // Filter zur Pipeline hinzufügen
-        pipeline.addOperation(filter);
-        updatePreview();
+    // 2. Create the actual Operation Object
+    std::shared_ptr<ImageOperation> newEffect = registry.createFilter(filterName);
+    
+    if (newEffect) {
+        // 3. Add to Pipeline (See ImagePipeline_v2.md)
+        // Note: Effects are usually added to the stack, not used as Live Operations
+        pipeline.addOperation(newEffect);
+        
+        // 4. Update View
+        updateView(pipeline.process());
     }
 }
 ```
 
+---
 
-## 3. Filter-Panel mit Vorschau
-```cpp
-// Filter-Buttons mit Vorschau erstellen
-void createFilterPanel() {
-    auto& registry = OperationRegistry::getInstance();
-    auto filters = registry.getAvailableFilters();
-    
-    for (const auto& filterName : filters) {
-        // Button für jeden Filter erstellen
-        QPushButton* btn = new QPushButton(filterName);
-        
-        // Tooltip mit Beschreibung anzeigen
-        auto info = registry.getFilterInfo(filterName);
-        btn->setToolTip(info.description);
-        
-        connect(btn, &QPushButton::clicked, [filterName]() {
-            applyFilter(filterName);
-        });
+## 3. API Reference
+
+### `getInstance()`
+Returns the global registry instance.
+
+### `getFiltersByCategory(Category cat)`
+Returns a `std::vector<std::string>` of filter names (IDs).
+
+### `getFilterInfo(std::string name)`
+Returns a struct with metadata for UI display:
+*   `name`: Display name
+*   `description`: Tooltip text
+*   `iconName`: Resource ID for the icon
+
+### `createFilter(std::string name)`
+Returns a `std::shared_ptr<ImageOperation>`. Returns `nullptr` if the name is not found.
+
+### Categories
+*   `OperationRegistry::Category::MONOCHROME`
+*   `OperationRegistry::Category::VINTAGE`
+*   `OperationRegistry::Category::GENERAL`
+
+---
+
+## 4. How to Add a New Filter (Backend)
+
+The "Magic" works because the GUI only reads what is registered. To add a new filter to the App, you only need to touch `OperationRegistry.cpp`.
+
+**Example:**
+You created a new cool filter class `HoaDao`.
+
+1.  **Open** `src/image_processing/core/operation_registry.cpp`
+2.  **Include header**:
+    ```cpp
+    #include "../operations/effects/hoa_dao.h"
+    ```
+3.  **Register in `registerDefaultFilters()`**:
+
+    ```cpp
+    void OperationRegistry::registerDefaultFilters() {
+        // ... existing filters ...
+
+        // ONE LINE to add it to the GUI:
+        registerFilter(
+            "HoaDao",                                      // 1. Name (ID)
+            []() { return std::make_shared<HoaDao>(); }, // 2. Factory Lambda
+            Category::GENERAL,                                // 3. Category (Where it appears)
+            "Futuristic neon colors",                         // 4. Trace/Tooltip
+            "neon_icon"                                       // 5. Icon Name
+        );
     }
-}
-```
+    ```
+
+**Result:**
+*   The GUI automatically creates a button "HoaDao" in the "General" menu.
+*   When clicked, it creates your `HoaDao` class and adds it to the pipeline.
+*   **Zero GUI code changes required.**
