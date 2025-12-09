@@ -4,20 +4,12 @@
 #include <opencv2/core/mat.hpp>
 
 cv::Mat Denoise::denoiseImg(const cv::Mat& srcImg) {
-    // float h = 7;  // Filter strength: 3-10
-    // int templateWindowSize = 7;
-    // int searchWindowSize = 21;
-
-    // cv::fastNlMeansDenoisingColored(srcImg, m_denoisedImg, h, h, templateWindowSize,
-    //                                 searchWindowSize);
-    // std::cout << "denoiseImg\n";
-
     int d = 9;
-
     double sigmaColor = 75.0;
-
     double sigmaSpace = 75.0;
+
     cv::Mat denoisedImg;
+
     cv::bilateralFilter(srcImg, denoisedImg, d, sigmaColor, sigmaSpace);
     return denoisedImg;
 }
