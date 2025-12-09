@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" version="1.1" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="80" fill="url(#grad1)"/>
+  
+  <!-- Camera body -->
+  <rect x="96" y="180" width="320" height="220" rx="20" fill="#ffffff" opacity="0.95"/>
+  
+  <!-- Lens -->
+  <circle cx="256" cy="290" r="80" fill="#357ABD" opacity="0.8"/>
+  <circle cx="256" cy="290" r="60" fill="#4A90E2"/>
+  <circle cx="256" cy="290" r="30" fill="#2C3E50" opacity="0.7"/>
+  
+  <!-- Flash -->
+  <rect x="340" y="200" width="40" height="30" rx="5" fill="#FFD700" opacity="0.9"/>
+  
+  <!-- Viewfinder -->
+  <rect x="150" y="200" width="60" height="40" rx="5" fill="#2C3E50" opacity="0.6"/>
+  
+  <!-- Shutter button -->
+  <circle cx="380" cy="250" r="15" fill="#E74C3C" opacity="0.9"/>
+  
+  <!-- Film strip decoration -->
+  <rect x="96" y="420" width="320" height="40" rx="5" fill="#2C3E50" opacity="0.3"/>
+  <rect x="110" y="430" width="20" height="20" fill="#ffffff" opacity="0.5"/>
+  <rect x="150" y="430" width="20" height="20" fill="#ffffff" opacity="0.5"/>
+  <rect x="190" y="430" width="20" height="20" fill="#ffffff" opacity="0.5"/>
+  <rect x="342" y="430" width="20" height="20" fill="#ffffff" opacity="0.5"/>
+  <rect x="382" y="430" width="20" height="20" fill="#ffffff" opacity="0.5"/>
+</svg>

@@ -17,12 +17,13 @@ SubMenuFile::SubMenuFile(QWidget* parent) : QMenu(parent) {
 
     saveAction = new QAction("Save", this);
     saveAction->setShortcut(QKeySequence::Save);
-    saveAction->setIcon(QIcon::fromTheme("document-save"));  // Use a standard icon if available
+    saveAction->setIcon(
+        QIcon::fromTheme(QIcon::ThemeIcon::DocumentSave));  // Use a standard icon if available
 
     saveAsAction = new QAction("Save As...", this);
     saveAsAction->setShortcut(QKeySequence::SaveAs);
     saveAsAction->setIcon(
-        QIcon::fromTheme("document-save-as"));  // Use a standard icon if available
+        QIcon::fromTheme(QIcon::ThemeIcon::DocumentSaveAs));  // Use a standard icon if available
 
     exitAction = new QAction("Exit", this);
     exitAction->setShortcut(QKeySequence::Quit);
