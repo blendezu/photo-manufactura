@@ -426,6 +426,115 @@
             },
             "dependsOn": "Build Application",
             "detail": "Launch Photo Manufactura application"
+        },
+        {
+            "label": "Generate Icon",
+            "type": "shell",
+            "command": "./generate_icon.sh",
+            "options": {
+                "cwd": "${workspaceFolder}/resources"
+            },
+            "detail": "Generate .icns icon from SVG",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja",
+                "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure application in Release mode",
+            "dependsOn": "Generate Icon"
+        },
+        {
+            "label": "Compile Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "Release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Compile application in Release mode",
+            "dependsOn": "Build Release"
+        },
+        {
+            "label": "Create DMG Installer",
+            "type": "shell",
+            "command": "./scripts/create_macos_dmg.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Create macOS DMG installer package",
+            "dependsOn": "Compile Release",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build and Package Release",
+            "type": "shell",
+            "command": "./scripts/build_release.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Complete release build with DMG packaging",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Test Release Build",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "build/bin/photo_manufactura.app"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Launch the Release build .app bundle",
+            "dependsOn": "Compile Release",
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean Release Build",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Clean Release build directory",
+            "problemMatcher": []
         }
     ]
 }

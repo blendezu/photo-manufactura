@@ -36,7 +36,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::setupUi() {
-    setWindowTitle(tr("Photo Manufactura"));
+    setWindowTitle(tr("Photo Manufactura !"));
     resize(1200, 800);
 
     // Apply theme using ThemeManager

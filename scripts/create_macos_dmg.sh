@@ -28,23 +28,55 @@ if [ ! -f "$PROJECT_ROOT/resources/icon.icns" ]; then
     cd "$PROJECT_ROOT"
 fi
 
+# Ensure proper permissions on app bundle
+echo "🔧 Setting app bundle permissions..."
+chmod -R u+w "$APP_BUNDLE" 2>/dev/null || true
+
+# Kill any running instances
+pkill -f "photo_manufactura.app" 2>/dev/null || true
+sleep 1
+
 # Deploy Qt frameworks
 echo "🔧 Bundling Qt frameworks..."
 QT_PATH=$(brew --prefix qt@6)/bin
 if [ -x "$QT_PATH/macdeployqt" ]; then
-    "$QT_PATH/macdeployqt" "$APP_BUNDLE" -always-overwrite
+    # Remove code signatures that might interfere
+    echo "   Removing existing signatures..."
+    find "$APP_BUNDLE" -type f -name "*.dylib" -exec codesign --remove-signature {} \; 2>/dev/null || true
+    find "$APP_BUNDLE/Contents/MacOS" -type f -perm +111 -exec codesign --remove-signature {} \; 2>/dev/null || true
+    
+    echo "   Running macdeployqt..."
+    # Use gtimeout if available (brew install coreutils), otherwise run without timeout
+    if command -v gtimeout &> /dev/null; then
+        gtimeout 60 "$QT_PATH/macdeployqt" "$APP_BUNDLE" -always-overwrite 2>&1 | grep -v "^ERROR:" | grep -v "^WARNING:" || {
+            echo "⚠️  macdeployqt had issues, continuing anyway..."
+        }
+    else
+        "$QT_PATH/macdeployqt" "$APP_BUNDLE" -always-overwrite 2>&1 | grep -v "^ERROR:" | grep -v "^WARNING:" || {
+            echo "⚠️  macdeployqt had issues, continuing anyway..."
+        }
+    fi
 else
-    echo "⚠️  macdeployqt not found, trying system Qt..."
-    macdeployqt "$APP_BUNDLE" -always-overwrite || echo "⚠️  Skipping Qt deployment"
+    echo "⚠️  macdeployqt not found at $QT_PATH"
 fi
 
 # Bundle ONNX Runtime if exists
 if [ -d "$PROJECT_ROOT/libs/onnxruntime/lib" ]; then
     echo "🔧 Bundling ONNX Runtime..."
     mkdir -p "$APP_BUNDLE/Contents/Frameworks"
+    chmod -R u+w "$APP_BUNDLE/Contents/Frameworks" 2>/dev/null || true
     cp -f "$PROJECT_ROOT/libs/onnxruntime/lib"/*.dylib \
         "$APP_BUNDLE/Contents/Frameworks/" 2>/dev/null || true
+    
+    # Fix permissions on copied dylibs
+    chmod u+w "$APP_BUNDLE/Contents/Frameworks"/*.dylib 2>/dev/null || true
 fi
+
+# Sign the app bundle with ad-hoc signature
+echo "🔐 Signing application..."
+codesign --force --deep --sign - "$APP_BUNDLE" 2>/dev/null || {
+    echo "⚠️  Ad-hoc signing failed, app may not launch on some systems"
+}
 
 # Create DMG staging directory
 STAGING_DIR="$PROJECT_ROOT/build/dmg_staging"
@@ -54,8 +86,7 @@ mkdir -p "$STAGING_DIR"
 echo "📋 Preparing DMG contents..."
 cp -R "$APP_BUNDLE" "$STAGING_DIR/"
 
-# Create Applications symlink
-ln -s /Applications "$STAGING_DIR/Applications"
+# Note: Applications symlink will be created by create-dmg with --app-drop-link
 
 # Add README
 cat > "$STAGING_DIR/README.txt" << EOF

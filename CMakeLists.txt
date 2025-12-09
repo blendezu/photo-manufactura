@@ -23,6 +23,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # macOS App Bundle configuration
+set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/icon.icns)
+
 if(APPLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
     set(MACOSX_BUNDLE_BUNDLE_NAME "Photo Manufactura")
@@ -32,19 +34,33 @@ if(APPLE)
     set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025")
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.photomanufactura.app")
     
-    # Set icon file path
-    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/icon.icns)
+    # Set icon file properties if it exists
     if(EXISTS ${APP_ICON_MACOSX})
         set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
             MACOSX_PACKAGE_LOCATION "Resources")
     endif()
 endif()
 
-add_executable(${PROJECT_NAME}
-    $<$<BOOL:${APPLE}>:MACOSX_BUNDLE>
-    src/main.cpp
-    $<$<AND:$<BOOL:${APPLE}>,$<EXISTS:${APP_ICON_MACOSX}>>:${APP_ICON_MACOSX}>
-)
+if(WIN32)
+    # Windows-specific settings can be added here
+endif()
+
+if(UNIX AND NOT APPLE)
+    # Linux-specific settings can be added here
+endif()
+
+# Prepare source files list
+set(APP_SOURCES src/main.cpp)
+if(APPLE AND EXISTS ${APP_ICON_MACOSX})
+    list(APPEND APP_SOURCES ${APP_ICON_MACOSX})
+endif()
+
+# Create executable
+if(APPLE)
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${APP_SOURCES})
+else()
+    add_executable(${PROJECT_NAME} ${APP_SOURCES})
+endif()
 
 # Subdirectories - order matters for dependencies
 # image_processing must be built before model (model depends on it)
