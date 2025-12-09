@@ -6,7 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "../core/operation_base.h"
+#include "operation_base.h"
 
 /**
  * @class ImagePipeline
@@ -23,8 +23,23 @@ class ImagePipeline {
    private:
     cv::Mat m_originalImg;                                     /**< The immutable source image. */
     std::vector<std::shared_ptr<ImageOperation>> m_operations; /**< List of active operations. */
-    std::vector<std::shared_ptr<ImageOperation>>
-        m_undoneOperations; /**< Stack of removed operations with Undo. Use for Redo.*/
+
+    // --- Undo/Redo System (Command Pattern) ---
+    struct PipelineAction {
+        enum Type {
+            INSERT, /**< Operation was inserted. Undo: Remove it. */
+            REMOVE, /**< Operation was removed. Undo: Insert it back. */
+            MODIFY  /**< Operation settings changed. Undo: Restore old settings/object. */
+        };
+
+        Type type;
+        int index;                                    /**< Index where the action happened. */
+        std::shared_ptr<ImageOperation> operation;    /**< The primary operation involved. */
+        std::shared_ptr<ImageOperation> oldOperation; /**< For MODIFY: The previous state. */
+    };
+
+    std::vector<PipelineAction> m_undoStack;
+    std::vector<PipelineAction> m_redoStack;
 
     // --- Cache State ---
     cv::Mat m_cachedResult; /** Cached image. */
@@ -82,6 +97,14 @@ class ImagePipeline {
     void removeOperation(int index);
 
     /**
+     * @brief Modifies an existing operation at a given index.
+     * Replaces the operation with a new instance (usually with new settings).
+     * @param index The index of the operation to modify.
+     * @param newOp The new operation state.
+     */
+    void modifyOperation(int index, std::shared_ptr<ImageOperation> newOp);
+
+    /**
      * @brief Clears all operations from the pipeline.
      */
     void clearOperations();
@@ -130,17 +153,21 @@ class ImagePipeline {
 
     /**
      * @brief Toogles between Sequential and Fused mode
-     * @param enabled True enables the Halide fustion engine.
+     * @param enabled True enables the Halide fusion engine.
      */
     void setFusionMode(bool enabled);
+
+    /**
+     * @brief Returns true if the pipeline is in fused mode.
+     */
     bool isFusionMode() const {
         return m_useFusedPipeline;
     }
 
     /**
      * @brief Undo the last operation.
-     * Takes the last operation from the pipeline (m_operations) and puts it back into the undone
-     * operations stack (m_undoneOperations).
+     * Takes the last operation from the pipeline and puts it back into the undone
+     * operations stack.
      */
     void undo();
 
@@ -155,21 +182,21 @@ class ImagePipeline {
      * @brief Checks if there are any operations to undo.
      */
     bool canUndo() const {
-        return !m_operations.empty();
+        return !m_undoStack.empty();
     }
 
     /**
      * @brief Checks if there are any operations to redo.
      */
     bool canRedo() const {
-        return !m_undoneOperations.empty();
+        return !m_redoStack.empty();
     }
 
     /**
      * @brief Returns the number of operations that can be undone.
      */
     size_t getUndoCount() const {
-        return m_undoneOperations.size();
+        return m_undoStack.size();
     }
 
     /**
