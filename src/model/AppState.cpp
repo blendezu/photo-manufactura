@@ -42,13 +42,13 @@ void AppState::setAdjustmentPanelVisible(bool visible) {
 }
 
 void AppState::zoomIn() {
-    // Increase by 25%
-    setZoomLevel(m_zoomLevel * 1.25);
+    // Increase by 10%
+    setZoomLevel(m_zoomLevel * 1.10);
 }
 
 void AppState::zoomOut() {
-    // Decrease by 25%
-    setZoomLevel(m_zoomLevel / 1.25);
+    // Decrease by 10%
+    setZoomLevel(m_zoomLevel / 1.10);
 }
 
 void AppState::zoomToFit() {

@@ -22,8 +22,28 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# macOS App Bundle configuration
+if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE icon.icns)
+    set(MACOSX_BUNDLE_BUNDLE_NAME "Photo Manufactura")
+    set(MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.photomanufactura.app")
+    
+    # Set icon file path
+    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/resources/icon.icns)
+    if(EXISTS ${APP_ICON_MACOSX})
+        set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
+            MACOSX_PACKAGE_LOCATION "Resources")
+    endif()
+endif()
+
 add_executable(${PROJECT_NAME}
+    $<$<BOOL:${APPLE}>:MACOSX_BUNDLE>
     src/main.cpp
+    $<$<AND:$<BOOL:${APPLE}>,$<EXISTS:${APP_ICON_MACOSX}>>:${APP_ICON_MACOSX}>
 )
 
 # Subdirectories - order matters for dependencies
@@ -50,7 +70,21 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>
 )
 
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} 
+    RUNTIME DESTINATION bin
+    BUNDLE DESTINATION .
+)
+
+# Install AI models
+if(EXISTS "${CMAKE_SOURCE_DIR}/AI_models")
+    if(APPLE)
+        install(DIRECTORY "${CMAKE_SOURCE_DIR}/AI_models" 
+                DESTINATION "${PROJECT_NAME}.app/Contents/Resources")
+    else()
+        install(DIRECTORY "${CMAKE_SOURCE_DIR}/AI_models" 
+                DESTINATION bin)
+    endif()
+endif()
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/AI_models")
     message(STATUS "Copying Style Transfer Models to bin folder...")
