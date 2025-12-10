@@ -27,7 +27,8 @@ void AdjustWhite::prepareParameters(const cv::Mat& srcImg) {
     // 1. Find min/max in a 512x 512 thumbnail image for better performance
     cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
 
-    // Since 'requiresFreshStats' is true, srcImg contains the result of all previous operations.
+    // Since 'requiresFreshStats' is true, need to calculate new min/max
+    // srcImg contains the result of all previous operations.
     // 2. Calculate min/max if Color Image
     if (srcImg.channels() == 3) {
         // Convert to HSL before calculate min/max because of Color Image
@@ -144,12 +145,12 @@ cv::Mat AdjustWhite::apply(const cv::Mat& srcImg) {
         // 3. Convert to HSL
         cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
 
-// 4. Parallel Pixel Processing
-// clang-format off
+        // clang-format off
+        // 4. Parallel Pixel Processing
         #pragma omp parallel for
         // clang-format on
         for (int y = 0; y < hslImg.rows; y++) {
-            float* hslPtr = hslImg.ptr<float>(y);
+            float* __restrict hslPtr = hslImg.ptr<float>(y);
 
             int len = hslImg.cols * 3;  // Dimension for 1D-Arry
 
