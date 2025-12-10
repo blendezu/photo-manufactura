@@ -1,7 +1,6 @@
 #ifndef HALIDE_COLOR_SPACE_H
 #define HALIDE_COLOR_SPACE_H
 
-#include <cmath>
 #include <vector>
 
 #include "Halide.h"
