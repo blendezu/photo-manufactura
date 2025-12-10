@@ -37,6 +37,8 @@ int main() {
 
         cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
+        // cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
+
         if (testImage.empty()) {
             std::cerr << "❌ Bild konnte nicht geladen werden!" << std::endl;
             return 1;
@@ -53,7 +55,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(false);
+        pipeline.setFusionMode(true);
 
         pipeline.setImg(testImage);
 
@@ -102,8 +104,10 @@ int main() {
                     std::cout << std::endl;
                     std::cout << std::endl;
                     std::cout << "➡️  Resize-Operation\n";
-                    pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
+                    // pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
                     // pipeline.addOperation(std::make_shared<AdjustShadow>(-100));
+                    // pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));
+                    pipeline.addOperation(std::make_shared<AdjustContrast>(100));
                 }
 
                 // Zweite Operation: Ändern des Werts von -100 auf 50 (Modify)
