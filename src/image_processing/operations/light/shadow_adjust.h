@@ -25,10 +25,6 @@ class AdjustShadow : public HalideOperation {
     Halide::Param<float> p_upperVal{"p_shadow_upper"};
     Halide::Param<float> p_maxRange{"p_shadow_maxrange"};
 
-    // Cache for Statistic
-    float m_minL;
-    float m_maxL;
-
     // --- Constants for Weight Calculation ---
     static constexpr float SHADOW_SCALING_FACTOR = 800.0f;
     static constexpr float WEIGHT_RANGE_LOWER = 0.3f;

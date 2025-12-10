@@ -28,29 +28,30 @@ void AdjustShadow::prepareParameters(const cv::Mat& srcImg) {
     cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
 
     // 2.2. Calculate min/max value if Color Image
+    float minL = 0.0f, maxL = 1.0f;
     if (srcImg.type() == CV_8UC3 || srcImg.type() == CV_16UC3) {
         // Convert the thumbnail to HSL before calculate min/max value because of Color Image
         cv::Mat hslImg = ColorSpace::convertBGR2HSL(thumbnail);
         auto minMaxVal = ImageUtils::calculateMinMax(hslImg, 2);  // Channel 2 is Luminance
 
         // Update the min/max value into cache
-        m_minL = std::get<0>(minMaxVal);
-        m_maxL = std::get<1>(minMaxVal);
+        minL = std::get<0>(minMaxVal);
+        maxL = std::get<1>(minMaxVal);
     }
 
     // 2.3. Calculate min/max value if Gray Image
     else {
         auto minMaxVal = ImageUtils::calculateMinMax(thumbnail, 0);
-        m_minL = std::get<0>(minMaxVal);
-        m_maxL = std::get<1>(minMaxVal);
+        minL = std::get<0>(minMaxVal);
+        maxL = std::get<1>(minMaxVal);
     }
 
     // --- 3. Calculate Logic Parameters ---
-    float range = m_maxL - m_minL;
+    float range = maxL - minL;
 
     // 3.1. Determine the dynamic thresholds based on the image's actual dynamic range
-    float underVal = m_minL + (range * WEIGHT_RANGE_LOWER);
-    float upperVal = m_minL + (range * WEIGHT_RANGE_UPPER);
+    float underVal = minL + (range * WEIGHT_RANGE_LOWER);
+    float upperVal = minL + (range * WEIGHT_RANGE_UPPER);
 
     float changeFactor = m_shadow / SHADOW_SCALING_FACTOR;
     float maxRange = (srcImg.depth() == CV_8U) ? 255.0f : 65535.0f;
