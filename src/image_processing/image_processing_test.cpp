@@ -55,7 +55,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(true);
+        pipeline.setFusionMode(false);
 
         pipeline.setImg(testImage);
 
@@ -107,7 +107,8 @@ int main() {
                     // pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
                     // pipeline.addOperation(std::make_shared<AdjustShadow>(-100));
                     // pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));
-                    pipeline.addOperation(std::make_shared<AdjustContrast>(100));
+                    // pipeline.addOperation(std::make_shared<AdjustContrast>(100));
+                    pipeline.addOperation(std::make_shared<AdjustBrightness>(100));
                 }
 
                 // Zweite Operation: Ändern des Werts von -100 auf 50 (Modify)
