@@ -13,6 +13,7 @@
  * * This class inherits from HalideOperation to utilize GPU acceleration.
  * It calculates image statistics (min/max luminance) on the CPU and
  * performs the pixel-wise adjustment using a Halide JIT graph.
+ * The effect is strong in the brightness area, reducing in the mid and zero in the dark area.
  */
 class AdjustWhite : public HalideOperation {
    private:
@@ -26,27 +27,21 @@ class AdjustWhite : public HalideOperation {
     Halide::Param<float> p_whiteFactor{"p_white_factor"};
     Halide::Param<float> p_maxRange{"p_white_maxrange"};
 
-    // Cache for Statistic
-    float m_minL;
-    float m_maxL;
-
     // --- Constants for Weight Calculation ---
 
     // The slider value is devided by this factor to get usable float multiplier
     static constexpr float WHITE_SCALING_FACTOR = 800.0f;
 
     // Define the range of luminance affected by the white adjustment.
-    static constexpr float WEIGHT_RANGE_LOWER =
-        0.7f; /**< 0.7 means the effect starts at 70% brightness */
-    static constexpr float WEIGHT_RANGE_UPPER =
-        0.9f; /**< 0.9 means the effect starts at 90% brightness */
+    static constexpr float WEIGHT_RANGE_LOWER = 0.7f;
+    static constexpr float WEIGHT_RANGE_UPPER = 0.9f;
 
    public:
     /**
      * @brief Construct a new Adjust White operation.
      * @param value Initial strength value (-100 to 100).
      */
-    AdjustWhite(int value) : m_white(value), m_minL(0.0f), m_maxL(1.0f) {
+    AdjustWhite(int value) : m_white(value) {
         p_underVal.set(0.0f);
         p_upperVal.set(1.0f);
         p_whiteFactor.set(0.0f);
@@ -61,16 +56,14 @@ class AdjustWhite : public HalideOperation {
         return true;
     }
 
-    // calculate Parameters on CPU
-    void prepareParameters(const cv::Mat& srcImg) override;
-
     /**
      * @brief Prepares parameters and executes the pipeline.
      * * Caculates global min/max statistics using OpenCV (CPU)
      * and delegates the pixel processing to the Halide backend (GPU/CPU).
      * @param srcImg Input image (CV_8U or CV_16_U, 1 or 3 channels).
-     * @return cv::Mat processed image
      */
+    void prepareParameters(const cv::Mat& srcImg) override;
+
     cv::Mat apply(const cv::Mat& srcImg) override;
 
     /**
@@ -116,6 +109,7 @@ class AdjustWhite : public HalideOperation {
         } else {
             maxRange = 65535.0f;
         }
+        float invMaxRange = 1.0 / maxRange;  // to avoid Division later
 
         // 3. Statistics Calculation min/max on a thumbnail image for better performance
         cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
@@ -127,21 +121,29 @@ class AdjustWhite : public HalideOperation {
         auto weightParams = ImageUtils::precalculateWhiteWeightParams(
             minVal, maxVal, WEIGHT_RANGE_LOWER, WEIGHT_RANGE_UPPER);
 
-        // 5. Parallelize over rows
         // clang-format off
+        // 5. Parallelize over rows using OpenMP for Parallelism
         #pragma omp parallel for
         // clang-format on
         for (int y = 0; y < srcImg.rows; y++) {
+            // 5.1 Get the pointers of source and destination image
+            // Using __restrict to tell the compiler that the pointer are not aliased.
             const T* __restrict srcPtr = srcImg.ptr<T>(y);
             T* __restrict dstPtr = dstImg.ptr<T>(y);
 
+            // 5.2 Calculate pixel-wise
             for (int x = 0; x < srcImg.cols; x++) {
-                float normedVal = srcPtr[x] / maxRange;
+                // 5.2.1 Get and normalized current Value
+                float currVal = srcPtr[x] * invMaxRange;
 
-                float weight = ImageUtils::calculateBrightWeight(normedVal, weightParams);
+                // 5.2.2 Calculate the weight
+                float weight = ImageUtils::calculateBrightWeight(currVal, weightParams);
 
+                // 5.3.3 Calculate the delta Value
                 float deltaVal = weight * whiteFactor;
-                float newVal = std::clamp(normedVal + deltaVal, 0.0f, 1.0f);
+
+                // 5.3.4 Calculate the new Value and clamp it
+                float newVal = std::clamp(currVal + deltaVal, 0.0f, 1.0f);
 
                 // Convert back to original Bit Depth
                 dstPtr[x] = static_cast<T>(newVal * maxRange);

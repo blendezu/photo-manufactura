@@ -30,27 +30,29 @@ void AdjustWhite::prepareParameters(const cv::Mat& srcImg) {
     // Since 'requiresFreshStats' is true, need to calculate new min/max
     // srcImg contains the result of all previous operations.
     // 2. Calculate min/max if Color Image
+    float minL = 0.0f;
+    float maxL = 1.0f;
     if (srcImg.channels() == 3) {
         // Convert to HSL before calculate min/max because of Color Image
         cv::Mat hslThumbnail = ColorSpace::convertBGR2HSL(thumbnail);
         auto minMax = ImageUtils::calculateMinMax(hslThumbnail, 2);  // channel 2 is Luminance
-        m_minL = std::get<0>(minMax);
-        m_maxL = std::get<1>(minMax);
+        minL = std::get<0>(minMax);
+        maxL = std::get<1>(minMax);
     }
     // 3.Calculate min/max if gray image
     else {
         // Don't need to convert to HSL because of Gray Image
         auto minMax = ImageUtils::calculateMinMax(thumbnail, 0);
-        m_minL = std::get<0>(minMax);
-        m_maxL = std::get<1>(minMax);
+        minL = std::get<0>(minMax);
+        maxL = std::get<1>(minMax);
     }
 
     // --- B. Calculate Logic Parameters ---
-    float range = m_maxL - m_minL;
+    float range = maxL - minL;
 
     // 3. Determine the dynamic thresholds based on the image's actual dynamic range
-    float underVal = m_minL + (range * WEIGHT_RANGE_LOWER);
-    float upperVal = m_minL + (range * WEIGHT_RANGE_UPPER);
+    float underVal = minL + (range * WEIGHT_RANGE_LOWER);
+    float upperVal = minL + (range * WEIGHT_RANGE_UPPER);
 
     float factor = static_cast<float>(m_white) / WHITE_SCALING_FACTOR;
     float maxRange = (srcImg.depth() == CV_8U) ? 255.0f : 65535.0f;
@@ -128,7 +130,7 @@ cv::Mat AdjustWhite::apply(const cv::Mat& srcImg) {
     // Normalize user input (-100 -> 100) to internal factor
     float changeFactor = static_cast<float>(m_white) / WHITE_SCALING_FACTOR;
 
-    // --- A. Color Images 8-/16-bit ---
+    // --- Path A. Color Images ---
     if (srcImg.type() == CV_8UC3 || srcImg.type() == CV_16UC3) {
         // 1. Statistics Calculation on 512x512 thumbnail image for better performance
         cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
