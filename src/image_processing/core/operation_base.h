@@ -74,6 +74,9 @@ class HalideOperation : public ImageOperation {
     }
 
     // Implementation for single execution (Legacy/Fallback)
+    // This can be used for protying. The new Operation can run on CPU only with buildGraph
+    // implemented.
+    // But mostly this function will be overwritten.
     cv::Mat apply(const cv::Mat& srcImg) override {
         if (srcImg.empty())
             return srcImg;

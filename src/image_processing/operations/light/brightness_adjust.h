@@ -13,11 +13,11 @@ class AdjustBrightness : public HalideOperation {
     int m_brightness;  // -100 --> 100
 
     // --- Constant Parameters ---
-    float BRIGHTNESS_SCALING_FACTOR = 100.0f;
+    static constexpr float BRIGHTNESS_SCALING_FACTOR = 100.0f;
 
     // --- Halide Runtime Parameters ---
     Halide::Param<float> p_changeFactor{"brightnessFactor"};
-    Halide::Param<float> p_maxRange{"maxRange"};
+    Halide::Param<float> p_maxRange{"p_brightness_maxRange"};
     Halide::Param<float> p_depthScale{"depthScale"};
     Halide::Param<float> p_brightness{"brightness"};
 
@@ -25,8 +25,16 @@ class AdjustBrightness : public HalideOperation {
     AdjustBrightness(int value) : m_brightness(std::clamp(value, -100, 100)) {
         p_changeFactor.set(0.0f);
         p_maxRange.set(255.0f);
+        p_depthScale.set(255.0f);
+        p_brightness.set(0.0f);
     }
+    // bool supportsHalide() const override {
+    //     return true;
+    // }
 
+    bool requiresFreshStats() const override {
+        return false;
+    }
     void prepareParameters(const cv::Mat& srcImg) override;
 
     Halide::Func buildGraph(Halide::Func srcImg, Halide::Var x, Halide::Var y,

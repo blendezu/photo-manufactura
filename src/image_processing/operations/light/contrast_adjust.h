@@ -9,7 +9,7 @@ class AdjustContrast : public HalideOperation {
     int m_contrast;
 
     // --- Halide Runtime Parameters ---
-    Halide::Param<float> p_maxRange{"maxRange"};
+    Halide::Param<float> p_maxRange{"p_contrast_maxRange"};
     Halide::Param<float> p_contrastFactor{"contrastFactor"};
 
     // --- Constant Parameters ---
@@ -18,10 +18,11 @@ class AdjustContrast : public HalideOperation {
    public:
     AdjustContrast(int value) : m_contrast(value) {
         p_maxRange.set(255.0f);
+        p_contrastFactor.set(0.0f);
     }
 
-    bool supportsHalide() const override {
-        return true;
+    bool requiresFreshStats() const override {
+        return false;
     }
 
     void prepareParameters(const cv::Mat& srcImg) override;

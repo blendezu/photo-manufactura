@@ -48,12 +48,8 @@ class AdjustWhite : public HalideOperation {
         p_maxRange.set(255.0f);
     }
 
-    bool supportsHalide() const override {
-        return true;
-    }
-
     bool requiresFreshStats() const override {
-        return true;
+        return false;
     }
 
     /**
@@ -122,7 +118,7 @@ class AdjustWhite : public HalideOperation {
             minVal, maxVal, WEIGHT_RANGE_LOWER, WEIGHT_RANGE_UPPER);
 
         // clang-format off
-        // 5. Parallelize over rows using OpenMP for Parallelism
+        // 5. Parallelize over rows using OpenMP
         #pragma omp parallel for
         // clang-format on
         for (int y = 0; y < srcImg.rows; y++) {
