@@ -55,7 +55,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(false);
+        pipeline.setFusionMode(true);
 
         pipeline.setImg(testImage);
 
@@ -104,10 +104,11 @@ int main() {
                     std::cout << std::endl;
                     std::cout << std::endl;
                     std::cout << "➡️  Resize-Operation\n";
-                    // pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
-                    // pipeline.addOperation(std::make_shared<AdjustShadow>(-100));
-                    // pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));
-                    // pipeline.addOperation(std::make_shared<AdjustContrast>(100));
+                    pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
+                    pipeline.addOperation(std::make_shared<AdjustShadow>(-100));
+                    pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));
+                    pipeline.addOperation(std::make_shared<AdjustContrast>(100));
+                    pipeline.addOperation(std::make_shared<AdjustBlack>(100));
                     pipeline.addOperation(std::make_shared<AdjustBrightness>(100));
                 }
 

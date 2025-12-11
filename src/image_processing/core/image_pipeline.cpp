@@ -472,6 +472,7 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
 
             // 5.6. Build Chain
             for (auto& op : ops) {
+                std::cout << "[" << op->getName() << "] Using Halide" << std::endl;
                 currentFunc = op->applyHalide(currentFunc, x, y, c);
             }
 

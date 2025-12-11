@@ -42,12 +42,8 @@ class AdjustShadow : public HalideOperation {
         p_maxRange.set(255.0f);
     }
 
-    bool supportsHalide() const override {
-        return true;
-    }
-
     bool requiresFreshStats() const override {
-        return true;
+        return false;
     }
 
     /**

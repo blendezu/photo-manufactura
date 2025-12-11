@@ -25,6 +25,5 @@ cv::Mat Denoise::apply(const cv::Mat& srcImg) {
     double alpha = static_cast<double>(m_strength) / 100;
     cv::Mat dstImg(srcImg.size(), srcImg.type());
     cv::addWeighted(srcImg, 1 - alpha, denoisedImg, alpha, 0.0, dstImg);
-    std::cout << "before return\n";
     return dstImg;
 }
