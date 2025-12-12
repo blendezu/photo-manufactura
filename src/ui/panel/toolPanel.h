@@ -6,6 +6,7 @@
 
 class LabeledSlider;
 class CollapsibleWidget;
+class ToolPaletteWidget;
 
 class ToolPanel : public QWidget {
     Q_OBJECT
@@ -32,6 +33,7 @@ class ToolPanel : public QWidget {
     CollapsibleWidget* createBasicSection();
     CollapsibleWidget* createColorSection();
     CollapsibleWidget* createDetailSection();
+    CollapsibleWidget* createToolSection();
 
     QScrollArea* m_scrollArea;
     QWidget* m_contentWidget;
@@ -50,4 +52,12 @@ class ToolPanel : public QWidget {
     LabeledSlider* m_temperatureSlider;
     LabeledSlider* m_tintSlider;
     LabeledSlider* m_saturationSlider;
+
+    // Tool options
+    ToolPaletteWidget* m_cropToolPalette;
+    ToolPaletteWidget* m_rotateToolPalette;
+    ToolPaletteWidget* m_flipToolPalette;
+    ToolPaletteWidget* m_transformToolPalette;
+    ToolPaletteWidget* m_rezieToolPalette;
+    ToolPaletteWidget* m_selectToolPalette;
 };
