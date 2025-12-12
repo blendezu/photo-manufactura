@@ -23,8 +23,10 @@ class TintMagenta : public HalideOperation {
     int m_tint;
 
     // --- Constant Parameters ---
+   public:
     static constexpr float TINT_SCALING_FACTOR = 200.0f;
 
+   private:
     // --- Halide Runtime Parameters ---
     Halide::Param<float> p_timaFactor{"timaFactor"};
 

@@ -11,6 +11,7 @@
 #include "color_space.h"
 #include "halide_color_space.h"
 #include "halide_image_utils.h"
+#include "image_algorithms.h"
 
 // --- Calculate Halide Runtime Parameters ---
 void AdjustVibrance::prepareParameters(const cv::Mat& srcImg) {
@@ -51,12 +52,12 @@ Halide::Func AdjustVibrance::buildGraph(Halide::Func srcImg, Halide::Var x, Hali
     Halide::Expr currS = hslImg[1];
     Halide::Expr L = hslImg[2];
 
-    // 4. Calculate the weight using the calculateDarkWeight from HalideImageUtils
-    Halide::Expr weight =
-        HalideImageUtils::calculateDarkWeight(currS, p_lowerThreshold, p_upperThreshold);
-
     // 5. Calculate new Saturation Value and clamp it
-    Halide::Expr newS = Halide::clamp(currS + weight * p_vibranceFactor, 0.0f, 1.0f);
+    // Halide::Expr weight = HalideImageUtils::calculateDarkWeight(currS, p_lowerThreshold,
+    // p_upperThreshold); Halide::Expr newS = Halide::clamp(currS + weight * p_vibranceFactor,
+    // 0.0f, 1.0f);
+    Halide::Expr newS = ImageAlgorithms::apply_vibrance(currS, p_vibranceFactor, p_lowerThreshold,
+                                                        p_upperThreshold);
 
     // 6. Convert back to BGR
     std::vector<Halide::Expr> bgrImg = HalideColorSpace::HSL2BGR(H, newS, L);

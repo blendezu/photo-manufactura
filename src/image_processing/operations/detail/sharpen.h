@@ -1,14 +1,16 @@
-#include <algorithm>
-#include <string>
+#include "../../core/operation_base.h"
 
-#include "operation_base.h"
-
-class Sharpen : public ImageOperation {
+class Sharpen : public HalideOperation {
    private:
-    int sharpen;
+    int m_strength;  // 0..100
+
+    // Halide Params
+    Halide::Param<float> p_amount;
+    Halide::Param<int> p_width;
+    Halide::Param<int> p_height;
 
    public:
-    Sharpen(int value) : sharpen(value) {}
+    Sharpen(int value);
 
     cv::Mat apply(const cv::Mat& srcImg) override;
 
@@ -17,10 +19,15 @@ class Sharpen : public ImageOperation {
     }
 
     std::string getSettings() const override {
-        return "sharpen: " + std::to_string(sharpen);
+        return "strength: " + std::to_string(m_strength);
     }
 
-    void setSharpen(int value) {
-        sharpen = std::clamp(value, -100, 100);
+    void setStrength(int value) {
+        m_strength = std::clamp(value, 0, 100);
     }
+
+    // Halide Interface
+    Halide::Func buildGraph(Halide::Func input, Halide::Var x, Halide::Var y,
+                            Halide::Var c) override;
+    void prepareParameters(const cv::Mat& srcImg) override;
 };

@@ -9,7 +9,7 @@
 
 #include "color_space.h"
 #include "halide_color_space.h"
-#include "halide_image_utils.h"
+#include "image_algorithms.h"
 
 // --- Calculation Halide Runtime Parameters ---
 void AdjustSaturation::prepareParameters(const cv::Mat& srcImg) {
@@ -49,7 +49,7 @@ Halide::Func AdjustSaturation::buildGraph(Halide::Func srcImg, Halide::Var x, Ha
         Halide::Expr L = hslImg[2];
 
         // 5. Calculate delta Saturation Value and clamp it
-        Halide::Expr newS = Halide::clamp(currS * p_saturationFactor, 0.0f, 1.0f);
+        Halide::Expr newS = ImageAlgorithms::apply_saturation(currS, p_saturationFactor);
 
         // 6. Convert back to BGR
         std::vector<Halide::Expr> bgrImg = HalideColorSpace::HSL2BGR(H, newS, L);

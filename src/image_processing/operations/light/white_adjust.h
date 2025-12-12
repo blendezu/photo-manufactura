@@ -30,12 +30,12 @@ class AdjustWhite : public HalideOperation {
     // --- Constants for Weight Calculation ---
 
     // The slider value is devided by this factor to get usable float multiplier
+   public:
     static constexpr float WHITE_SCALING_FACTOR = 800.0f;
-
-    // Define the range of luminance affected by the white adjustment.
     static constexpr float WEIGHT_RANGE_LOWER = 0.7f;
     static constexpr float WEIGHT_RANGE_UPPER = 0.9f;
 
+   private:
    public:
     /**
      * @brief Construct a new Adjust White operation.

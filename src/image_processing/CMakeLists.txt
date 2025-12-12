@@ -152,12 +152,14 @@ endif()
 # ---------------------------------------------------------
 file(GLOB_RECURSE CORE_SOURCES        CONFIGURE_DEPENDS "core/*.cpp")
 file(GLOB_RECURSE OPERATION_SOURCES   CONFIGURE_DEPENDS "operations/*.cpp")
+file(GLOB_RECURSE CONTROLLER_SOURCES CONFIGURE_DEPENDS "controller/*.cpp")
 file(GLOB_RECURSE UTILS_SOURCES       CONFIGURE_DEPENDS "utils/*.cpp")
 file(GLOB_RECURSE STYLE_SOURCES       CONFIGURE_DEPENDS "style_transfer/*.cpp")
 
 target_sources(image_processing PRIVATE
     ${CORE_SOURCES}
     ${OPERATION_SOURCES}
+    ${CONTROLLER_SOURCES}
     ${UTILS_SOURCES}
     ${STYLE_SOURCES}
 )
@@ -169,8 +171,10 @@ target_include_directories(image_processing PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/core>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/operations>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/controller>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/style_transfer>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/mock>
     
     $<INSTALL_INTERFACE:include/image_processing>
 )
@@ -222,11 +226,58 @@ if(APPLE)
 endif()
 
 # ---------------------------------------------------------
-# 6. Test & Installation
+# 7. Halide Generator (AOT)
+# ---------------------------------------------------------
+
+# 1. Build the Generator Executable
+add_executable(generate_photo_adjustment "${CMAKE_CURRENT_SOURCE_DIR}/generator/photo_adjustment_generator.cpp")
+target_link_libraries(generate_photo_adjustment PRIVATE ${HALIDE_LIB} ${ONNXRUNTIME_LIB} ${OpenCV_LIBS})
+target_include_directories(generate_photo_adjustment PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/utils"
+    ${HALIDE_INCLUDE_DIR}
+    ${ONNXRUNTIME_INCLUDE_DIR}
+)
+# Helper utils for Generator (reusing existing utils files)
+target_sources(generate_photo_adjustment PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/utils/halide_image_utils.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/utils/bilateral_filter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/utils/gaussian.cpp"
+)
+
+# 2. Run the Generator
+# This command runs the generator executable to produce the .a and .h files
+add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/photo_adjustment.a" "${CMAKE_CURRENT_BINARY_DIR}/photo_adjustment.h"
+    COMMAND generate_photo_adjustment
+            "-g" "photo_adjustment"
+            "-o" "${CMAKE_CURRENT_BINARY_DIR}"
+            "-f" "photo_adjustment"
+            target=host
+    DEPENDS generate_photo_adjustment
+    COMMENT "Generating Halide AOT code for photo_adjustment..."
+)
+
+# 3. Import the Generated Library
+add_library(photo_adjustment_aot STATIC IMPORTED)
+set_target_properties(photo_adjustment_aot PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/photo_adjustment.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# Define AOT Enabler
+target_compile_definitions(image_processing PUBLIC AOT_ENABLED)
+target_link_libraries(image_processing PRIVATE photo_adjustment_aot)
+
+# Ensure generation happens before linking
+add_custom_target(trigger_photo_adjustment_gen DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/photo_adjustment.a")
+add_dependencies(image_processing trigger_photo_adjustment_gen)
+
+# ---------------------------------------------------------
+# Test & Installation
 # ---------------------------------------------------------
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
     add_executable(image_processing_test "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
-    target_link_libraries(image_processing_test PRIVATE image_processing)
+    target_link_libraries(image_processing_test PRIVATE image_processing photo_adjustment_aot)
     
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
          target_compile_options(image_processing_test PRIVATE "-Xpreprocessor" "-fopenmp")

@@ -5,14 +5,21 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 
-#include "operation_base.h"
+#include "../../core/operation_base.h"
 
-class Denoise : public ImageOperation {
+class Denoise : public HalideOperation {
    private:
     int m_strength;  // blending strength 0 -> 100
 
+    // Halide params
+    Halide::Param<float> p_sigmaSpatial;
+    Halide::Param<float> p_sigmaRange;
+    Halide::Param<float> p_blend;  // Alpha for blending
+    Halide::Param<int> p_width;
+    Halide::Param<int> p_height;
+
    public:
-    Denoise(int value) : m_strength(value) {}
+    Denoise(int value);
 
     cv::Mat apply(const cv::Mat& srcImg) override;
 
@@ -32,9 +39,10 @@ class Denoise : public ImageOperation {
         return m_strength;
     }
 
-   private:
-    // denoise the input image for blending
-    cv::Mat denoiseImg(const cv::Mat& srcImg);
+    // Halide Interface
+    Halide::Func buildGraph(Halide::Func input, Halide::Var x, Halide::Var y,
+                            Halide::Var c) override;
+    void prepareParameters(const cv::Mat& srcImg) override;
 };
 
 #endif

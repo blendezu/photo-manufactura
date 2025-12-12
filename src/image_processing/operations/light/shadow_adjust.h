@@ -26,10 +26,12 @@ class AdjustShadow : public HalideOperation {
     Halide::Param<float> p_maxRange{"p_shadow_maxrange"};
 
     // --- Constants for Weight Calculation ---
+   public:
     static constexpr float SHADOW_SCALING_FACTOR = 800.0f;
     static constexpr float WEIGHT_RANGE_LOWER = 0.3f;
     static constexpr float WEIGHT_RANGE_UPPER = 0.6f;
 
+   private:
    public:
     /**
      * @brief Construct a new Adjust Shadow object

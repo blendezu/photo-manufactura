@@ -504,8 +504,21 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
 
         // --- 6. EXECUTION ---
 
-        // 6.1. Create destination image
-        cv::Mat dstImg = srcImg.clone();
+        // 6.1. Calculate Output Dimensions & Create Destination Image
+        // This is neccessary because of operations with crop like Crop or Rotation
+        int currentWidth = srcImg.cols;
+        int currentHeight = srcImg.rows;
+
+        for (const auto& op : ops) {
+            int nextW, nextH;
+            op->getOutputDimensions(currentWidth, currentHeight, nextW, nextH);
+            currentWidth = nextW;
+            currentHeight = nextH;
+        }
+
+        // Create destination image with correct size
+        cv::Mat dstImg;
+        dstImg.create(currentHeight, currentWidth, srcImg.type());
 
         // 6.2. 8-bit Image
         if (is8Bit) {

@@ -11,10 +11,12 @@ class AdjustVibrance : public HalideOperation {
     int m_vibrance;
 
     // --- Constant Parameters ---
+   public:
     static float constexpr VIBRANCE_SCALING_FACTOR = 300.0f;
     static float constexpr LOWER_THRESHOLD = 0.3f;
     static float constexpr UPPER_THRESHOLD = 0.6f;
 
+   private:
     // --- Halide Runtime Parameters ---
     Halide::Param<float> p_maxRange{"vibrance_maxRange"};
     Halide::Param<float> p_vibranceFactor{"vibranceFactor"};
