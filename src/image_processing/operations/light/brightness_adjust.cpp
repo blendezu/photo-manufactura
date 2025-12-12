@@ -8,6 +8,7 @@
 
 #include "color_space.h"
 #include "halide_color_space.h"
+#include "image_algorithms.h"
 
 // --- Calculate parameters for buildGraph on CPU ---
 void AdjustBrightness::prepareParameters(const cv::Mat& srcImg) {
@@ -69,7 +70,7 @@ Halide::Func AdjustBrightness::buildGraph(Halide::Func srcImg, Halide::Var x, Ha
     Halide::Expr currL = hslImg[2];
 
     // 5. Calculate new Luminance Value and clamp it
-    Halide::Expr newL = Halide::clamp(p_changeFactor * currL, 0.0f, 1.0f);
+    Halide::Expr newL = ImageAlgorithms::apply_brightness(currL, p_changeFactor);
 
     // 6. Convert back to BGR
     std::vector<Halide::Expr> bgrImg = HalideColorSpace::HSL2BGR(H, S, newL);

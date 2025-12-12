@@ -1,3 +1,4 @@
+#pragma once
 #include <Halide.h>
 #include <opencv2/core/hal/interface.h>
 
@@ -31,13 +32,12 @@ class AdjustHighlight : public HalideOperation {
     // --- Constants for Weight Calculation ---
 
     // The slider value is divided by this factor to get usable float multiplier
+   public:
     static constexpr float HIGHLIGHT_SCALING_FACTOR = 800.0f;
-
-    // Define the range of luminance affected by the white adjustment.
-    // This means values above 70% have the weight is 1, and reduce to 0
     static constexpr float WEIGHT_RANGE_LOWER = 0.4f;
     static constexpr float WEIGHT_RANGE_UPPER = 0.7f;
 
+   private:
    public:
     /**
      * @brief Construct a new Adjust Highlight operation.

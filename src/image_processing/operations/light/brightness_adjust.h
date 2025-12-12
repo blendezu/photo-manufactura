@@ -13,8 +13,10 @@ class AdjustBrightness : public HalideOperation {
     int m_brightness;  // -100 --> 100
 
     // --- Constant Parameters ---
+   public:
     static constexpr float BRIGHTNESS_SCALING_FACTOR = 100.0f;
 
+   private:
     // --- Halide Runtime Parameters ---
     Halide::Param<float> p_changeFactor{"brightnessFactor"};
     Halide::Param<float> p_maxRange{"p_brightness_maxRange"};

@@ -1,3 +1,4 @@
+#pragma once
 #include <Halide.h>
 
 #include <string>
@@ -13,8 +14,10 @@ class AdjustContrast : public HalideOperation {
     Halide::Param<float> p_contrastFactor{"contrastFactor"};
 
     // --- Constant Parameters ---
+   public:
     static constexpr float CONTRAST_SCALING_FACTOR = 100.0f;
 
+   private:
    public:
     AdjustContrast(int value) : m_contrast(value) {
         p_maxRange.set(255.0f);

@@ -14,10 +14,12 @@ class AdjustBlack : public HalideOperation {
     int m_black;
 
     // --- Constant Parameters ---
+   public:
     static constexpr float BLACK_SCALING_FACTOR = 800.0f;
     static constexpr float LOWER_THRESHOLD_PERCENT = 0.1f;
     static constexpr float UPPER_THRESHOLD_PERCENT = 0.3f;
 
+   private:
     // --- Halide Runtime Parameters ---
     Halide::Param<float> p_maxRange{"p_black_maxRange"};
     Halide::Param<float> p_blackFactor{"blackFactor"};

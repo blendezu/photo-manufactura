@@ -43,6 +43,17 @@ class ImageOperation {
     virtual std::string getSettings() const {
         return "";
     }
+
+    // Calculate output dimensions based on input dimensions.
+    // Used for Crop, because Halide thinks the input size is always identical to output size
+    // Mainly overwritten when crop image, set another values for dstWidth and dstHeight.
+    // If output and input have the same size, dont need to be implemented, tandard is destination
+    // size = source size
+    virtual void getOutputDimensions(int srcWidth, int srcHeight, int& dstWidth,
+                                     int& dstHeight) const {
+        dstWidth = srcWidth;
+        dstHeight = srcHeight;
+    }
 };
 
 /**
@@ -127,7 +138,9 @@ class HalideOperation : public ImageOperation {
             hw.applySchedule(outputFunc, x, y);
 
             // create the result image
-            cv::Mat dstImg = srcImg.clone();
+            int dstW, dstH;
+            getOutputDimensions(srcImg.cols, srcImg.rows, dstW, dstH);
+            cv::Mat dstImg(dstH, dstW, srcImg.type());
             Halide::Buffer<T> outputBuf = hw.wrap<T>(dstImg);
 
             // compile and run

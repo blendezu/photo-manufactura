@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <opencv2/core/types.hpp>
@@ -5,30 +6,36 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
+#include <string>
+#include <vector>
 
 #include "color/saturation_adjust.h"
 #include "color/tint_magenta.h"
 #include "color/vibrance_adjust.h"
 #include "color/white_balance.h"
+#include "color_space.h"
 #include "core/image_pipeline.h"
+#include "detail/clarity.h"
+#include "detail/sharpen.h"
+#include "effects/gray_image.h"
+#include "effects/vintage1.h"
+#include "geometry/crop.h"
+#include "geometry/flip.h"
+#include "geometry/rotate.h"
+#include "histogram.h"
+#include "image_controller.h"
+#include "image_resize.h"
 #include "image_utils.h"
 #include "light/black_adjust.h"
 #include "light/brightness_adjust.h"
 #include "light/contrast_adjust.h"
+#include "light/exposure_adjust.h"
 #include "light/highlight_adjust.h"
 #include "light/shadow_adjust.h"
 #include "light/white_adjust.h"
 #include "operation_base.h"
-#include "operations/effects/gray_image.h"
-#include "operations/effects/vintage1.h"
-#include "operations/geometry/crop.h"
-#include "operations/geometry/flip.h"
-#include "operations/geometry/rotate.h"
 #include "raw_processing.h"
 #include "style_transfer.h"
-#include "utils/color_space.h"
-#include "utils/histogram.h"
-#include "utils/image_resize.h"
 
 int main() {
     try {
@@ -66,20 +73,26 @@ int main() {
         while (true) {
             cv::Mat currentResult;
 
-            // Pipeline verarbeiten und Ergebnis für Anzeige vorbereiten
-
+            // --- COLD START - JIT COMPILATION ---
+            auto cold_start = std::chrono::high_resolution_clock::now();
             cv::Mat processed = pipeline.process();
+            auto cold_end = std::chrono::high_resolution_clock::now();
+            auto cold_duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(cold_end - cold_start);
+            std::cout << "Time for Cold Start: " << cold_duration.count() << std::endl;
             pipeline.invalidateCache();
 
+            // --- NO JIT COMPLATION - LIKE AOT -
+            const int ITERATIONS = 10;
             auto start = std::chrono::high_resolution_clock::now();
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < ITERATIONS; i++) {
                 processed = pipeline.process();
                 pipeline.invalidateCache();
             }
             auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-            std::cout << "Time for processing: " << duration.count() / 10 << std::endl;
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            std::cout << "Time for processing: " << duration.count() << std::endl;
 
             currentResult = processed.clone();
 
@@ -105,11 +118,19 @@ int main() {
                     std::cout << std::endl;
                     std::cout << "➡️  Resize-Operation\n";
                     pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
-                    pipeline.addOperation(std::make_shared<AdjustShadow>(-100));
+                    pipeline.addOperation(std::make_shared<AdjustShadow>(20));
                     pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));
                     pipeline.addOperation(std::make_shared<AdjustContrast>(100));
                     pipeline.addOperation(std::make_shared<AdjustBlack>(100));
                     pipeline.addOperation(std::make_shared<AdjustBrightness>(100));
+                    cv::Rect roi = cv::Rect(100, 100, 4000, 3000);
+                    pipeline.addOperation(std::make_shared<Crop>(roi));
+                    pipeline.addOperation(std::make_shared<AdjustSaturation>(-100));
+                    pipeline.addOperation(std::make_shared<TintMagenta>(100));
+                    pipeline.addOperation(std::make_shared<AdjustVibrance>(50));
+                    pipeline.addOperation(std::make_shared<WhiteBalance>(50));
+                    pipeline.addOperation(std::make_shared<Flip>(1));
+                    pipeline.addOperation(std::make_shared<Rotate>(10, roi));
                 }
 
                 // Zweite Operation: Ändern des Werts von -100 auf 50 (Modify)
@@ -202,6 +223,61 @@ int main() {
                               << ", Undo verfügbar: " << pipeline.getUndoCount() << std::endl;
                 } else {
                     std::cout << "❌ Keine Operation zum Rückgängig machen verfügbar." << std::endl;
+                }
+            } else if (key == 97) {  // Taste 'a' (AOT Test)
+                std::cout << "🚀 Running AOT Pipeline..." << std::endl;
+
+                // 1. Prepare Input Buffer
+                // Make sure we have a clean buffer.
+                // Halide expects interleaved by default if not specified otherwise, but Generator
+                // usually handles HWC. photo_adjustment generator defined Input<Buffer<uint8_t>>
+                // input{"input", 3}; -> HWC assumption.
+
+                cv::Mat inputMat = currentResult.clone();
+                // Ensure 3 channels
+                if (inputMat.channels() != 3) {
+                    cv::cvtColor(inputMat, inputMat, cv::COLOR_GRAY2BGR);
+                }
+
+                // 4. AOT Pipeline über Controller testen (Wie GUI)
+                std::cout << "🚀 Running AOT Pipeline via Controller..." << std::endl;
+
+                ImageController controller;
+                controller.setImage(currentResult);  // oder inputMat?
+
+                // State (Slider-Werte) setzen
+                ImageState state;
+                state.white = 0.0f;
+                state.shadow = 20.0f;
+                state.highlight = 00.0f;
+                // Controller logic: contrast = 1.0 + (state.contrast / 100.0).
+                // In manual test we did: contrast = 1.0 + (100/100) = 2.0.
+                // So here we should set state.contrast = 100.0f for a +100 adjustment.
+                state.contrast = 00.0f;
+
+                state.black = 00.0f;
+                state.brightness = 00.0f;  // Controller AOT Logic ignores this to prevent washout!
+
+                state.saturation = 20.0f;  // -100 -> 0.0
+                state.tintMagenta = 000.0f;
+                state.vibrance = 00.0f;
+                state.temp = 50.0f;  // Check WB mapping. Controller maps temp to R/B.
+
+                auto aot_start = std::chrono::high_resolution_clock::now();
+
+                controller.update(state);
+                cv::Mat aotResult = controller.process();
+
+                auto aot_end = std::chrono::high_resolution_clock::now();
+                auto aot_duration =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(aot_end - aot_start);
+
+                if (!aotResult.empty()) {
+                    std::cout << "✅ AOT Pipeline Success! Time: " << aot_duration.count() << " ms"
+                              << std::endl;
+                    cv::imshow("AOT Result", aotResult);
+                } else {
+                    std::cerr << "❌ AOT Pipeline Failed (Empty Result)" << std::endl;
                 }
             }
         }

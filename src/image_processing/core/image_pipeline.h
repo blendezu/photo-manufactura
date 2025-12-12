@@ -63,6 +63,13 @@ class ImagePipeline {
     void setImg(const cv::Mat& srcImg);
 
     /**
+     * @brief Returns main source image (ref).
+     */
+    const cv::Mat& getImg() const {
+        return m_originalImg;
+    }
+
+    /**
      * @brief Returns a clone of the original image.
      */
     cv::Mat getOriginalImg() const {

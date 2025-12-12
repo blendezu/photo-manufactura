@@ -1,3 +1,4 @@
+#pragma once
 #include <Halide.h>
 
 #include <algorithm>
@@ -12,8 +13,10 @@ class AdjustSaturation : public HalideOperation {
     int m_saturation;
 
     // --- Constant Parameters ---
+   public:
     static constexpr float SATURATION_SCALING_FACTOR = 100.0f;
 
+   private:
     // --- Halide Runtime Parameter ---
     Halide::Param<float> p_saturationFactor{"saturationFactor"};
     Halide::Param<float> p_maxRange{"sat_maxRange"};
