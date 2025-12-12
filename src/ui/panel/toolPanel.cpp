@@ -3,6 +3,7 @@
 #include <QLabel>
 #include <QPushButton>
 
+#include "../widgets//toolPaletteWidget.h"
 #include "../widgets/collapsibleWidget.h"
 #include "../widgets/labeledSlider.h"
 
@@ -165,4 +166,44 @@ void ToolPanel::resetAllAdjustments() {
     m_tintSlider->reset();
     m_saturationSlider->reset();
     m_brightnessSlider->reset();
+}
+
+CollapsibleWidget* ToolPanel::createToolSection() {
+    CollapsibleWidget* toolSection = new CollapsibleWidget("Tools", this);
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->setSpacing(8);
+    layout->setContentsMargins(5, 10, 5, 10);
+
+    // Crop, Rotate, etc. tool options can be added here
+    m_cropToolPalette = new ToolPaletteWidget("Crop Tools", this);
+    m_cropToolPalette->addToolButton("Crop", ":/icons/crop.png");
+    m_cropToolPalette->addToolButton("Straighten", ":/icons/straighten.png");
+    layout->addWidget(m_cropToolPalette);
+    m_flipToolPalette = new ToolPaletteWidget("Flip Tools", this);
+    m_flipToolPalette->addToolButton("Flip Horizontal", ":/icons/flip_horizontal.png");
+    m_flipToolPalette->addToolButton("Flip Vertical", ":/icons/flip_vertical.png");
+    layout->addWidget(m_flipToolPalette);
+    m_rotateToolPalette = new ToolPaletteWidget("Rotate Tools", this);
+    m_rotateToolPalette->addToolButton("Rotate Left", ":/icons/rotate_left.png");
+    m_rotateToolPalette->addToolButton("Rotate Right", ":/icons/rotate_right.png");
+    layout->addWidget(m_rotateToolPalette);
+    m_transformToolPalette = new ToolPaletteWidget("Transform Tools", this);
+    m_transformToolPalette->addToolButton("Perspective", ":/icons/perspective.png");
+    m_transformToolPalette->addToolButton("Skew", ":/icons/skew.png");
+    layout->addWidget(m_transformToolPalette);
+    m_selectToolPalette = new ToolPaletteWidget("Select Tools", this);
+    m_selectToolPalette->addToolButton("Rectangular Select", ":/icons/rect_select.png");
+    m_selectToolPalette->addToolButton("Lasso Select", ":/icons/lasso_select.png");
+    layout->addWidget(m_selectToolPalette);
+    m_rezieToolPalette = new ToolPaletteWidget("Resize Tools", this);
+    m_rezieToolPalette->addToolButton("Resize", ":/icons/resize.png");
+    layout->addWidget(m_rezieToolPalette);
+    
+
+    // Placeholder for future tool widgets (e.g., crop, rotate)
+    QLabel* placeholder = new QLabel("Tool options will be added here.", this);
+    layout->addWidget(placeholder);
+
+    toolSection->setContentLayout(layout);
+    return toolSection;
 }
