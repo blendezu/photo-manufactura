@@ -62,7 +62,7 @@ int main() {
 
         // Pipeline erstellen
         ImagePipeline pipeline;
-        pipeline.setFusionMode(true);
+        pipeline.setFusionMode(false);
 
         pipeline.setImg(testImage);
 
@@ -75,7 +75,9 @@ int main() {
 
             // --- COLD START - JIT COMPILATION ---
             auto cold_start = std::chrono::high_resolution_clock::now();
+
             cv::Mat processed = pipeline.process();
+
             auto cold_end = std::chrono::high_resolution_clock::now();
             auto cold_duration =
                 std::chrono::duration_cast<std::chrono::milliseconds>(cold_end - cold_start);
@@ -83,13 +85,14 @@ int main() {
             pipeline.invalidateCache();
 
             // --- NO JIT COMPLATION - LIKE AOT -
-            const int ITERATIONS = 10;
+            const int ITERATIONS = 1;
             auto start = std::chrono::high_resolution_clock::now();
 
             for (int i = 0; i < ITERATIONS; i++) {
                 processed = pipeline.process();
                 pipeline.invalidateCache();
             }
+
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
             std::cout << "Time for processing: " << duration.count() << std::endl;
@@ -117,20 +120,36 @@ int main() {
                     std::cout << std::endl;
                     std::cout << std::endl;
                     std::cout << "➡️  Resize-Operation\n";
-                    pipeline.addOperation(std::make_shared<AdjustWhite>(-100));
-                    pipeline.addOperation(std::make_shared<AdjustShadow>(20));
-                    pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));
-                    pipeline.addOperation(std::make_shared<AdjustContrast>(100));
-                    pipeline.addOperation(std::make_shared<AdjustBlack>(100));
-                    pipeline.addOperation(std::make_shared<AdjustBrightness>(100));
-                    cv::Rect roi = cv::Rect(100, 100, 4000, 3000);
-                    pipeline.addOperation(std::make_shared<Crop>(roi));
-                    pipeline.addOperation(std::make_shared<AdjustSaturation>(-100));
-                    pipeline.addOperation(std::make_shared<TintMagenta>(100));
-                    pipeline.addOperation(std::make_shared<AdjustVibrance>(50));
-                    pipeline.addOperation(std::make_shared<WhiteBalance>(50));
-                    pipeline.addOperation(std::make_shared<Flip>(1));
-                    pipeline.addOperation(std::make_shared<Rotate>(10, roi));
+                    // Zeile 120-136: ANGEPASST an ImageController-Reihenfolge + AOT-Generator
+                    // WICHTIG: Denoise wird im JIT nicht separat aufgerufen (nur in AOT als
+                    // Halide-Filter)
+
+                    pipeline.addOperation(std::make_shared<AdjustExposure>(
+                        0));  // 0. Exposure (im Generator immer aktiv)
+                    pipeline.addOperation(std::make_shared<WhiteBalance>(50));  // 1. Temperature
+                    pipeline.addOperation(
+                        std::make_shared<AdjustBrightness>(100));  // 2. Brightness
+                    pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));  // 3. Highlight
+                    pipeline.addOperation(std::make_shared<AdjustShadow>(20));       // 4. Shadow
+                    pipeline.addOperation(std::make_shared<AdjustWhite>(-100));      // 5. White
+                    pipeline.addOperation(std::make_shared<AdjustBlack>(100));       // 6. Black
+                    pipeline.addOperation(std::make_shared<AdjustContrast>(100));    // 7. Contrast
+                    pipeline.addOperation(
+                        std::make_shared<AdjustSaturation>(-100));                // 8. Saturation
+                    pipeline.addOperation(std::make_shared<AdjustVibrance>(50));  // 9. Vibrance
+                    pipeline.addOperation(std::make_shared<TintMagenta>(50));     // 10. TintMagenta
+                    // Denoise wird hier NICHT hinzugefügt (existiert nicht als separate
+                    // JIT-Operation)
+                    pipeline.addOperation(std::make_shared<Sharpen>(0));  // 11. Sharpen
+                    pipeline.addOperation(std::make_shared<Clarity>(0));  // 12. Clarity
+
+                    // Geometry Operations (must match AOT test for fair comparison)
+                    cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
+                    pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
+
+                    cv::Rect roi2 = cv::Rect(0, 0, testImage.cols, testImage.rows);
+                    pipeline.addOperation(std::make_shared<Rotate>(10, roi2));  // 14. Rotate
+                    pipeline.addOperation(std::make_shared<Flip>(1));           // 15. Flip
                 }
 
                 // Zweite Operation: Ändern des Werts von -100 auf 50 (Modify)
@@ -247,21 +266,23 @@ int main() {
 
                 // State (Slider-Werte) setzen
                 ImageState state;
-                state.white = 0.0f;
+                state.exposure = 0.0f;  // 0. Exposure (neutral)
+                state.white = -100.0f;
                 state.shadow = 20.0f;
-                state.highlight = 00.0f;
-                // Controller logic: contrast = 1.0 + (state.contrast / 100.0).
-                // In manual test we did: contrast = 1.0 + (100/100) = 2.0.
-                // So here we should set state.contrast = 100.0f for a +100 adjustment.
-                state.contrast = 00.0f;
+                state.highlight = -100.0f;
+                state.contrast = 100.0f;
 
-                state.black = 00.0f;
-                state.brightness = 00.0f;  // Controller AOT Logic ignores this to prevent washout!
+                state.black = 100.0f;
+                state.brightness = 100.0f;  // Controller AOT Logic ignores this to prevent washout!
 
-                state.saturation = 20.0f;  // -100 -> 0.0
-                state.tintMagenta = 000.0f;
-                state.vibrance = 00.0f;
-                state.temp = 50.0f;  // Check WB mapping. Controller maps temp to R/B.
+                state.saturation = -100.0f;
+                state.tintMagenta = 50.0f;
+                state.vibrance = 50.0f;
+                state.temp = 50.0f;
+                state.flip = 1.0f;
+
+                state.rotation = 10.0f;
+                state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
 
                 auto aot_start = std::chrono::high_resolution_clock::now();
 

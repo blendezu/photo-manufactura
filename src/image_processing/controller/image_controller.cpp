@@ -34,10 +34,12 @@ ImageController::~ImageController() {}
 
 void ImageController::loadImage(const cv::Mat& img) {
     m_pipeline.setImg(img);
+    m_statsValid = false;  // Invalidate cache on new image
 }
 
 void ImageController::setImage(const cv::Mat& img) {
     m_pipeline.setImg(img);
+    m_statsValid = false;  // Invalidate cache on new image
 }
 
 void ImageController::update(const ImageState& state) {
@@ -62,6 +64,12 @@ void ImageController::update(const ImageState& state) {
 cv::Mat ImageController::process() {
 #ifdef AOT_ENABLED
     // AOT Path
+
+    // Check if GPU Fusion is enabled. If not, fallback to JIT/CPU
+    if (!m_pipeline.isFusionMode()) {
+        return m_pipeline.process();
+    }
+
     if (m_pipeline.getImg().empty())
         return cv::Mat();
 
@@ -81,18 +89,23 @@ cv::Mat ImageController::process() {
     }
 
     // 1. Calculate Stats (Min/Max Luminance) for Dynamic Ranges
-    // Use Thumbnail approach for performance
-    cv::Mat thumbnail = ImageUtils::createThumbnail(processingSrc);
-    // Note: Stats calculation expects standard range logic.
-    // If thumbnail is 16-bit, BGR2HSL logic needs to handle it.
-    // ColorSpace::convertBGR2HSL handles depths?
-    // Usually OpenCV converts nicely. Let's check ColorSpace usage.
-    // Assume ColorSpace::convertBGR2HSL returns float matrix 0..1 usually?
-    // If it returns CV_32F, minMax calculation is fine (0..1).
-    cv::Mat hslThumbnail = ColorSpace::convertBGR2HSL(thumbnail);
-    auto minMax = ImageUtils::calculateMinMax(hslThumbnail, 2);  // 2 = Luminance
-    float minL = std::get<0>(minMax);
-    float maxL = std::get<1>(minMax);
+    // Cache stats to avoid redundant computation (~50ms saved per call)
+    float minL, maxL;
+
+    if (!m_statsValid) {
+        // Recalculate stats
+        cv::Mat thumbnail = ImageUtils::createThumbnail(processingSrc);
+        cv::Mat hslThumbnail = ColorSpace::convertBGR2HSL(thumbnail);
+        auto minMax = ImageUtils::calculateMinMax(hslThumbnail, 2);  // 2 = Luminance
+
+        m_cachedMinL = std::get<0>(minMax);
+        m_cachedMaxL = std::get<1>(minMax);
+        m_statsValid = true;
+    }
+
+    // Use cached values
+    minL = m_cachedMinL;
+    maxL = m_cachedMaxL;
     float range = maxL - minL;
 
     // 2. Prepare Parameters (Mapping Sliders -> Factors)
@@ -188,7 +201,13 @@ cv::Mat ImageController::process() {
 
     if (err != 0) {
         std::cerr << "❌ AOT Pipeline Failed: " << err << std::endl;
-        return m_pipeline.process();  // Fallback to JIT
+
+        // Fallback to CPU Sequential (NOT JIT, which is slow on first run)
+        bool originalMode = m_pipeline.isFusionMode();
+        m_pipeline.setFusionMode(false);  // Force CPU
+        cv::Mat result = m_pipeline.process();
+        m_pipeline.setFusionMode(originalMode);  // Restore
+        return result;
     }
 
     // 5. Convert Output Planar -> Interleaved BGR (CV_16UC3)
