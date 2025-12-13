@@ -21,9 +21,11 @@
 #include "../operations/color/white_balance.h"
 
 // Geometry
+#include "../operations/denoise/denoise.h"
 #include "../operations/geometry/crop.h"
 #include "../operations/geometry/flip.h"
 #include "../operations/geometry/rotate.h"
+#include "../utils/image_resize.h"
 
 ImageController::ImageController() {
     // Default: Use GPU mode for development if available
@@ -195,8 +197,7 @@ cv::Mat ImageController::process() {
         (float)high_upper, (float)shadow_f, (float)shadow_under, (float)shadow_upper,
         (float)white_f, (float)white_under, (float)white_upper, (float)black_f, (float)black_lower,
         (float)black_upper, (float)sat_factor, (float)vibrance_f, (float)t_mag, (float)wb_red,
-        (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f,
-        0.0f,  // Denoise defaults
+        (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f, 0.0f,
         (struct halide_buffer_t*)(outputPlanar.raw_buffer()));
 
     if (err != 0) {
@@ -228,14 +229,56 @@ cv::Mat ImageController::process() {
         dst.convertTo(dst, CV_8U, 1.0 / 256.0);
     }
 
-    // 6. Apply Geometry using OpenCV (Hybrid Approach)
-    // Start with dst
+    // 6. CPU Operations (Hybrid Pipeline)
+    // Applied in order: Denoise -> Geometry
+
+    // Denoise (CPU fallback for performance reasons)
+    if (std::abs(m_currentState.denoise) > 0.001f) {
+        Denoise denoiseOp(static_cast<int>(m_currentState.denoise));
+        dst = denoiseOp.apply(dst);
+    }
+
+    // Geometry
     cv::Mat finalImg = dst;
 
     // Crop
     if (!m_currentState.cropRect.empty()) {
         Crop cropOp(m_currentState.cropRect);
         finalImg = cropOp.apply(finalImg);
+    }
+    // Resize
+    if ((m_currentState.resizeWidth > 0 || m_currentState.resizeHeight > 0) ||
+        m_currentState.resizeRatio > 0.0f) {
+        // Sanity Check: If Ratio AND Width are set -> Ambiguous!
+        // Strategy: Prioritize Ratio + Height (User request to avoid ambiguity)
+        if (m_currentState.resizeRatio > 0.0f && m_currentState.resizeWidth > 0) {
+            std::cerr
+                << "⚠️ Warning: both resizeRatio and resizeWidth are set. Ignoring resizeWidth!"
+                << std::endl;
+        }
+
+        // Option A: Height + Ratio
+        if (m_currentState.resizeRatio > 0.0f && m_currentState.resizeHeight > 0) {
+            ResizeImage resizeOp(static_cast<unsigned int>(m_currentState.resizeHeight),
+                                 static_cast<double>(m_currentState.resizeRatio));
+            finalImg = resizeOp.apply(finalImg);
+        }
+        // Option B: Width + Height (Logic I added before)
+        else {
+            unsigned int w = static_cast<unsigned int>(m_currentState.resizeWidth);
+            unsigned int h = static_cast<unsigned int>(m_currentState.resizeHeight);
+
+            // Aspect Ratio Logic: If one is 0, calculate based on original
+            if (w == 0 && h > 0) {
+                w = static_cast<unsigned int>(finalImg.cols * ((float)h / finalImg.rows));
+            } else if (h == 0 && w > 0) {
+                h = static_cast<unsigned int>(finalImg.rows * ((float)w / finalImg.cols));
+            }
+
+            // Constructor expects (height, width)
+            ResizeImage resizeOp(h, w);
+            finalImg = resizeOp.apply(finalImg);
+        }
     }
 
     // Rotate
@@ -246,7 +289,7 @@ cv::Mat ImageController::process() {
     }
 
     // Flip
-    if (m_currentState.flip != 0) {
+    if (m_currentState.flip != -1) {
         Flip flipOp(m_currentState.flip);
         finalImg = flipOp.apply(finalImg);
     }
@@ -346,7 +389,7 @@ void ImageController::rebuildPipeline(const ImageState& state) {
         m_pipeline.addOperation(std::make_shared<Rotate>(state.rotation, roi));
     }
 
-    if (state.flip != 0) {
+    if (state.flip != -1) {
         m_pipeline.addOperation(std::make_shared<Flip>(state.flip));
     }
 }

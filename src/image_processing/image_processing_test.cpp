@@ -279,7 +279,12 @@ int main() {
                 state.tintMagenta = 50.0f;
                 state.vibrance = 50.0f;
                 state.temp = 50.0f;
-                // state.flip = 1.0f;
+                state.flip = -1;  // Test No Flip (Baseline Performance)
+
+                // Test fast path (denoise = 0) vs slow path (denoise > 0)
+                // state.denoise = 0.0f;
+                // state.resizeHeight = 3000.0f;
+                // state.resizeWidth = 3000.0f;
 
                 // state.rotation = 10.0f;
                 // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
