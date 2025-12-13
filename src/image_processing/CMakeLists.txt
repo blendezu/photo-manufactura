@@ -252,9 +252,11 @@ add_custom_command(
             "-g" "photo_adjustment"
             "-o" "${CMAKE_CURRENT_BINARY_DIR}"
             "-f" "photo_adjustment"
-            target=host
+            "-p" "${HALIDE_ROOT}/lib/libautoschedule_adams2019.so"
+            target=host-metal
+            autoscheduler=Adams2019
     DEPENDS generate_photo_adjustment
-    COMMENT "Generating Halide AOT code for photo_adjustment..."
+    COMMENT "Generating Halide AOT code for photo_adjustment (Auto-Scheduled)..."
 )
 
 # 3. Import the Generated Library
@@ -277,7 +279,12 @@ add_dependencies(image_processing trigger_photo_adjustment_gen)
 # ---------------------------------------------------------
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
     add_executable(image_processing_test "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
-    target_link_libraries(image_processing_test PRIVATE image_processing photo_adjustment_aot)
+    target_link_libraries(image_processing_test PRIVATE 
+        image_processing 
+        photo_adjustment_aot
+        "-framework Metal"
+        "-framework Foundation"
+    )
     
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
          target_compile_options(image_processing_test PRIVATE "-Xpreprocessor" "-fopenmp")

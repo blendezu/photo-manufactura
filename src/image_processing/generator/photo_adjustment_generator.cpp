@@ -70,6 +70,49 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
     Output<Buffer<uint16_t>> output{"output", 3};
 
     void generate() {
+        // --- Estimates for Auto-Scheduler ---
+        // Input Buffer
+        input.dim(0).set_estimate(0, 6000);
+        input.dim(1).set_estimate(0, 4000);
+        input.dim(2).set_estimate(0, 3);
+
+        // Light Params
+        exposure_factor.set_estimate(1.0f);
+        contrast_factor.set_estimate(1.0f);
+        brightness_factor.set_estimate(1.0f);
+
+        highlight_factor.set_estimate(0.0f);
+        highlight_under.set_estimate(0.5f);
+        highlight_upper.set_estimate(1.0f);
+
+        shadow_factor.set_estimate(0.0f);
+        shadow_under.set_estimate(0.0f);
+        shadow_upper.set_estimate(0.5f);
+
+        white_factor.set_estimate(0.0f);
+        white_under.set_estimate(0.8f);
+        white_upper.set_estimate(1.0f);
+
+        black_factor.set_estimate(0.0f);
+        black_lower.set_estimate(0.0f);
+        black_upper.set_estimate(0.2f);
+
+        // Color Params
+        saturation_factor.set_estimate(1.0f);
+        vibrance_factor.set_estimate(1.0f);
+        tint_magenta_factor.set_estimate(1.0f);
+        wb_factor_r.set_estimate(1.0f);
+        wb_factor_b.set_estimate(1.0f);
+
+        // Detail Params
+        sharpen_amount.set_estimate(0.0f);
+        clarity_amount.set_estimate(0.0f);
+
+        // Denoise Params
+        denoise_sigma_spatial.set_estimate(1.0f);
+        denoise_sigma_range.set_estimate(0.1f);
+        denoise_blend.set_estimate(0.0f);
+
         Var x("x"), y("y"), c("c");
 
         // 1. Cast Input to Float (0..1)
@@ -114,77 +157,58 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
 
         Func current = f_exposure;
 
-        // 2. Highlight / Shadow / White / Black
+        // --- MATCH JIT ORDER (ImageController::rebuildPipeline) ---
+        // This ensures visual parity between AOT and JIT paths.
 
-        // Highlight
-        current = apply_highlight(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // 1. White Balance (Before tone adjustments)
+        current = apply_white_balance(current);
+        // Manual schedule removed
 
-        // Shadow
-        current = apply_shadow(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
-
-        // White
-        current = apply_white(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
-
-        // Black
-        current = apply_black(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
-
-        // White Balance
-        current = apply_white_balance(current);  // [NEW]
-        current.compute_root().parallel(y).vectorize(x, 16);
-
-        // Tint Magenta
-        current = apply_tint_magenta(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
-
-        // Brightness (Multiplicative on Luminance/RGB? JIT does Per-Channel Mul on Color)
-        // JIT Brightness logic: val * factor.
+        // 2. Brightness (Early in chain to affect all subsequent ops)
         current = apply_brightness(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed
 
-        // Vibrance (HSL Saturation Adjustment)
-        current = apply_vibrance(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // 3-6. Tone Adjustments (Highlight, Shadow, White, Black)
+        current = apply_highlight(current);
+        // Manual schedule removed
 
-        // Contrast (Logic: (L - 0.5)*fac + 0.5)
+        current = apply_shadow(current);
+        // Manual schedule removed
+
+        current = apply_white(current);
+        // Manual schedule removed
+
+        current = apply_black(current);
+        // Manual schedule removed
+
+        // 7. Contrast
         current = apply_contrast(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed
 
-        // Saturation (Logic: HSL, adjust S)
+        // 8. Saturation (Before Vibrance to allow desaturation)
         current = apply_saturation(current);
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed
 
-        // Denoise (Bilateral) - Computationally heavy
-        // Requires Access to neighbors.
-        // BilateralFilter::createHalideGraph(input, sigmaS, sigmaR, radius, width, height)
-        // We need image dimensions.
+        // 9. Vibrance (Selective saturation boost)
+        current = apply_vibrance(current);
+        // Manual schedule removed for auto-scheduler
+
+        // 10. Tint Magenta (AFTER Saturation, so it can add color to desaturated image)
+        current = apply_tint_magenta(current);
+        // Manual schedule removed for auto-scheduler
+
+        // Get image dimensions for filters below
         Expr width = input.dim(0).extent();
         Expr height = input.dim(1).extent();
 
-        // Strong Denoise + Blend
-        // We need to wrap this logic.
-        Func denoised = BilateralFilter::createHalideGraph(current, denoise_sigma_spatial,
-                                                           denoise_sigma_range, 1, width, height);
-        // Denoise usually needs its own schedule, let's look at BilateralFilter impl.
-        // It has internal funcs. We should schedule the output of BilateralFilter.
-        denoised.compute_root().parallel(y).vectorize(x, 8);
-
-        Func f_denoised_blend;
-        f_denoised_blend(x, y, c) =
-            current(x, y, c) * (1.0f - denoise_blend) + denoised(x, y, c) * denoise_blend;
-
-        // Only apply denoise if blend > 0? No, rely on blend factor.
-        current = f_denoised_blend;
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // --- DENOISE (DISABLED FOR PERFORMANCE) ---
+        // ... (comments) ...
 
         // Sharpen (Gaussian)
         // Unsharp Mask: Org + (Org - Blur) * Amt
         // Blur Radius ~ 1.0
         Func blurred_sharp = GaussianFilter::createHalideGraph(current, 1.0f, width, height);
-        blurred_sharp.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed for auto-scheduler
 
         Func f_sharpen;
         Expr valOrig = current(x, y, c);
@@ -192,12 +216,12 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         Expr diff = valOrig - valBlur;
         f_sharpen(x, y, c) = valOrig + diff * sharpen_amount;
         current = f_sharpen;
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed for auto-scheduler
 
         // Clarity (Gaussian)
         // Radius ~ 30.0 (Too large for direct convolution in AOT) -> Reduced to 2.0
         Func blurred_clarity = GaussianFilter::createHalideGraph(current, 2.0f, width, height);
-        blurred_clarity.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed for auto-scheduler
 
         Func f_clarity;
         Expr valOrig2 = current(x, y, c);
@@ -205,17 +229,18 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         Expr diff2 = valOrig2 - valBlur2;
         f_clarity(x, y, c) = valOrig2 + diff2 * clarity_amount;
         current = f_clarity;
-        current.compute_root().parallel(y).vectorize(x, 16);
+        // Manual schedule removed for auto-scheduler
 
         // Final Clamp & Cast
         output(x, y, c) = cast<uint16_t>(clamp(current(x, y, c), 0.0f, 1.0f) * 65535.0f);
 
         // Schedule
-        // Simple Manual Schedule
-        // Compute everything at root for now to ensure correctness
-        output.compute_root();
-        output.parallel(y);
-        output.vectorize(x, 8);
+        // Using Adams2019 auto-scheduler via CMake directive
+
+        // Estimates are REQUIRED for auto-scheduler
+        output.dim(0).set_estimate(0, 6000);
+        output.dim(1).set_estimate(0, 4000);
+        output.dim(2).set_estimate(0, 3);
     }
 
    private:

@@ -72,6 +72,12 @@ class ImageController {
     ImagePipeline m_pipeline;
     ImageState m_currentState;
 
+    // Stats Cache (to avoid recalculating on every process() call)
+    float m_cachedMinL = 0.0f;
+    float m_cachedMaxL = 1.0f;
+    float m_lastExposure = 0.0f;
+    bool m_statsValid = false;
+
     // Helper to rebuild JIT pipeline from state
     void rebuildPipeline(const ImageState& state);
 };
