@@ -30,11 +30,15 @@ struct ImageState {
     // --- Detail ---
     float sharpen = 0.0f;  // Range: 0.0 to 100.0
     float clarity = 0.0f;  // Range: 0.0 to 100.0
+    float denoise = 0.0f;  // Range: 0.0 to 100.0 (Blend factor)
 
     // --- Geometry ---
-    float rotation = 0.0f;  // Degrees
-    int flip = 0;           // 0 = None, 1 = Horizontal, 2 = Vertical, 3 = Both
-    cv::Rect cropRect;      // Empty = No crop
+    float rotation = 0.0f;     // Degrees
+    int flip = -1;             // -1 = None, 0 = Vertical, 1 = Horizontal
+    int resizeWidth = 0;       // 0 = Keep Original
+    int resizeHeight = 0;      // 0 = Keep Original (if both 0)
+    float resizeRatio = 0.0f;  // 0.0 = Use Width/Height. >0 = Use Height * Ratio
+    cv::Rect cropRect;         // Empty = No crop
 
     // --- System / Meta ---
     bool enableBeforeAfter = false;  // Example for UI features

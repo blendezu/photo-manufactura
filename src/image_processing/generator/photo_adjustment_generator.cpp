@@ -54,10 +54,10 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
     // Clarity
     Input<float> clarity_amount{"clarity_amount"};  // derived from strength
 
-    // Denoise
-    Input<float> denoise_sigma_spatial{"denoise_sigma_spatial"};
-    Input<float> denoise_sigma_range{"denoise_sigma_range"};
-    Input<float> denoise_blend{"denoise_blend"};
+    // Denoise Params (Moved to CPU - Removed from AOT)
+    // Input<float> denoise_sigma_spatial{"denoise_sigma_spatial"};
+    // Input<float> denoise_sigma_range{"denoise_sigma_range"};
+    // Input<float> denoise_blend{"denoise_blend"};
 
     // Geometry
     // Usually handled by wrapping logic or separate Affine transforms.
@@ -108,10 +108,10 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         sharpen_amount.set_estimate(0.0f);
         clarity_amount.set_estimate(0.0f);
 
-        // Denoise Params
-        denoise_sigma_spatial.set_estimate(1.0f);
-        denoise_sigma_range.set_estimate(0.1f);
-        denoise_blend.set_estimate(0.0f);
+        // Denoise Params Estimates (Removed)
+        // denoise_sigma_spatial.set_estimate(1.0f);
+        // denoise_sigma_range.set_estimate(0.1f);
+        // denoise_blend.set_estimate(0.0f);
 
         Var x("x"), y("y"), c("c");
 
@@ -201,8 +201,26 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         Expr width = input.dim(0).extent();
         Expr height = input.dim(1).extent();
 
-        // --- DENOISE (DISABLED FOR PERFORMANCE) ---
-        // ... (comments) ...
+        // --- DENOISE ---
+        // Bilateral Filter for Denoising
+        // SigmaSpatial ~ 2.0, SigmaRange ~ 0.1
+        // We might want to make sigma_spatial parameterizable? Currently strict 2.0 in JIT header
+        // default? Using inputs denoise_sigma_spatial / range For performance, we only do this if
+        // denoise_blend > 0 ideally, but AOT graph is static. It will compute.
+
+        // --- DENOISE (DISABLED FOR PERFORMANCE - MOVED TO CPU) ---
+        // Bilateral Filter is too slow (12s) without specialization.
+        // Moved to Hybrid stage in ImageController.
+
+        // Func denoised = BilateralFilter::createHalideGraph(current, denoise_sigma_spatial,
+        // denoise_sigma_range, 6, width, height);
+
+        // Blend Denoise
+        // Func f_denoise;
+        // f_denoise(x, y, c) = (1.0f - denoise_blend) * current(x, y, c) + denoise_blend *
+        // denoised(x, y, c);
+
+        // current = f_denoise;
 
         // Sharpen (Gaussian)
         // Unsharp Mask: Org + (Org - Blur) * Amt
@@ -238,6 +256,8 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         // Using Adams2019 auto-scheduler via CMake directive
 
         // Estimates are REQUIRED for auto-scheduler
+        // SPECIALIZATION Removed due to Auto-Scheduler conflict (Error: f13 invalid location)
+
         output.dim(0).set_estimate(0, 6000);
         output.dim(1).set_estimate(0, 4000);
         output.dim(2).set_estimate(0, 3);
