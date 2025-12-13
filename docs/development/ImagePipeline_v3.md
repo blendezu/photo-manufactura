@@ -225,3 +225,23 @@ void MainWindow::undo() {
     refreshImage();
 }
 ```
+
+---
+
+## 8. Preview Strategy (High Performance)
+
+**Problem:** Processing 30MP images takes ~600ms (too slow for smooth slider movement).
+**Solution:** Use **Two Controllers** (or swap images).
+
+1.  **Preview Controller:**
+    - Load a resized version of the image (e.g., 1920px long edge).
+    - Use this for all Slider interactions.
+    - **Speed:** < 50ms (Realtime 60fps).
+
+2.  **Export / High-Res Controller:**
+    - Keep the full-resolution image in memory.
+    - Only process this when the user clicks "Save" or releases the slider (if needed).
+
+**Workflow:**
+- `onSliderMove`: Update & Process **Preview**.
+- `onSave`: Copy State from Preview -> Update & Process **Full Res**.
