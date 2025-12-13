@@ -279,10 +279,10 @@ int main() {
                 state.tintMagenta = 50.0f;
                 state.vibrance = 50.0f;
                 state.temp = 50.0f;
-                state.flip = 1.0f;
+                // state.flip = 1.0f;
 
-                state.rotation = 10.0f;
-                state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
+                // state.rotation = 10.0f;
+                // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
 
                 auto aot_start = std::chrono::high_resolution_clock::now();
 
