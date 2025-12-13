@@ -7,6 +7,17 @@ This guide explains how to connect GUI sliders and buttons to the Image Processi
 
 ---
 
+## 🚨 Coming from Pipeline v1 / v2? (Read this!)
+
+**Key Difference:** Stop calling `pipeline.addOperation(...)`!
+
+*   **Old Way (v1/v2):** You manually added operations to a stack (`pipeline.add(new ExposureOp(1.0))`).
+*   **New Way (v3):** You **only update the State** (`state.exposure = 1.0`).
+
+The `ImageController` manages the pipeline internally. It automatically decides clear/rebuild/cache logic. **Do not touch the pipeline directly** unless you are switching CPU/GPU mode.
+
+---
+
 ## 1. How it Works
 
 The communication between the GUI and the Engine is handled by the **`ImageController`** and the **`ImageState`**.
@@ -116,3 +127,75 @@ m_controller.getPipeline().setFusionMode(true);
 ```
 
 **Note:** The GPU mode is significantly faster for complex operation chains.
+
+---
+
+## 6. Full Integration Example
+
+Here is a complete, copy-pasteable example of a MainWindow integration:
+
+```cpp
+#include <iostream>
+#include "image_processing/controller/image_controller.h"
+
+class MainWindow {
+private:
+    // 1. The Controller owns the engine
+    ImageController m_controller;
+
+    // 2. The State holds the current values of all sliders
+    ImageState m_state;
+
+public:
+    MainWindow() {
+        // Defaults are auto-set by ImageState constructor
+    }
+
+    void onFileLoaded(std::string path) {
+        cv::Mat img = cv::imread(path);
+        // Load into Controller (Resets cache)
+        m_controller.setImage(img);
+        refreshImage();
+    }
+
+    // SLIDER: Exposure (-5.0 to +5.0)
+    void onExposureSliderChanged(float value) {
+        m_state.exposure = value; // Update State
+        refreshImage();           // Trigger Process
+    }
+
+    // SLIDER: Contrast (-100 to +100)
+    void onContrastSliderChanged(float value) {
+        m_state.contrast = value;
+        refreshImage();
+    }
+
+    // SLIDER: Rotate (0 to 360)
+    void onRotationSliderChanged(float degrees) {
+        m_state.rotation = degrees;
+        refreshImage();
+    }
+
+    // CHECKBOX: GPU Acceleration
+    void onGpuToggled(bool enabled) {
+        // Access pipeline directly ONLY for system config
+        m_controller.getPipeline().setFusionMode(enabled);
+        refreshImage();
+    }
+
+private:
+    void refreshImage() {
+        // 1. Send new state to controller
+        m_controller.update(m_state);
+
+        // 2. Execute pipeline (Blocking)
+        cv::Mat result = m_controller.process();
+
+        // 3. Display result
+        if (!result.empty()) {
+             // displayOnScreen(result);
+             std::cout << "Image processed: " << result.cols << "x" << result.rows << std::endl;
+        }
+    }
+};
+```
