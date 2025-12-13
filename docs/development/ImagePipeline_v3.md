@@ -199,3 +199,29 @@ private:
     }
 };
 ```
+
+---
+
+## 7. Undo / Redo
+
+**Important:** The Engine is stateless. It does **not** store history.
+**Responsibility:** The GUI must manage the Undo/Redo stack.
+
+### How to implement Undo:
+1.  Create a `std::stack<ImageState> m_undoStack;` in your MainWindow.
+2.  **Before** modifying `m_state` (e.g., on Slider Press), push the current copy to the stack.
+3.  **On Undo:** Pop the old state, overwrite `m_state`, and call `m_controller.update(m_state)` + `process()`.
+
+```cpp
+void MainWindow::undo() {
+    if (m_undoStack.empty()) return;
+    
+    // Restore old state
+    m_state = m_undoStack.top();
+    m_undoStack.pop();
+    
+    // Update Engine
+    m_controller.update(m_state);
+    refreshImage();
+}
+```
