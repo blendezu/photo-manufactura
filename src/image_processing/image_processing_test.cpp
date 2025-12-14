@@ -81,7 +81,7 @@ int main() {
             auto cold_end = std::chrono::high_resolution_clock::now();
             auto cold_duration =
                 std::chrono::duration_cast<std::chrono::milliseconds>(cold_end - cold_start);
-            std::cout << "Time for Cold Start: " << cold_duration.count() << std::endl;
+            std::cout << "Time for Cold Start: " << cold_duration.count() << " ms" << std::endl;
             pipeline.invalidateCache();
 
             // --- NO JIT COMPLATION - LIKE AOT -
@@ -95,7 +95,8 @@ int main() {
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            std::cout << "Time for processing: " << duration.count() << std::endl;
+            std::cout << "Time for processing: " << duration.count() / ITERATIONS << " ms"
+                      << std::endl;
 
             currentResult = processed.clone();
 
@@ -124,7 +125,7 @@ int main() {
                 // Halide-Filter)
 
                 // 1. RGB Block
-                pipeline.addOperation(std::make_shared<AdjustExposure>(-0.5));  // 1. Exposure
+                pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
                 pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
                 pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
 
@@ -173,7 +174,7 @@ int main() {
                 // State (Slider-Werte) setzen
                 ImageState state;
                 // 1. RGB
-                state.exposure = -0.5f;
+                state.exposure = -0.2f;
                 state.temp = 20.0f;
                 state.tintMagenta = 20.0f;
 
@@ -202,19 +203,37 @@ int main() {
                 // state.rotation = 10.0f;
                 // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
 
-                auto aot_start = std::chrono::high_resolution_clock::now();
+                // --- COLD START - AOT ---
+                auto aot_cold_start = std::chrono::high_resolution_clock::now();
 
                 controller.update(state);
                 cv::Mat aotResult = controller.process();
 
-                auto aot_end = std::chrono::high_resolution_clock::now();
-                auto aot_duration =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(aot_end - aot_start);
+                auto aot_cold_end = std::chrono::high_resolution_clock::now();
+                auto aot_cold_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    aot_cold_end - aot_cold_start);
 
                 if (!aotResult.empty()) {
-                    std::cout << "✅ AOT Pipeline Success! Time: " << aot_duration.count() << " ms"
-                              << std::endl;
+                    std::cout << "✅ AOT Pipeline Success! Cold Start Time: "
+                              << aot_cold_duration.count() << " ms" << std::endl;
                     cv::imshow("AOT Result", aotResult);
+
+                    // --- WARM START / ITERATIONS ---
+                    const int AOT_ITERATIONS = 10;
+                    auto aot_start = std::chrono::high_resolution_clock::now();
+
+                    for (int i = 0; i < AOT_ITERATIONS; i++) {
+                        // Just run process again. AOT path doesn't cache the final output, so it
+                        // re-runs the kernel.
+                        controller.process();
+                    }
+
+                    auto aot_end = std::chrono::high_resolution_clock::now();
+                    auto aot_duration =
+                        std::chrono::duration_cast<std::chrono::milliseconds>(aot_end - aot_start);
+                    std::cout << "Time for processing: " << aot_duration.count() / AOT_ITERATIONS
+                              << " ms" << std::endl;
+
                 } else {
                     std::cerr << "❌ AOT Pipeline Failed (Empty Result)" << std::endl;
                 }
