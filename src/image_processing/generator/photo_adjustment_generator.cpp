@@ -1,221 +1,210 @@
 #include "../core/halide_build_graph.h"
-#include "../utils/gaussian.h"
 #include "../utils/halide_color_space.h"
 #include "Halide.h"
 
 class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerator> {
    public:
-    // Inputs
-    Halide::GeneratorInput<Halide::Buffer<uint16_t>> input{"input", 3};  // HWC 16-bit image
+    // --- 1. Define Halide Variables ---
 
-    // --- Light Parameters ---
-    Halide::GeneratorInput<float> exposure_factor{"exposure_factor"};  // pow(2, exposure)
-    Halide::GeneratorInput<float> contrast_factor{"contrast_factor"};  // 1.0 + contrast / 50.0
-    Halide::GeneratorInput<float> brightness_factor{"brightness_factor"};
+    // --- 1.1 Source Image ---
+    Halide::GeneratorInput<Halide::Buffer<uint16_t>> srcImg{"srcImg", 3};  // HWC 16-bit image
 
-    // Highlight / Shadow / White / Black (Require Stat-derived params)
-    Halide::GeneratorInput<float> highlight_factor{"highlight_factor"};
-    Halide::GeneratorInput<float> highlight_under{"highlight_under"};
-    Halide::GeneratorInput<float> highlight_upper{"highlight_upper"};
+    // --- 1.2 Light Parameters ---
+    Halide::GeneratorInput<float> exposureFactor{"exposureFactor"};  // pow(2, exposure)
+    Halide::GeneratorInput<float> contrastFactor{"contrastFactor"};  // 1.0 + contrast / 50.0
+    Halide::GeneratorInput<float> brightnessFactor{"brightnessFactor"};
 
-    Halide::GeneratorInput<float> shadow_factor{"shadow_factor"};
-    Halide::GeneratorInput<float> shadow_under{"shadow_under"};
-    Halide::GeneratorInput<float> shadow_upper{"shadow_upper"};
+    // --- 1.3 Tone Mapping Parameters ---
+    Halide::GeneratorInput<float> highlightFactor{"highlightFactor"};
+    Halide::GeneratorInput<float> highlightUnder{"highlightUnder"};
+    Halide::GeneratorInput<float> highlightUpper{"highlightUpper"};
 
-    Halide::GeneratorInput<float> white_factor{"white_factor"};
-    Halide::GeneratorInput<float> white_under{"white_under"};
-    Halide::GeneratorInput<float> white_upper{"white_upper"};
+    Halide::GeneratorInput<float> shadowFactor{"shadowFactor"};
+    Halide::GeneratorInput<float> shadowUnder{"shadowUnder"};
+    Halide::GeneratorInput<float> shadowUpper{"shadowUpper"};
 
-    Halide::GeneratorInput<float> black_factor{"black_factor"};
-    Halide::GeneratorInput<float> black_lower{"black_lower"};
-    Halide::GeneratorInput<float> black_upper{"black_upper"};
+    Halide::GeneratorInput<float> whiteFactor{"whiteFactor"};
+    Halide::GeneratorInput<float> whiteUnder{"whiteUnder"};
+    Halide::GeneratorInput<float> whiteUpper{"whiteUpper"};
 
-    // --- Color Parameters ---
-    Halide::GeneratorInput<float> saturation_factor{"saturation_factor"};  // 1.0 + sat / 50.0
-    Halide::GeneratorInput<float> vibrance_factor{"vibrance_factor"};      // vibrance / 50.0
+    Halide::GeneratorInput<float> blackFactor{"blackFactor"};
+    Halide::GeneratorInput<float> blackLower{"blackLower"};
+    Halide::GeneratorInput<float> blackUpper{"blackUpper"};
 
-    // Temp/Tint
-    Halide::GeneratorInput<float> tint_magenta_factor{"tint_magenta_factor"};  // 1 - tint / 50.0
-    // White Balance
-    Halide::GeneratorInput<float> wb_factor_r{"wb_factor_r"};
-    Halide::GeneratorInput<float> wb_factor_b{"wb_factor_b"};
+    // --- 1.4 Color Parameters ---
+    Halide::GeneratorInput<float> saturationFactor{"saturationFactor"};
+    Halide::GeneratorInput<float> vibranceFactor{"vibranceFactor"};
 
-    // --- Detail Parameters ---
+    // --- 1.5 Temp/Tint ---
+    Halide::GeneratorInput<float> tintMagentaFactor{"tintMagentaFactor"};
+
+    // --- 1.6 White Balance ---
+    Halide::GeneratorInput<float> wbFactorR{"wbFactorR"};
+    Halide::GeneratorInput<float> wbFactorB{"wbFactorB"};
+
+    // --- 1.7 Detail Parameters ---
     // Sharpen
-    Halide::GeneratorInput<float> sharpen_amount{"sharpen_amount"};  // derived from strength
+    Halide::GeneratorInput<float> sharpenAmount{"sharpenAmount"};
 
     // Clarity
-    Halide::GeneratorInput<float> clarity_amount{"clarity_amount"};  // derived from strength
+    Halide::GeneratorInput<float> clarityAmount{"clarityAmount"};
 
-    // Outputs
-    Halide::GeneratorOutput<Halide::Buffer<uint16_t>> output{"output", 3};
+    // --- 1.8 Output ---
+    Halide::GeneratorOutput<Halide::Buffer<uint16_t>> dstImg{"dstImg", 3};
 
+    // --- 2. Define Halide Functions ---
+
+    // This method defines the image processing pipeline and sets estimates for Halide's
+    // auto-scheduler. It is called by Halide's auto-scheduler to generate the best possible
+    // schedule for the given input image size and parameters.
     void generate() {
-        // --- Estimates for Auto-Scheduler ---
-        // Input Buffer
-        input.dim(0).set_estimate(0, 6000);
-        input.dim(1).set_estimate(0, 4000);
-        input.dim(2).set_estimate(0, 3);
+        // --- 2.1. Estimates for Auto-Scheduler ---
+        // Estimates are crucial for Halide's auto-scheduler to effectively explore the vast search
+        // space of possible schedules. By providing typical ranges and values for input dimensions
+        // and parameters, we guide the auto-scheduler towards optimal performance for common use
+        // cases. Without estimates, the auto-scheduler might struggle to find an efficient schedule
+        // or take significantly longer to do so, as it would have to make assumptions about the
+        // input characteristics.
 
-        // Light Params
-        exposure_factor.set_estimate(1.0f);
-        contrast_factor.set_estimate(1.0f);
-        brightness_factor.set_estimate(1.0f);
+        // 2.1.1 Input Buffer
+        srcImg.dim(0).set_estimate(0, 6000);
+        srcImg.dim(1).set_estimate(0, 4000);
+        srcImg.dim(2).set_estimate(0, 3);
 
-        highlight_factor.set_estimate(0.0f);
-        highlight_under.set_estimate(0.5f);
-        highlight_upper.set_estimate(1.0f);
+        // 2.1.2 Light Params
+        exposureFactor.set_estimate(1.0f);
+        contrastFactor.set_estimate(1.0f);
+        brightnessFactor.set_estimate(1.0f);
 
-        shadow_factor.set_estimate(0.0f);
-        shadow_under.set_estimate(0.0f);
-        shadow_upper.set_estimate(0.5f);
+        highlightFactor.set_estimate(0.0f);
+        highlightUnder.set_estimate(0.5f);
+        highlightUpper.set_estimate(1.0f);
 
-        white_factor.set_estimate(0.0f);
-        white_under.set_estimate(0.8f);
-        white_upper.set_estimate(1.0f);
+        shadowFactor.set_estimate(0.0f);
+        shadowUnder.set_estimate(0.0f);
+        shadowUpper.set_estimate(0.5f);
 
-        black_factor.set_estimate(0.0f);
-        black_lower.set_estimate(0.0f);
-        black_upper.set_estimate(0.2f);
+        whiteFactor.set_estimate(0.0f);
+        whiteUnder.set_estimate(0.8f);
+        whiteUpper.set_estimate(1.0f);
 
-        // Color Params
-        saturation_factor.set_estimate(1.0f);
-        vibrance_factor.set_estimate(1.0f);
-        tint_magenta_factor.set_estimate(1.0f);
-        wb_factor_r.set_estimate(1.0f);
-        wb_factor_b.set_estimate(1.0f);
+        blackFactor.set_estimate(0.0f);
+        blackLower.set_estimate(0.0f);
+        blackUpper.set_estimate(0.2f);
 
-        // Detail Params
-        sharpen_amount.set_estimate(0.0f);
-        clarity_amount.set_estimate(0.0f);
+        // 2.1.3 Color Params
+        saturationFactor.set_estimate(1.0f);
+        vibranceFactor.set_estimate(1.0f);
+        tintMagentaFactor.set_estimate(1.0f);
+        wbFactorR.set_estimate(1.0f);
+        wbFactorB.set_estimate(1.0f);
 
+        // 2.1.4 Detail Params
+        sharpenAmount.set_estimate(0.0f);
+        clarityAmount.set_estimate(0.0f);
+
+        // --- 2.2 Define Halide Variables ---
         Halide::Var x("x"), y("y"), c("c");
 
-        // 1. Cast Input to Float (0..1)
-        // Assume HWC input.
-        Halide::Func in_f = Halide::BoundaryConditions::repeat_edge(input);  // Safe access
+        // --- 2.3 Safe Access to Input ---
+        Halide::Func inFunc = Halide::BoundaryConditions::repeat_edge(srcImg);
 
-        Halide::Expr r_norm = 1.0f / 65535.0f;
-        Halide::Expr val = Halide::cast<float>(in_f(x, y, c)) * r_norm;
+        // --- 2.4 Cast Input to Float (0..1) ---
+        Halide::Expr invMaxRange = 1.0f / 65535.0f;
+        Halide::Expr val = Halide::cast<float>(inFunc(x, y, c)) * invMaxRange;
 
-        Halide::Func f("f");
-        f(x, y, c) = val;
+        // --- 2.5 Sequence of Operations ---
+        // There are 3 blocks of Operations:
+        // 1. BGR Block: Exposure -> White Balance -> Tint
+        // 2. HSL Block: Brightness -> Tone Mapping (Highlight, Shadow, White, Black) -> Contrast ->
+        // Saturation -> Vibrance
+        // 3. Detail Block: Sharpen -> Clarity
+        // In this way we can avoid Converting back and forth between BGR and HSL
 
-        // --- Sequence of Operations ---
+        // 2.5.1 BGR Block
+        Halide::Func bgrImg;
+        bgrImg(x, y, c) = val;
 
-        // =====================================================================
-        // 1. RGB Block (Linear / Multiplicative)
-        // =====================================================================
-        // Ops that work best on raw RGB data (Exposure, WB, Tint)
+        // 2.5.1.1 Exposure
+        bgrImg = HalideBuildGraph::apply_exposure(bgrImg, exposureFactor);
 
-        Halide::Func rgb_ops;
-        rgb_ops(x, y, c) = f(x, y, c);
+        // 2.5.1.2 White Balance
+        bgrImg = HalideBuildGraph::apply_white_balance(bgrImg, wbFactorR, wbFactorB);
 
-        // 1.1 Exposure
-        rgb_ops = HalideBuildGraph::apply_exposure(rgb_ops, exposure_factor);
+        // 2.5.1.3 Tint (Magenta/Green) - Applied in BGR for correctness
+        bgrImg = HalideBuildGraph::apply_tint(bgrImg, tintMagentaFactor);
 
-        // 1.2 White Balance
-        rgb_ops = HalideBuildGraph::apply_white_balance(rgb_ops, wb_factor_r, wb_factor_b);
+        // --- 2.5.2 HSL Block ---
 
-        // 1.3 Tint (Magenta/Green) - Applied in RGB for correctness
-        rgb_ops = HalideBuildGraph::apply_tint(rgb_ops, tint_magenta_factor);
+        // 2.5.2.1 BGR -> HSL Conversion
+        Halide::Expr R = bgrImg(x, y, 2);
+        Halide::Expr G = bgrImg(x, y, 1);
+        Halide::Expr B = bgrImg(x, y, 0);
+        std::vector<Halide::Expr> hslImg = HalideColorSpace::BGR2HSL(B, G, R);
 
-        // =====================================================================
-        // 2. HSL Block (Fused)
-        // =====================================================================
-        // All Ops that require HSL. We convert ONCE, process, and convert back ONCE.
+        Halide::Expr H = hslImg[0];
+        Halide::Expr S = hslImg[1];
+        Halide::Expr L = hslImg[2];
 
-        // 2.1 BGR -> HSL Conversion
-        Halide::Expr R = rgb_ops(x, y, 2);
-        Halide::Expr G = rgb_ops(x, y, 1);
-        Halide::Expr B = rgb_ops(x, y, 0);
-        std::vector<Halide::Expr> hsl = HalideColorSpace::BGR2HSL(B, G, R);
+        // 2.5.2.2 Brightness
+        L = HalideBuildGraph::apply_brightness_L(L, brightnessFactor);
 
-        Halide::Expr H = hsl[0];
-        Halide::Expr S = hsl[1];
-        Halide::Expr L = hsl[2];
+        // 2.5.2.3 Tone Mapping
+        L = HalideBuildGraph::apply_highlight_L(L, highlightFactor, highlightUnder, highlightUpper);
+        L = HalideBuildGraph::apply_shadow_L(L, shadowFactor, shadowUnder, shadowUpper);
+        L = HalideBuildGraph::apply_white_L(L, whiteFactor, whiteUnder, whiteUpper);
+        L = HalideBuildGraph::apply_black_L(L, blackFactor, blackLower, blackUpper);
 
-        // 2.2 Luminance Operations (L)
-        // Order: Brightness -> Tone Mapping -> Contrast
+        // 2.5.2.4 Contrast
+        L = HalideBuildGraph::apply_contrast_L(L, contrastFactor);
 
-        // Brightness (now on L channel to match JIT behavior)
-        L = HalideBuildGraph::apply_brightness_L(L, brightness_factor);
+        // 2.5.2.5 Saturation
+        S = HalideBuildGraph::apply_saturation_S(S, saturationFactor);
 
-        // Tone Mapping
-        L = HalideBuildGraph::apply_highlight_L(L, highlight_factor, highlight_under,
-                                                highlight_upper);
-        L = HalideBuildGraph::apply_shadow_L(L, shadow_factor, shadow_under, shadow_upper);
-        L = HalideBuildGraph::apply_white_L(L, white_factor, white_under, white_upper);
-        L = HalideBuildGraph::apply_black_L(L, black_factor, black_lower, black_upper);
+        // 2.5.2.6 Vibrance
+        S = HalideBuildGraph::apply_vibrance_S(S, vibranceFactor, 0.35f, 0.45f);
 
-        // Contrast
-        L = HalideBuildGraph::apply_contrast_L(L, contrast_factor);
+        // 2.5.2.7 HSL -> BGR Conversion
+        std::vector<Halide::Expr> new_bgrImg = HalideColorSpace::HSL2BGR(H, S, L);
 
-        // 2.3 Saturation Operations (S)
-        // Order: Saturation -> Vibrance
+        Halide::Func currentImg;
+        currentImg(x, y, c) = Halide::select(c == 0, new_bgrImg[0],
+                                             Halide::select(c == 1, new_bgrImg[1], new_bgrImg[2]));
 
-        S = HalideBuildGraph::apply_saturation_S(S, saturation_factor);
-        // Vibrance (using JIT constants 0.35 - 0.45)
-        S = HalideBuildGraph::apply_vibrance_S(S, vibrance_factor, 0.35f, 0.45f);
+        // 2.5.3 Spatial Block (Post-Processing)
 
-        // 2.4 HSL -> BGR Conversion
-        std::vector<Halide::Expr> bgr = HalideColorSpace::HSL2BGR(H, S, L);
+        // Get image dimensions for Sharpen & Clarity
+        Halide::Expr width = srcImg.dim(0).extent();
+        Halide::Expr height = srcImg.dim(1).extent();
 
-        Halide::Func current;
-        current(x, y, c) = Halide::select(c == 0, bgr[0], Halide::select(c == 1, bgr[1], bgr[2]));
+        // 2.5.3.1 Sharpen
+        currentImg = HalideBuildGraph::apply_sharpen(currentImg, sharpenAmount, width, height);
 
-        // =====================================================================
-        // 3. Spatial Block (Post-Processing)
-        // =====================================================================
+        // 2.5.3.2 Clarity
+        currentImg = HalideBuildGraph::apply_clarity(currentImg, clarityAmount, width, height);
 
-        // Get image dimensions for filters below
-        Halide::Expr width = input.dim(0).extent();
-        Halide::Expr height = input.dim(1).extent();
+        // 2.5.3.3 Final Clamp, Cast and Assign to Destination Image
+        dstImg(x, y, c) =
+            Halide::cast<uint16_t>(Halide::clamp(currentImg(x, y, c), 0.0f, 1.0f) * 65535.0f);
 
-        // Sharpen (Gaussian)
-        Halide::Func blurred_sharp =
-            GaussianFilter::createHalideGraph(current, 1.0f, width, height);
-
-        Halide::Func f_sharpen;
-        Halide::Expr valOrig = current(x, y, c);
-        Halide::Expr valBlur = blurred_sharp(x, y, c);
-        Halide::Expr diff = valOrig - valBlur;
-        f_sharpen(x, y, c) = valOrig + diff * sharpen_amount;
-        current = f_sharpen;
-
-        // Clarity (Gaussian)
-        Halide::Func blurred_clarity =
-            GaussianFilter::createHalideGraph(current, 2.0f, width, height);
-
-        Halide::Func f_clarity;
-        Halide::Expr valOrig2 = current(x, y, c);
-        Halide::Expr valBlur2 = blurred_clarity(x, y, c);
-        Halide::Expr diff2 = valOrig2 - valBlur2;
-        f_clarity(x, y, c) = valOrig2 + diff2 * clarity_amount;
-        current = f_clarity;
-
-        // Final Clamp & Cast
-        output(x, y, c) =
-            Halide::cast<uint16_t>(Halide::clamp(current(x, y, c), 0.0f, 1.0f) * 65535.0f);
-
-        // --- Constraints for Planar Layout (CRITICAL) ---
+        // --- 2.6 Constraints for Planar Layout (CRITICAL) ---
         // Both Input and Output MUST be Planar because ImageController creates and passes
         // Halide::Runtime::Buffer with standard planar constructor (stride(0)=1, stride(2)=w*h).
         // If we don't constrain this, Autoscheduler might assume Interleaved, reading valid planar
         // data as garbage.
 
-        // Input Constraints
-        input.dim(0).set_stride(1);
-        input.dim(2).set_stride(input.dim(0).extent() * input.dim(1).extent());
+        // 2.6.1 Input Constraints
+        srcImg.dim(0).set_stride(1);
+        srcImg.dim(2).set_stride(srcImg.dim(0).extent() * srcImg.dim(1).extent());
 
-        // Output Constraints
-        output.dim(0).set_stride(1);
-        output.dim(2).set_stride(input.dim(0).extent() * input.dim(1).extent());
+        // 2.6.2 Output Constraints
+        dstImg.dim(0).set_stride(1);
+        dstImg.dim(2).set_stride(srcImg.dim(0).extent() * srcImg.dim(1).extent());
 
-        // Estimates (Help Auto-Scheduler just in case, though we used manual schedule above)
-        output.dim(0).set_estimate(0, 6000);
-        output.dim(1).set_estimate(0, 4000);
-        output.dim(2).set_estimate(0, 3);
+        // 2.6.3 Estimates the Output Dimensions
+        dstImg.dim(0).set_estimate(0, 6000);
+        dstImg.dim(1).set_estimate(0, 4000);
+        dstImg.dim(2).set_estimate(0, 3);
     }
 };
 

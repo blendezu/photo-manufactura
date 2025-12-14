@@ -1,6 +1,7 @@
 #ifndef HALIDE_BUILD_GRAPH_H
 #define HALIDE_BUILD_GRAPH_H
 
+#include "../utils/gaussian.h"
 #include "../utils/halide_image_utils.h"
 #include "Halide.h"
 
@@ -21,43 +22,49 @@ class HalideBuildGraph {
 
     /**
      * @brief Applies Exposure (Gain) to RGB values.
-     * @param input Input RGB Func
+     * The input image is expected to be in the range [0, 1].
+     * @param srcImg srcImg RGB Func
      * @param factor Exposure factor (e.g. 2^ev)
+     * @return Halide::Func dstImg RGB Values in the range [0, 1]
      */
-    static Halide::Func apply_exposure(Halide::Func input, Halide::Expr factor) {
+    static Halide::Func apply_exposure(Halide::Func srcImg, Halide::Expr factor) {
         Halide::Var x("x"), y("y"), c("c");
-        Halide::Func out("exposure_logic");
-        out(x, y, c) = Halide::clamp(input(x, y, c) * factor, 0.0f,
-                                     1.0f);  // Input is assumed to be 0..1 float
-        return out;
+        Halide::Func dstImg("exposure_logic");
+        dstImg(x, y, c) = Halide::clamp(srcImg(x, y, c) * factor, 0.0f, 1.0f);
+        return dstImg;
     }
 
     /**
      * @brief Applies White Balance (Channel Gains)
+     * The input image is expected to be in the range [0, 1].
+     * @param srcImg srcImg RGB Func
+     * @param factorR Red Channel Gain
+     * @param factorB Blue Channel Gain
+     * @return Halide::Func dstImg RGB Values in the range [0, 1]
      */
-    static Halide::Func apply_white_balance(Halide::Func input, Halide::Expr factorR,
+    static Halide::Func apply_white_balance(Halide::Func srcImg, Halide::Expr factorR,
                                             Halide::Expr factorB) {
         Halide::Var x("x"), y("y"), c("c");
-        Halide::Func out("wb_logic");
+        Halide::Func dstImg("wb_logic");
         // Channel 0 = Blue, 1 = Green, 2 = Red (OpenCV default)
         // Adjust Blue and Red. Green stays 1.0
-        Halide::Expr val = input(x, y, c);
-        out(x, y, c) =
+        Halide::Expr val = srcImg(x, y, c);
+        dstImg(x, y, c) =
             Halide::select(c == 0, val * factorB, Halide::select(c == 2, val * factorR, val));
-        return out;
+        return dstImg;
     }
 
     /**
      * @brief Applies Tint (Green Correction)
      * Actually "Tint" typically adjusts Green channel relative to RB.
      */
-    static Halide::Func apply_tint(Halide::Func input, Halide::Expr factorG) {
+    static Halide::Func apply_tint(Halide::Func srcImg, Halide::Expr factorG) {
         Halide::Var x("x"), y("y"), c("c");
-        Halide::Func out("tint_logic");
-        Halide::Expr val = input(x, y, c);
+        Halide::Func dstImg("tint_logic");
+        Halide::Expr val = srcImg(x, y, c);
         // Adjust Green Channel (c == 1)
-        out(x, y, c) = Halide::select(c == 1, val * factorG, val);
-        return out;
+        dstImg(x, y, c) = Halide::select(c == 1, val * factorG, val);
+        return dstImg;
     }
 
     // =========================================================================
@@ -140,6 +147,50 @@ class HalideBuildGraph {
                                          Halide::Expr high) {
         Halide::Expr weight = HalideImageUtils::calculateDarkWeight(S, low, high);
         return Halide::clamp(S + weight * factor, 0.0f, 1.0f);
+    }
+    // =========================================================================
+    // Spatial Domain Operations (Sharpen, Clarity, etc.)
+    // =========================================================================
+
+    /**
+     * @brief Applies Sharpening (Unsharp Mask)
+     * Formula: Original + (Original - Blurred) * Amount
+     */
+    static Halide::Func apply_sharpen(Halide::Func srcImg, Halide::Expr amount, Halide::Expr width,
+                                      Halide::Expr height) {
+        Halide::Var x("x"), y("y"), c("c");
+
+        // Create Blurred Version (Sigma = 1.0 for Sharpen standard)
+        Halide::Func blurred = GaussianFilter::createHalideGraph(srcImg, 1.0f, width, height);
+
+        Halide::Func dstImg("sharpen_logic");
+        Halide::Expr valOrig = srcImg(x, y, c);
+        Halide::Expr valBlur = blurred(x, y, c);
+        Halide::Expr diff = valOrig - valBlur;
+
+        dstImg(x, y, c) = valOrig + diff * amount;
+        return dstImg;
+    }
+
+    /**
+     * @brief Applies Clarity (Local Contrast)
+     * Formula: Original + (Original - Blurred) * Amount
+     * Similar to Sharpen but with larger radius (Sigma = 2.0 or more)
+     */
+    static Halide::Func apply_clarity(Halide::Func srcImg, Halide::Expr amount, Halide::Expr width,
+                                      Halide::Expr height) {
+        Halide::Var x("x"), y("y"), c("c");
+
+        // Create Blurred Version (Sigma = 2.0 for Clarity standard)
+        Halide::Func blurred = GaussianFilter::createHalideGraph(srcImg, 2.0f, width, height);
+
+        Halide::Func dstImg("clarity_logic");
+        Halide::Expr valOrig = srcImg(x, y, c);
+        Halide::Expr valBlur = blurred(x, y, c);
+        Halide::Expr diff = valOrig - valBlur;
+
+        dstImg(x, y, c) = valOrig + diff * amount;
+        return dstImg;
     }
 };
 
