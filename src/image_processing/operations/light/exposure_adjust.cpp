@@ -4,6 +4,8 @@
 #include <cmath>
 #include <iostream>
 
+#include "../../core/halide_build_graph.h"
+
 AdjustExposure::AdjustExposure(float exposure)
     : m_exposure(exposure) {  // HalideOperation has no parameterized constructor
     // Initialize Halide parameter
@@ -100,13 +102,14 @@ void AdjustExposure::prepareParameters(const cv::Mat& srcImg) {
 
 Halide::Func AdjustExposure::buildGraph(Halide::Func input, Halide::Var x, Halide::Var y,
                                         Halide::Var c) {
-    Halide::Func output("exposure_adjust");
+    (void)x;
+    (void)y;
+    (void)c;
 
     // Formula: output = input * factor
-    Halide::Expr value = input(x, y, c);
-    Halide::Expr result = value * p_factor;
-
-    // Clamp to valid range [0, 1]
-    output(x, y, c) = Halide::clamp(result, 0.0f, 1.0f);
+    // Shared logic generates a Func, we can use it or just call the logic inline?
+    // halide_build_graph.h apply_exposure returns a Func.
+    // We can just call it assignment style:
+    Halide::Func output = HalideBuildGraph::apply_exposure(input, p_factor);
     return output;
 }

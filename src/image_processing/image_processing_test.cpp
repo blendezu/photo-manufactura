@@ -112,145 +112,51 @@ int main() {
 
             if (key == 27) {  // ESC-Taste
                 break;
-            } else if (key == 110) {  // Taste n
-                stepCounter++;
+            }
 
-                // Erste Operation: Bild auf 1000x1000 reduzieren
-                if (stepCounter == 1) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Resize-Operation\n";
-                    // Zeile 120-136: ANGEPASST an ImageController-Reihenfolge + AOT-Generator
-                    // WICHTIG: Denoise wird im JIT nicht separat aufgerufen (nur in AOT als
-                    // Halide-Filter)
+            else if (key == 110) {  // Taste n
 
-                    pipeline.addOperation(std::make_shared<AdjustExposure>(
-                        0));  // 0. Exposure (im Generator immer aktiv)
-                    pipeline.addOperation(std::make_shared<WhiteBalance>(50));  // 1. Temperature
-                    pipeline.addOperation(
-                        std::make_shared<AdjustBrightness>(100));  // 2. Brightness
-                    pipeline.addOperation(std::make_shared<AdjustHighlight>(-100));  // 3. Highlight
-                    pipeline.addOperation(std::make_shared<AdjustShadow>(20));       // 4. Shadow
-                    pipeline.addOperation(std::make_shared<AdjustWhite>(-100));      // 5. White
-                    pipeline.addOperation(std::make_shared<AdjustBlack>(100));       // 6. Black
-                    pipeline.addOperation(std::make_shared<AdjustContrast>(100));    // 7. Contrast
-                    pipeline.addOperation(
-                        std::make_shared<AdjustSaturation>(-100));                // 8. Saturation
-                    pipeline.addOperation(std::make_shared<AdjustVibrance>(50));  // 9. Vibrance
-                    pipeline.addOperation(std::make_shared<TintMagenta>(50));     // 10. TintMagenta
-                    // Denoise wird hier NICHT hinzugefügt (existiert nicht als separate
-                    // JIT-Operation)
-                    pipeline.addOperation(std::make_shared<Sharpen>(0));  // 11. Sharpen
-                    pipeline.addOperation(std::make_shared<Clarity>(0));  // 12. Clarity
+                std::cout << std::endl;
+                std::cout << std::endl;
+                std::cout << "➡️  Resize-Operation\n";
+                // Zeile 120-136: ANGEPASST an ImageController-Reihenfolge + AOT-Generator
+                // WICHTIG: Denoise wird im JIT nicht separat aufgerufen (nur in AOT als
+                // Halide-Filter)
 
-                    // Geometry Operations (must match AOT test for fair comparison)
-                    cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
-                    pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
+                // 1. RGB Block
+                pipeline.addOperation(std::make_shared<AdjustExposure>(-0.5));  // 1. Exposure
+                pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
+                pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
 
-                    cv::Rect roi2 = cv::Rect(0, 0, testImage.cols, testImage.rows);
-                    pipeline.addOperation(std::make_shared<Rotate>(10, roi2));  // 14. Rotate
-                    pipeline.addOperation(std::make_shared<Flip>(1));           // 15. Flip
-                }
+                // 2. HSL Block
+                pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
+                pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
+                pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
+                pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White
+                pipeline.addOperation(std::make_shared<AdjustBlack>(20));       // 8. Black
+                pipeline.addOperation(std::make_shared<AdjustContrast>(20));    // 9. Contrast
+                pipeline.addOperation(std::make_shared<AdjustSaturation>(20));  // 10. Saturation
+                pipeline.addOperation(std::make_shared<AdjustVibrance>(20));    // 11. Vibrance
 
-                // Zweite Operation: Ändern des Werts von -100 auf 50 (Modify)
-                else if (stepCounter == 2) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
+                // 3. Spatial Block
+                pipeline.addOperation(std::make_shared<Sharpen>(20));  // 12. Sharpen
+                pipeline.addOperation(std::make_shared<Clarity>(20));  // 13. Clarity
 
-                    std::cout << "➡️  Modify-Operation: White -100 -> 50" << std::endl;
-                    pipeline.modifyOperation(0, std::make_shared<AdjustWhite>(50));
-                }
+                // Geometry Operations (must match AOT test for fair comparison)
+                // cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
+                // pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
 
-                // Dritte Operation: Helligkeit erhöhen
-                else if (stepCounter == 3) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Brightness-Operation hinzugefügt (+50)" << std::endl;
-                    pipeline.addOperation(std::make_shared<AdjustBrightness>(50));
-                    pipeline.addOperation(std::make_shared<AdjustContrast>(50));
-                    pipeline.addOperation(std::make_shared<AdjustSaturation>(50));
-                    pipeline.addOperation(std::make_shared<AdjustWhite>(50));
-                    pipeline.addOperation(std::make_shared<AdjustBlack>(50));
-                    pipeline.addOperation(std::make_shared<AdjustHighlight>(50));
-                }
+                // cv::Rect roi2 = cv::Rect(0, 0, testImage.cols, testImage.rows);
+                // pipeline.addOperation(std::make_shared<Rotate>(10, roi2));  // 14. Rotate
+                // pipeline.addOperation(std::make_shared<Flip>(1));           // 15. Flip
+            }
 
-                // Dritte Operation: Helligkeit erhöhen
-                else if (stepCounter == 4) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Histogram" << std::endl;
-                    cv::imshow("current histogram", std::get<0>(currHist));
-                    cv::imshow("original histogram", std::get<0>(oriHist));
+            else if (key == 98) {  // Taste B
+                pipeline.clearOperations();
+                std::cout << "Clear all opearations.\n" << std::endl;
 
-                }
-
-                // Vierte Operation: Undo Helligkeit für Graubild
-                else if (stepCounter == 5) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Undo Brightness-Operation" << std::endl;
-                    cv::destroyWindow("current histogram");
-                    cv::destroyWindow("original histogram");
-                    pipeline.undo();
-                }
-
-                // 5. Operation: Graubild
-                else if (stepCounter == 6) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Graubild umwandeln" << std::endl;
-                    pipeline.addOperation(std::make_shared<GrayImage>());
-                }
-
-                // 6. Operation: Helligkeit vom Graubild reduzieren
-                else if (stepCounter == 7) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Brightness -50" << std::endl;
-                    pipeline.addOperation(std::make_shared<AdjustBrightness>(-50));
-                }
-
-                // 7. Operation: Histogram anzeigen
-                else if (stepCounter == 8) {
-                    std::cout << std::endl;
-                    std::cout << std::endl;
-                    std::cout << "➡️  Histogram" << std::endl;
-                    cv::imshow("current histogram", std::get<0>(currHist));
-                }
-
-                // 8. Operation: das bearbeitete Bild abspeichern
-                else if (stepCounter == 9) {
-                    cv::destroyWindow("current histogram");
-                    cv::destroyWindow("original histogram");
-                    cv::imwrite("newImg.jpg", processed);
-                    std::cout << "➡️ das Bild abgespeichert\n";
-                }
-
-                else {
-                    std::cout << "ℹ️  Alle Schritte abgeschlossen" << std::endl;
-                    stepCounter = 10;
-                }
-
-            } else if (key == 98) {  // Taste b (Undo)
-                if (pipeline.canUndo()) {
-                    pipeline.undo();
-                    stepCounter = std::max(0, stepCounter - 1);
-                    cv::destroyWindow("current histogram");
-                    cv::destroyWindow("original histogram");
-                    std::cout << "↩️  Undo ausgeführt. Schritt: " << stepCounter
-                              << ", Operationen: " << pipeline.getOperationCount()
-                              << ", Undo verfügbar: " << pipeline.getUndoCount() << std::endl;
-                } else {
-                    std::cout << "❌ Keine Operation zum Rückgängig machen verfügbar." << std::endl;
-                }
             } else if (key == 97) {  // Taste 'a' (AOT Test)
                 std::cout << "🚀 Running AOT Pipeline..." << std::endl;
-
-                // 1. Prepare Input Buffer
-                // Make sure we have a clean buffer.
-                // Halide expects interleaved by default if not specified otherwise, but Generator
-                // usually handles HWC. photo_adjustment generator defined Input<Buffer<uint8_t>>
-                // input{"input", 3}; -> HWC assumption.
 
                 cv::Mat inputMat = currentResult.clone();
                 // Ensure 3 channels
@@ -266,20 +172,27 @@ int main() {
 
                 // State (Slider-Werte) setzen
                 ImageState state;
-                state.exposure = 0.0f;  // 0. Exposure (neutral)
-                state.white = -100.0f;
+                // 1. RGB
+                state.exposure = -0.5f;
+                state.temp = 20.0f;
+                state.tintMagenta = 20.0f;
+
+                // 2. HSL
+                state.brightness = 20.0f;
+                state.highlight = 20.0f;
                 state.shadow = 20.0f;
-                state.highlight = -100.0f;
-                state.contrast = 100.0f;
+                state.white = 20.0f;
+                state.black = 20.0f;
+                state.contrast = 20.0f;
+                state.saturation = 20.0f;
+                state.vibrance = 20.0f;
 
-                state.black = 100.0f;
-                state.brightness = 100.0f;  // Controller AOT Logic ignores this to prevent washout!
+                // 3. Spatial
+                state.sharpen = 20.0f;
+                state.clarity = 20.0f;
 
-                state.saturation = -100.0f;
-                state.tintMagenta = 50.0f;
-                state.vibrance = 50.0f;
-                state.temp = 50.0f;
-                state.flip = -1;  // Test No Flip (Baseline Performance)
+                // 4. Geometry
+                // state.flip = 1;
 
                 // Test fast path (denoise = 0) vs slow path (denoise > 0)
                 // state.denoise = 0.0f;
@@ -309,7 +222,6 @@ int main() {
         }
 
         std::cout << "✅ Programm erfolgreich beendet!" << std::endl;
-
     } catch (const std::exception& e) {
         std::cerr << "❌ Fehler: " << e.what() << std::endl;
         return 1;
