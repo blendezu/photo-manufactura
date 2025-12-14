@@ -102,12 +102,12 @@ Here is the list of parameters you can control in `ImageState`.
 | **Detail** | `sharpen` | float | 0.0 to 100.0 | Sharpening amount |
 | | `clarity` | float | 0.0 to 100.0 | Local contrast (Structure) |
 | | `denoise` | float | 0.0 to 100.0 | Noise Reduction (Warning: Slow!) |
-| **Geometry** | `rotation` | float | 0.0 to 360.0 | Rotation in degrees |
+| **Geometry** | `rotation` | float | -180.0 to 180.0 | Rotation in degrees |
 | | `flip` | int | -1 | `-1`=None, `0`=Vertical, `1`=Horizontal |
+| | `cropRect` | cv::Rect | Empty | ROI (x, y, w, h) - **First in CPU Pipeline!** |
 | | `resizeWidth` | int | 0 | Target Width (0=Keep/Ratio) |
 | | `resizeHeight` | int | 0 | Target Height (0=Keep/Ratio)|
 | | `resizeRatio` | float | 0.0 | Aspect Ratio (Requires Height > 0) |
-| | `cropRect` | cv::Rect | Empty | ROI (x, y, w, h) |
 
 ---
 
@@ -120,12 +120,12 @@ Here is the list of parameters you can control in `ImageState`.
 
 ## 5. Pipeline Architecture
 
-1.  **Stage 1: AOT (GPU Fused)** (~100ms)
+1.  **Stage 1: AOT (GPU Fused)**
     *   *Includes:* Exposure, Color (Sat, Vib, Tint), Details (Sharpen, Clarity), Light (Highlight, Shadow, etc.).
     *   *Mechanism:* Halide kernel on Metal GPU.
 
-2.  **Stage 2: Hybrid / CPU Post-Processing** (~10ms - 800ms)
-    *   *Mechanism:* OpenCV on CPU (Applied sequentially).
+2.  **Stage 2: Hybrid / CPU Post-Processing**
+    *   *Mechanism:* Self Implementation or OpenCV on CPU (Applied sequentially).
     *   **Denoise:** (Bilateral Filter) - *Heavy operation!* Only applied if `state.denoise > 0`. (>1s)
     *   **Geometry:** Crop -> Resize -> Flip -> Rotate.
     *   **Note:** Rotate is the most expensive geometry operation.
@@ -140,7 +140,7 @@ You can switch the engine between **CPU (Sequential)** and **GPU (Fused AOT)** m
 // Switch to CPU
 m_controller.getPipeline().setFusionMode(false);
 
-// Switch to GPU (Default)
+// Switch to GPU
 m_controller.getPipeline().setFusionMode(true);
 ```
 

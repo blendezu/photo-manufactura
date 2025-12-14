@@ -9,6 +9,7 @@
 #include <opencv2/core/mat.hpp>
 #include <vector>
 
+#include "../../core/halide_build_graph.h"
 #include "color_space.h"
 #include "halide_color_space.h"
 #include "halide_image_utils.h"

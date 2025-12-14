@@ -87,7 +87,15 @@ cv::Mat ImageController::process() {
     } else {
         // Fallback for float or other types?
         // Ideally should not happen in this pipeline context, or handle float.
-        src.convertTo(processingSrc, CV_16U, 65535.0);  // Assume float 0..1
+        // Convert to 16-bit for processing
+        src.convertTo(processingSrc, CV_16U);
+    }
+
+    // Ensure 3 Channels for AOT Pipeline (it assumes Color)
+    if (processingSrc.channels() == 1) {
+        cv::cvtColor(processingSrc, processingSrc, cv::COLOR_GRAY2BGR);
+    } else if (processingSrc.channels() == 4) {
+        cv::cvtColor(processingSrc, processingSrc, cv::COLOR_BGRA2BGR);
     }
 
     // 1. Calculate Stats (Min/Max Luminance) for Dynamic Ranges
@@ -163,9 +171,11 @@ cv::Mat ImageController::process() {
     float wb_red = 1.0f + (m_currentState.temp / 200.0f);
     float wb_blue = 1.0f - (m_currentState.temp / 200.0f);
 
-    // Detail
-    float sharpen_amt = m_currentState.sharpen;
-    float clarity_amt = m_currentState.clarity;
+    // Detail - Scale factors to match JIT logic (sharpen.cpp / clarity.cpp)
+    // Sharpen JIT: strength / 50.0f
+    // Clarity JIT: strength / 100.0f
+    float sharpen_amt = m_currentState.sharpen / 50.0f;
+    float clarity_amt = m_currentState.clarity / 100.0f;
 
     // 3. Prepare Buffers (Planar BGR)
     // Generator expects BGR planar input as 16-bit (uint16_t).
@@ -312,24 +322,44 @@ void ImageController::rebuildPipeline(const ImageState& state) {
     // 2. Exposure / Tone Mapping (Highlight, Shadow, Whites, Blacks)
     // 3. Contrast
     // 4. Color (Saturation, Vibrance)
+    // 4. Color (Saturation, Vibrance)
     // 5. Geometry (Crop, Rotate, Flip)
 
-    // 1. White Balance
-    if (std::abs(state.temp) > 0.001f || std::abs(state.tint) > 0.001f) {
-        // Map Temp (Kelvin shift) and Tint to WhiteBalance parameters
-        // Note: WhiteBalance class constructor might take different args, verify signature.
-        m_pipeline.addOperation(std::make_shared<WhiteBalance>(state.temp));
+    // --- GEOMETRY FIRST (CPU OPTIMIZATION) ---
+    // If we crop first, all subsequent ops process fewer pixels!
+    if (!state.cropRect.empty()) {
+        m_pipeline.addOperation(std::make_shared<Crop>(state.cropRect));
     }
 
-    // 2. Exposure & Tone
+    // =========================================================================
+    // 1. RGB Block (Match AOT Order: Exposure -> WB -> Tint)
+    // =========================================================================
+
+    // 1.1 Exposure
     if (std::abs(state.exposure) > 0.001f) {
         m_pipeline.addOperation(std::make_shared<AdjustExposure>(state.exposure));
     }
 
+    // 1.2 White Balance
+    if (std::abs(state.temp) > 0.001f || std::abs(state.tint) > 0.001f) {
+        m_pipeline.addOperation(std::make_shared<WhiteBalance>(state.temp));
+    }
+
+    // 1.3 Tint Magenta
+    if (std::abs(state.tintMagenta) > 0.001f) {
+        m_pipeline.addOperation(std::make_shared<TintMagenta>(state.tintMagenta));
+    }
+
+    // =========================================================================
+    // 2. HSL Block (Tone & Color)
+    // =========================================================================
+
+    // 2.1 Brightness
     if (std::abs(state.brightness) > 0.001f) {
         m_pipeline.addOperation(std::make_shared<AdjustBrightness>(state.brightness));
     }
 
+    // 2.2 Tone Mapping (Highlight, Shadow, White, Black)
     if (std::abs(state.highlight) > 0.001f) {
         m_pipeline.addOperation(std::make_shared<AdjustHighlight>(state.highlight));
     }
@@ -346,24 +376,18 @@ void ImageController::rebuildPipeline(const ImageState& state) {
         m_pipeline.addOperation(std::make_shared<AdjustBlack>(state.black));
     }
 
-    // 3. Contrast
-    // Contrast usually centers around 0.
+    // 2.3 Contrast
     if (std::abs(state.contrast) > 0.001f) {
         m_pipeline.addOperation(std::make_shared<AdjustContrast>(state.contrast));
     }
 
-    // 4. Color
-    // Saturation is also a slider centered around 0 (-100..100).
+    // 2.4 Color (Saturation, Vibrance)
     if (std::abs(state.saturation) > 0.001f) {
         m_pipeline.addOperation(std::make_shared<AdjustSaturation>(state.saturation));
     }
 
     if (std::abs(state.vibrance) > 0.001f) {
         m_pipeline.addOperation(std::make_shared<AdjustVibrance>(state.vibrance));
-    }
-
-    if (std::abs(state.tintMagenta) > 0.001f) {
-        m_pipeline.addOperation(std::make_shared<TintMagenta>(state.tintMagenta));
     }
 
     // 5. Detail (Sharpen/Clarity usually applied after color/tone)
@@ -376,10 +400,7 @@ void ImageController::rebuildPipeline(const ImageState& state) {
     }
 
     // 6. Geometry (Applied last in stack, so they sample from the processed image)
-
-    if (!state.cropRect.empty()) {
-        m_pipeline.addOperation(std::make_shared<Crop>(state.cropRect));
-    }
+    // Crop moved to start for performance!
 
     if (std::abs(state.rotation) > 0.001f) {
         // Rotate needs an ROI. Use cropRect if present, else full image?

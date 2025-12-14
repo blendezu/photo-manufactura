@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <opencv2/core/mat.hpp>
 
+#include "../../core/halide_build_graph.h"
+
 void TintMagenta::prepareParameters(const cv::Mat& srcImg) {
     // --- Path A. Gray Image ---
     if (srcImg.channels() == 1) {
@@ -24,26 +26,17 @@ void TintMagenta::prepareParameters(const cv::Mat& srcImg) {
 
 Halide::Func TintMagenta::buildGraph(Halide::Func srcImg, Halide::Var x, Halide::Var y,
                                      Halide::Var c) {
+    (void)x;
+    (void)y;
+    (void)c;
     // --- Path A. Gray Image ---
     if (srcImg.dimensions() == 2) {
         return srcImg;
     }
 
     // --- Path B. Color Image ---
-    // 1. Extract BGR Values and cast them to float
-    Halide::Expr B = Halide::cast<float>(srcImg(x, y, 0));
-    Halide::Expr currG = Halide::cast<float>(srcImg(x, y, 1));
-    Halide::Expr R = Halide::cast<float>(srcImg(x, y, 2));
-
-    // 2. Calculate new Green Values
-    Halide::Expr newG = currG * p_timaFactor;
-
-    // 3. Channel Selection
-    Halide::Expr val = Halide::select(c == 0, B, Halide::select(c == 1, newG, R));
-
-    // 4. Assign the new Values to Destination Image
-    Halide::Func dstImg("tint_magenta_color_image");
-    dstImg(x, y, c) = val;
+    // Use Shared Logic
+    Halide::Func dstImg = HalideBuildGraph::apply_tint(srcImg, p_timaFactor);
 
     return dstImg;
 }

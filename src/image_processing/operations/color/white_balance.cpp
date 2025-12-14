@@ -5,6 +5,8 @@
 
 #include <opencv2/core/mat.hpp>
 
+#include "../../core/halide_build_graph.h"
+
 void WhiteBalance::prepareParameters(const cv::Mat& srcImg) {
     // --- Path A. Gray Image ---
     if (srcImg.channels() == 1) {
@@ -21,27 +23,18 @@ void WhiteBalance::prepareParameters(const cv::Mat& srcImg) {
 
 Halide::Func WhiteBalance::buildGraph(Halide::Func srcImg, Halide::Var x, Halide::Var y,
                                       Halide::Var c) {
+    (void)x;
+    (void)y;
+    (void)c;
     // --- Path A. Gray Image ---
     if (srcImg.dimensions() == 2) {
         return srcImg;
     }
 
     // --- Path B. Color Image ---
-    // 1. Extract BGR Values and cast to float
-    Halide::Expr B = Halide::cast<float>(srcImg(x, y, 0));
-    Halide::Expr G = Halide::cast<float>(srcImg(x, y, 1));
-    Halide::Expr R = Halide::cast<float>(srcImg(x, y, 2));
-
-    // 2. Calculate new R and B Values
-    Halide::Expr newR = R * p_changeFactorR;
-    Halide::Expr newB = B * p_changeFactorB;
-
-    // 3. Channel Selection
-    Halide::Expr val = Halide::select(c == 0, newB, Halide::select(c == 1, G, newR));
-
-    // 4. Assign new Values to Destination Image
-    Halide::Func dstImg("white_balance_color_image");
-    dstImg(x, y, c) = val;
+    // Use Shared Logic
+    Halide::Func dstImg =
+        HalideBuildGraph::apply_white_balance(srcImg, p_changeFactorR, p_changeFactorB);
 
     return dstImg;
 }

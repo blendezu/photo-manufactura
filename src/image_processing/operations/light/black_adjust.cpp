@@ -9,9 +9,9 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
+#include "../../core/halide_build_graph.h"
 #include "color_space.h"
 #include "halide_color_space.h"
-#include "halide_image_utils.h"
 #include "image_utils.h"
 
 void AdjustBlack::prepareParameters(const cv::Mat& srcImg) {
@@ -73,15 +73,9 @@ Halide::Func AdjustBlack::buildGraph(Halide::Func srcImg, Halide::Var x, Halide:
         // 1. Extract the current Value and normalize it
         Halide::Expr currVal = srcImg(x, y) * invMaxRange;
 
-        // 2. Calculate the weight
-        Halide::Expr weight =
-            HalideImageUtils::calculateDarkWeight(currVal, p_lowerPoint, p_upperPoint);
-
-        // 3. Calculate the delta Value
-        Halide::Expr deltaVal = weight * p_blackFactor;
-
-        // 4. Calculate the new Value and clamp it
-        Halide::Expr newVal = Halide::clamp(deltaVal + currVal, 0.0f, 1.0f);
+        // 2. Calculate the new Value using Shared Logic
+        Halide::Expr newVal =
+            HalideBuildGraph::apply_black_L(currVal, p_blackFactor, p_lowerPoint, p_upperPoint);
 
         // 5. Denormalize the new Value and assign ist to Destination Image
         Halide::Func dstImg("black_adjust_gray_image");
@@ -102,14 +96,9 @@ Halide::Func AdjustBlack::buildGraph(Halide::Func srcImg, Halide::Var x, Halide:
     Halide::Expr S = hslImg[1];
     Halide::Expr currL = hslImg[2];
 
-    // 3. Calculate the weight
-    Halide::Expr weight = HalideImageUtils::calculateDarkWeight(currL, p_lowerPoint, p_upperPoint);
-
-    // 4. Calculate the delta Luminance Value
-    Halide::Expr deltaL = weight * p_blackFactor;
-
-    // 5. Calculate the new Luminace Value and clamp it
-    Halide::Expr newL = Halide::clamp(currL + deltaL, 0.0f, 1.0f);
+    // 3. Calculate the new Luminace Value using Shared Logic
+    Halide::Expr newL =
+        HalideBuildGraph::apply_black_L(currL, p_blackFactor, p_lowerPoint, p_upperPoint);
 
     // 6. Convert back to BGR
     std::vector<Halide::Expr> bgrImg = HalideColorSpace::HSL2BGR(H, S, newL);

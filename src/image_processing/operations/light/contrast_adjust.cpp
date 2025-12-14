@@ -9,9 +9,9 @@
 #include <opencv2/core/saturate.hpp>
 #include <vector>
 
+#include "../../core/halide_build_graph.h"
 #include "color_space.h"
 #include "halide_color_space.h"
-#include "image_algorithms.h"
 
 // --- Determine the max Range of the Source Image ---
 void AdjustContrast::prepareParameters(const cv::Mat& srcImg) {
@@ -67,7 +67,7 @@ Halide::Func AdjustContrast::buildGraph(Halide::Func srcImg, Halide::Var x, Hali
     Halide::Expr currL = hslImg[2];
 
     // 5. Calculate new Luminance Value
-    Halide::Expr newL = ImageAlgorithms::apply_contrast(currL, p_contrastFactor);
+    Halide::Expr newL = HalideBuildGraph::apply_contrast_L(currL, p_contrastFactor);
 
     // 6. Convert back to BGR
     std::vector<Halide::Expr> bgrImg = HalideColorSpace::HSL2BGR(H, S, newL);
