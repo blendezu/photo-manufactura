@@ -8,12 +8,16 @@
 /**
  * @brief The Data Model for the GUI.
  * This struct contains ALL parameters that the user can change via sliders or buttons.
- * It represents the "Single Source of Truth" for the image look.
+ * It represents the "Single Source of Truth" for the image look. "Single Source of Truth" is a
+ * design principle that states that there should be a single source of truth for the state of the
+ * system. In this case, the ImageState struct is the single source of truth for the image look.
+ * In CPU Mode, if a slider is used (the value is not zero), this operation is added to the
+ * pipeline, if zero, it will be removed.
  */
 struct ImageState {
     // --- Light ---
-    float exposure = 0.0f;    // Range: -5.0 to +5.0 (approx)
-    float contrast = 1.0f;    // Range: 0.0 to 2.0 (1.0 = neutral)
+    float exposure = 0.0f;    // Range: -5.0 to +5.0
+    float contrast = 0.0f;    // Range: -100 to +100
     float highlight = 0.0f;   // Range: -100 to +100
     float shadow = 0.0f;      // Range: -100 to +100
     float white = 0.0f;       // Range: -100 to +100
@@ -21,27 +25,24 @@ struct ImageState {
     float brightness = 0.0f;  // Range: -100 to +100
 
     // --- Color ---
-    float saturation = 1.0f;   // Range: 0.0 to 2.0 (1.0 = neutral)
+    float saturation = 0.0f;   // Range: -100 to +100
     float vibrance = 0.0f;     // Range: -100 to +100
-    float temp = 0.0f;         // Range: -100 to +100 (Kelvin shift)
+    float temp = 0.0f;         // Range: -100 to +100
     float tint = 0.0f;         // Range: -100 to +100
-    float tintMagenta = 0.0f;  // Range: -100 to +100 (Specific magenta tint)
+    float tintMagenta = 0.0f;  // Range: -100 to +100
 
     // --- Detail ---
-    float sharpen = 0.0f;  // Range: 0.0 to 100.0
-    float clarity = 0.0f;  // Range: 0.0 to 100.0
-    float denoise = 0.0f;  // Range: 0.0 to 100.0 (Blend factor)
+    float sharpen = 0.0f;  // Range: -100 to +100
+    float clarity = 0.0f;  // Range: -100 to +100
+    float denoise = 0.0f;  // Range: -100 to +100
 
     // --- Geometry ---
-    float rotation = 0.0f;     // Degrees
+    float rotation = 0.0f;     // Degrees, Range: -180 to +180
     int flip = -1;             // -1 = None, 0 = Vertical, 1 = Horizontal
     int resizeWidth = 0;       // 0 = Keep Original
     int resizeHeight = 0;      // 0 = Keep Original (if both 0)
     float resizeRatio = 0.0f;  // 0.0 = Use Width/Height. >0 = Use Height * Ratio
     cv::Rect cropRect;         // Empty = No crop
-
-    // --- System / Meta ---
-    bool enableBeforeAfter = false;  // Example for UI features
 };
 
 /**
@@ -57,17 +58,16 @@ class ImageController {
     ImageController();
     ~ImageController();
 
-    // Setup
-    void loadImage(const cv::Mat& result);
+    // Set the Image in the Pipeline
     void setImage(const cv::Mat& img);
 
-    // Main Interaction
+    // Update the ImageState and rebuild the Pipeline
     void update(const ImageState& state);
 
-    // Execution
+    // Process the Image
     cv::Mat process();
 
-    // Getters for specific UI needs (e.g. Histogram)
+    // Getters for specific UI needs
     ImagePipeline& getPipeline() {
         return m_pipeline;
     }
@@ -79,10 +79,9 @@ class ImageController {
     // Stats Cache (to avoid recalculating on every process() call)
     float m_cachedMinL = 0.0f;
     float m_cachedMaxL = 1.0f;
-    // float m_lastExposure = 0.0f;
     bool m_statsValid = false;
 
-    // Helper to rebuild JIT pipeline from state
+    // Helper to rebuild CPU pipeline from state
     void rebuildPipeline(const ImageState& state);
 };
 
