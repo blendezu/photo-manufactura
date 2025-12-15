@@ -36,6 +36,10 @@ struct ImageState {
     float clarity = 0.0f;  // Range: -100 to +100
     float denoise = 0.0f;  // Range: -100 to +100
 
+    // --- Effects ---
+    bool isMonochrome = false;
+    bool isVintage = false;
+
     // --- Geometry ---
     float rotation = 0.0f;     // Degrees, Range: -180 to +180
     int flip = -1;             // -1 = None, 0 = Vertical, 1 = Horizontal
