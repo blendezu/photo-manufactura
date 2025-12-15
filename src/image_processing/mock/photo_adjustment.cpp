@@ -1,7 +1,5 @@
 #include "photo_adjustment.h"
 
-#include <iostream>
-
 #include "HalideRuntime.h"
 
 extern "C" {

@@ -16,6 +16,8 @@ class Clarity : public HalideOperation {
     Halide::Param<int> p_height;
 
    public:
+    static float constexpr CLARITY_SCALING_FACTOR = 100.0f;
+
     explicit Clarity(int value);
 
     cv::Mat apply(const cv::Mat& srcImg) override;

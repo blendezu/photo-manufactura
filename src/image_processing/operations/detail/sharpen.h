@@ -10,6 +10,8 @@ class Sharpen : public HalideOperation {
     Halide::Param<int> p_height;
 
    public:
+    static float constexpr SHARPEN_SCALING_FACTOR = 50.0f;
+
     Sharpen(int value);
 
     cv::Mat apply(const cv::Mat& srcImg) override;

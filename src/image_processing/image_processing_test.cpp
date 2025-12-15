@@ -15,6 +15,7 @@
 #include "color/white_balance.h"
 #include "color_space.h"
 #include "core/image_pipeline.h"
+#include "denoise/denoise.h"
 #include "detail/clarity.h"
 #include "detail/sharpen.h"
 #include "effects/gray_image.h"
@@ -127,12 +128,12 @@ int main() {
                 // 1. RGB Block
                 pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
                 pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
-                pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
+                pipeline.addOperation(std::make_shared<TintMagenta>(1));        // 3. TintMagenta
 
                 // 2. HSL Block
-                pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
+                pipeline.addOperation(std::make_shared<AdjustBrightness>(40));  // 4. Brightness
                 pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
-                pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
+                pipeline.addOperation(std::make_shared<AdjustShadow>(50));      // 6. Shadow
                 pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White
                 pipeline.addOperation(std::make_shared<AdjustBlack>(20));       // 8. Black
                 pipeline.addOperation(std::make_shared<AdjustContrast>(20));    // 9. Contrast
@@ -144,8 +145,10 @@ int main() {
                 pipeline.addOperation(std::make_shared<Clarity>(20));  // 13. Clarity
 
                 // Geometry Operations (must match AOT test for fair comparison)
-                // cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
-                // pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
+                cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
+                pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
+
+                pipeline.addOperation(std::make_shared<Denoise>(100));
 
                 // cv::Rect roi2 = cv::Rect(0, 0, testImage.cols, testImage.rows);
                 // pipeline.addOperation(std::make_shared<Rotate>(10, roi2));  // 14. Rotate
@@ -159,17 +162,14 @@ int main() {
             } else if (key == 97) {  // Taste 'a' (AOT Test)
                 std::cout << "🚀 Running AOT Pipeline..." << std::endl;
 
-                cv::Mat inputMat = currentResult.clone();
-                // Ensure 3 channels
-                if (inputMat.channels() != 3) {
-                    cv::cvtColor(inputMat, inputMat, cv::COLOR_GRAY2BGR);
-                }
+                cv::Mat inputMat = testImage.clone();
 
                 // 4. AOT Pipeline über Controller testen (Wie GUI)
                 std::cout << "🚀 Running AOT Pipeline via Controller..." << std::endl;
 
                 ImageController controller;
-                controller.setImage(currentResult);  // oder inputMat?
+                controller.getPipeline().setFusionMode(true);
+                controller.setImage(inputMat);
 
                 // State (Slider-Werte) setzen
                 ImageState state;
@@ -196,7 +196,7 @@ int main() {
                 // state.flip = 1;
 
                 // Test fast path (denoise = 0) vs slow path (denoise > 0)
-                // state.denoise = 0.0f;
+                // state.denoise = 20.0f;
                 // state.resizeHeight = 3000.0f;
                 // state.resizeWidth = 3000.0f;
 
@@ -231,8 +231,8 @@ int main() {
                     auto aot_end = std::chrono::high_resolution_clock::now();
                     auto aot_duration =
                         std::chrono::duration_cast<std::chrono::milliseconds>(aot_end - aot_start);
-                    std::cout << "Time for processing: " << aot_duration.count() / AOT_ITERATIONS
-                              << " ms" << std::endl;
+                    std::cout << "Time for AOT processing: "
+                              << aot_duration.count() / AOT_ITERATIONS << " ms" << std::endl;
 
                 } else {
                     std::cerr << "❌ AOT Pipeline Failed (Empty Result)" << std::endl;
