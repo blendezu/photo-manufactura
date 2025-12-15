@@ -19,6 +19,10 @@
 #include "../operations/color/vibrance_adjust.h"
 #include "../operations/color/white_balance.h"
 
+// Effects
+#include "../operations/effects/gray_image.h"
+#include "../operations/effects/vintage1.h"
+
 // Geometry
 #include "../operations/denoise/denoise.h"
 #include "../operations/geometry/crop.h"
@@ -243,6 +247,17 @@ cv::Mat ImageController::process() {
         finalImg = cropOp.apply(finalImg);
     }
 
+    // Effects (Vintage -> Monochrome)
+    if (m_currentState.isVintage) {
+        Vintage1 vintageOp;
+        finalImg = vintageOp.apply(finalImg);
+    }
+
+    if (m_currentState.isMonochrome) {
+        GrayImage grayOp;
+        finalImg = grayOp.apply(finalImg);
+    }
+
     // Denoise
     if (std::abs(m_currentState.denoise) > 0.001f) {
         Denoise denoiseOp(static_cast<int>(m_currentState.denoise));
@@ -324,6 +339,15 @@ void ImageController::rebuildPipeline(const ImageState& state) {
     // 1. Crop
     if (!state.cropRect.empty()) {
         m_pipeline.addOperation(std::make_shared<Crop>(state.cropRect));
+    }
+
+    // Effects
+    if (state.isVintage) {
+        m_pipeline.addOperation(std::make_shared<Vintage1>());
+    }
+
+    if (state.isMonochrome) {
+        m_pipeline.addOperation(std::make_shared<GrayImage>());
     }
 
     // =========================================================================
