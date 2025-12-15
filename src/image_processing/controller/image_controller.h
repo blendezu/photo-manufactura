@@ -37,8 +37,7 @@ struct ImageState {
     float denoise = 0.0f;  // Range: -100 to +100
 
     // --- Effects ---
-    bool isMonochrome = false;
-    bool isVintage = false;
+    std::vector<std::string> activeEffects;
 
     // --- Geometry ---
     float rotation = 0.0f;     // Degrees, Range: -180 to +180

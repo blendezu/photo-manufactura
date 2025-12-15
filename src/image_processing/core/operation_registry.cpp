@@ -39,6 +39,14 @@ void OperationRegistry::registerFilter(const std::string& name, OperationFactory
     filtersByCategory[category].push_back(name);
 }
 
+std::shared_ptr<ImageOperation> OperationRegistry::createFilter(const std::string& name) {
+    auto it = factories.find(name);
+    if (it != factories.end()) {
+        return it->second();
+    }
+    return nullptr;
+}
+
 std::vector<std::string> OperationRegistry::getFiltersByCategory(Category category) const {
     auto it = filtersByCategory.find(category);
     if (it != filtersByCategory.end()) {
