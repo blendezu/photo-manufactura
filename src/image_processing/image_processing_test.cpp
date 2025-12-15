@@ -203,6 +203,10 @@ int main() {
                 // state.rotation = 10.0f;
                 // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
 
+                // Enable Effects (Dynamic via Registry)
+                // state.activeEffects.push_back("Vintage 1");
+                // state.activeEffects.push_back("Gray Image");
+
                 // --- COLD START - AOT ---
                 auto aot_cold_start = std::chrono::high_resolution_clock::now();
 
