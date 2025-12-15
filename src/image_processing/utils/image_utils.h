@@ -87,7 +87,7 @@ class ImageUtils {
                         uchar white = 250;
                         dstPtr[x] = T(white, white, white);
                     } else {
-                        ushort white = 65000;
+                        ushort white = 64000;
                         dstPtr[x] = T(white, white, white);
                     }
                 }
