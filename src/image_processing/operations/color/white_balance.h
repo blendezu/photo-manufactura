@@ -15,13 +15,14 @@ class WhiteBalance : public HalideOperation {
     int m_temp;
 
     // --- Constant Parameters ---
-    static float constexpr WHITE_BALANCE_FACTOR = 200.0f;
 
     // --- Halide Runtime Parameters ---
     Halide::Param<float> p_changeFactorR{"changeFactorR"};
     Halide::Param<float> p_changeFactorB{"changeFactorB"};
 
    public:
+    static float constexpr WHITE_BALANCE_FACTOR = 200.0f;
+
     WhiteBalance(int value) : m_temp(value) {
         p_changeFactorR.set(0.0f);
         p_changeFactorB.set(0.0f);

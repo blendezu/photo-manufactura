@@ -13,8 +13,8 @@ cv::Mat Sharpen::apply(const cv::Mat& srcImg) {
         return srcImg.clone();
 
     // Unsharp mask: Original + (Original - Blurred) * Amount
-    float amount = static_cast<float>(m_strength) / 50.0f;  // Scale 100 -> 2.0
-    float sigma = 1.0f;                                     // Typical small radius for Sharpen
+    float amount = static_cast<float>(m_strength) / SHARPEN_SCALING_FACTOR;
+    float sigma = 1.0f;  // Typical small radius for Sharpen
 
     cv::Mat blurred;
     GaussianFilter::applyCPU(srcImg, blurred, sigma);
@@ -25,7 +25,7 @@ cv::Mat Sharpen::apply(const cv::Mat& srcImg) {
 }
 
 void Sharpen::prepareParameters(const cv::Mat& srcImg) {
-    float amount = static_cast<float>(m_strength) / 50.0f;
+    float amount = static_cast<float>(m_strength) / SHARPEN_SCALING_FACTOR;
     p_amount.set(amount);
     p_width.set(srcImg.cols);
     p_height.set(srcImg.rows);

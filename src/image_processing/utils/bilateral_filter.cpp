@@ -1,13 +1,21 @@
 #include "bilateral_filter.h"
 
-#include <cmath>
 #include <opencv2/imgproc.hpp>
 
 void BilateralFilter::applyCPU(const cv::Mat& src, cv::Mat& dst, int d, double sigmaColor,
                                double sigmaSpace) {
-    if (src.empty())
+    if (src.empty()) {
         return;
-    cv::bilateralFilter(src, dst, d, sigmaColor, sigmaSpace);
+    }
+
+    if (src.depth() == CV_16U) {
+        cv::Mat srcFloat;
+        src.convertTo(srcFloat, CV_32F);
+        cv::bilateralFilter(srcFloat, dst, d, sigmaColor, sigmaSpace);
+        dst.convertTo(dst, CV_16U);
+    } else {
+        cv::bilateralFilter(src, dst, d, sigmaColor, sigmaSpace);
+    }
 }
 
 Halide::Func BilateralFilter::createHalideGraph(Halide::Func input, Halide::Expr sigmaSpatial,

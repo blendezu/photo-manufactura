@@ -1,8 +1,6 @@
 #ifndef HALIDE_photo_adjustment_H
 #define HALIDE_photo_adjustment_H
 
-#include <stdint.h>
-
 struct halide_buffer_t;
 
 #ifdef __cplusplus

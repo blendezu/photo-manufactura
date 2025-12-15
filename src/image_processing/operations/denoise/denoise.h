@@ -24,7 +24,7 @@ class Denoise : public HalideOperation {
     cv::Mat apply(const cv::Mat& srcImg) override;
 
     std::string getName() const override {
-        return "Noise reduction\n";
+        return "Noise reduction";
     }
 
     std::string getSettings() const override {

@@ -15,7 +15,7 @@ cv::Mat Clarity::apply(const cv::Mat& srcImg) {
     // Clarity = Large Radius Unsharp Mask
     // Use radius proportional to image size or fixed large?
     // Let's use flexible sigma ~ 30.0 for typical Clarity 'punch'.
-    float amount = static_cast<float>(m_strength) / 100.0f;  // Scale 100 -> 1.0
+    float amount = static_cast<float>(m_strength) / CLARITY_SCALING_FACTOR;
     float sigma = 30.0f;
 
     cv::Mat blurred;
@@ -29,7 +29,7 @@ cv::Mat Clarity::apply(const cv::Mat& srcImg) {
 }
 
 void Clarity::prepareParameters(const cv::Mat& srcImg) {
-    float amount = static_cast<float>(m_strength) / 100.0f;
+    float amount = static_cast<float>(m_strength) / CLARITY_SCALING_FACTOR;
     p_amount.set(amount);
     p_width.set(srcImg.cols);
     p_height.set(srcImg.rows);
