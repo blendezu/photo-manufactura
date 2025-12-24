@@ -2,5 +2,18 @@
     <qresource prefix="/">
         <file>styles/dark_theme.qss</file>
         <file>styles/light_theme.qss</file>
+        
+        <!-- Icons -->
+        <file>assets/icons/crop.png</file>
+        <file>assets/icons/straighten.png</file>
+        <file>assets/icons/flip_horizontal.png</file>
+        <file>assets/icons/flip_vertical.png</file>
+        <file>assets/icons/rotate_left.png</file>
+        <file>assets/icons/rotate_right.png</file>
+        <file>assets/icons/perspective.png</file>
+        <file>assets/icons/skew.png</file>
+        <file>assets/icons/rect_select.png</file>
+        <file>assets/icons/lasso_select.png</file>
+        <file>assets/icons/resize.png</file>
     </qresource>
 </RCC>
