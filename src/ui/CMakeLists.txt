@@ -82,6 +82,8 @@ set(WIDGET_SOURCES
     widgets/collapsibleWidget.cpp
     widgets/labeledSlider.h
     widgets/labeledSlider.cpp
+    widgets/toolPaletteWidget.h
+    widgets/toolPaletteWidget.cpp
 )
 
 set(CANVAS_SOURCES
