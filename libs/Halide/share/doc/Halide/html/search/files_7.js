@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['halide_5fhexagon_5fremote_2eh_0',['halide_hexagon_remote.h',['../halide__hexagon__remote_8h.html',1,'']]],
+  ['halide_5ftest_5fdirs_2eh_1',['halide_test_dirs.h',['../halide__test__dirs_8h.html',1,'']]],
+  ['halidebuffer_2eh_2',['HalideBuffer.h',['../_halide_buffer_8h.html',1,'']]],
+  ['halidecmakepackage_2emd_3',['HalideCMakePackage.md',['../_halide_c_make_package_8md.html',1,'']]],
+  ['halideplugin_2eh_4',['HalidePlugin.h',['../_halide_plugin_8h.html',1,'']]],
+  ['halidepytorchcudahelpers_2eh_5',['HalidePyTorchCudaHelpers.h',['../_halide_py_torch_cuda_helpers_8h.html',1,'']]],
+  ['halidepytorchhelpers_2eh_6',['HalidePyTorchHelpers.h',['../_halide_py_torch_helpers_8h.html',1,'']]],
+  ['halideruntime_2eh_7',['HalideRuntime.h',['../_halide_runtime_8h.html',1,'']]],
+  ['halideruntimecuda_2eh_8',['HalideRuntimeCuda.h',['../_halide_runtime_cuda_8h.html',1,'']]],
+  ['halideruntimed3d12compute_2eh_9',['HalideRuntimeD3D12Compute.h',['../_halide_runtime_d3_d12_compute_8h.html',1,'']]],
+  ['halideruntimehexagondma_2eh_10',['HalideRuntimeHexagonDma.h',['../_halide_runtime_hexagon_dma_8h.html',1,'']]],
+  ['halideruntimehexagonhost_2eh_11',['HalideRuntimeHexagonHost.h',['../_halide_runtime_hexagon_host_8h.html',1,'']]],
+  ['halideruntimemetal_2eh_12',['HalideRuntimeMetal.h',['../_halide_runtime_metal_8h.html',1,'']]],
+  ['halideruntimeopencl_2eh_13',['HalideRuntimeOpenCL.h',['../_halide_runtime_open_c_l_8h.html',1,'']]],
+  ['halideruntimequrt_2eh_14',['HalideRuntimeQurt.h',['../_halide_runtime_qurt_8h.html',1,'']]],
+  ['halideruntimevulkan_2eh_15',['HalideRuntimeVulkan.h',['../_halide_runtime_vulkan_8h.html',1,'']]],
+  ['halideruntimewebgpu_2eh_16',['HalideRuntimeWebGPU.h',['../_halide_runtime_web_g_p_u_8h.html',1,'']]],
+  ['hashmap_2eh_17',['hashmap.h',['../hashmap_8h.html',1,'']]],
+  ['hexagon_2emd_18',['Hexagon.md',['../_hexagon_8md.html',1,'']]],
+  ['hexagon_5fdma_5fpool_2eh_19',['hexagon_dma_pool.h',['../hexagon__dma__pool_8h.html',1,'']]],
+  ['hexagonalignment_2eh_20',['HexagonAlignment.h',['../_hexagon_alignment_8h.html',1,'']]],
+  ['hexagonoffload_2eh_21',['HexagonOffload.h',['../_hexagon_offload_8h.html',1,'']]],
+  ['hexagonoptimize_2eh_22',['HexagonOptimize.h',['../_hexagon_optimize_8h.html',1,'']]]
+];

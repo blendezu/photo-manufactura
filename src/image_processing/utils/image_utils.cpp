@@ -182,21 +182,19 @@ cv::Mat ImageUtils::setVintageWarm(const cv::Mat& srcImg) {
     }
 }
 
-// cv::Mat ImageUtils::copyMakeBorder(const cv::Mat& srcImg, int borderSize) {
-//     if (srcImg.empty()) {
-//         std::cerr << "Error in copyMakeBorder: empty input image\n";
-//         return cv::Mat();
-//     }
-// }
+cv::Mat ImageUtils::createThumbnail(const cv::Mat& srcImg, int targetSize) {
+    if (srcImg.empty()) {
+        std::cout << "[createThumbnail] ❌ Error: The input image is empty\n";
+        return cv::Mat();
+    }
 
-// cv::Mat ImageUtils::gaussianBlur(const cv::Mat& srcImg, int kernelSize, double sigma) {
-//     if (srcImg.empty()) {
-//         std::cerr << "Error in gaussianBlur: empty input image\n";
-//         return cv::Mat();
-//     }
+    // Check if the image is alrealy smaller than targetSize
+    if (srcImg.rows <= targetSize && srcImg.cols <= targetSize) {
+        return srcImg.clone();
+    }
 
-//     if (kernelSize % 2 == 0) {
-//         std::cerr << "Error in gaussianBlur: the kernel size need to be odd\n";
-//         return cv::Mat();
-//     }
-// }
+    cv::Mat dstImg;
+    cv::resize(srcImg, dstImg, cv::Size(targetSize, targetSize), 0, 0, cv::INTER_AREA);
+
+    return dstImg;
+}

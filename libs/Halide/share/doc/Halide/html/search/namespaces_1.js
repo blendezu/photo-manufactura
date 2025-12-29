@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['halide_0',['Halide',['../namespace_halide.html',1,'']]],
+  ['halide_3a_3aboundaryconditions_1',['BoundaryConditions',['../namespace_halide_1_1_boundary_conditions.html',1,'Halide']]],
+  ['halide_3a_3aboundaryconditions_3a_3ainternal_2',['Internal',['../namespace_halide_1_1_boundary_conditions_1_1_internal.html',1,'Halide::BoundaryConditions']]],
+  ['halide_3a_3aconcisecasts_3',['ConciseCasts',['../namespace_halide_1_1_concise_casts.html',1,'Halide']]],
+  ['halide_3a_3ainternal_4',['Internal',['../namespace_halide_1_1_internal.html',1,'Halide']]],
+  ['halide_3a_3ainternal_3a_3aautoscheduler_5',['Autoscheduler',['../namespace_halide_1_1_internal_1_1_autoscheduler.html',1,'Halide::Internal']]],
+  ['halide_3a_3ainternal_3a_3aelf_6',['Elf',['../namespace_halide_1_1_internal_1_1_elf.html',1,'Halide::Internal']]],
+  ['halide_3a_3ainternal_3a_3ageneratorminmax_7',['GeneratorMinMax',['../namespace_halide_1_1_internal_1_1_generator_min_max.html',1,'Halide::Internal']]],
+  ['halide_3a_3ainternal_3a_3aintegerdivision_8',['IntegerDivision',['../namespace_halide_1_1_internal_1_1_integer_division.html',1,'Halide::Internal']]],
+  ['halide_3a_3ainternal_3a_3airmatcher_9',['IRMatcher',['../namespace_halide_1_1_internal_1_1_i_r_matcher.html',1,'Halide::Internal']]],
+  ['halide_3a_3ainternal_3a_3atest_10',['Test',['../namespace_halide_1_1_internal_1_1_test.html',1,'Halide::Internal']]],
+  ['halide_3a_3apythonbindings_11',['PythonBindings',['../namespace_halide_1_1_python_bindings.html',1,'Halide']]],
+  ['halide_3a_3apytorch_12',['PyTorch',['../namespace_halide_1_1_py_torch.html',1,'Halide']]],
+  ['halide_3a_3aruntime_13',['Runtime',['../namespace_halide_1_1_runtime.html',1,'Halide']]],
+  ['halide_3a_3aruntime_3a_3ainternal_14',['Internal',['../namespace_halide_1_1_runtime_1_1_internal.html',1,'Halide::Runtime']]],
+  ['halide_3a_3aruntime_3a_3ainternal_3a_3aconstants_15',['Constants',['../namespace_halide_1_1_runtime_1_1_internal_1_1_constants.html',1,'Halide::Runtime::Internal']]],
+  ['halide_3a_3aruntime_3a_3ainternal_3a_3acuda_16',['Cuda',['../namespace_halide_1_1_runtime_1_1_internal_1_1_cuda.html',1,'Halide::Runtime::Internal']]],
+  ['halide_3a_3aruntime_3a_3ainternal_3a_3ametal_17',['Metal',['../namespace_halide_1_1_runtime_1_1_internal_1_1_metal.html',1,'Halide::Runtime::Internal']]],
+  ['halide_3a_3aruntime_3a_3ainternal_3a_3aqurt_18',['Qurt',['../namespace_halide_1_1_runtime_1_1_internal_1_1_qurt.html',1,'Halide::Runtime::Internal']]],
+  ['halide_3a_3aruntime_3a_3ainternal_3a_3asynchronization_19',['Synchronization',['../namespace_halide_1_1_runtime_1_1_internal_1_1_synchronization.html',1,'Halide::Runtime::Internal']]],
+  ['halide_3a_3aruntime_3a_3ainternal_3a_3avulkan_20',['Vulkan',['../namespace_halide_1_1_runtime_1_1_internal_1_1_vulkan.html',1,'Halide::Runtime::Internal']]],
+  ['halide_5fregister_5fgenerator_21',['halide_register_generator',['../namespacehalide__register__generator.html',1,'']]]
+];

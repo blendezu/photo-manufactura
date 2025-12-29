@@ -12,7 +12,6 @@
 #include "image_utils.h"
 
 cv::Mat Vintage1::apply(const cv::Mat& srcImg) {
-    auto start = std::chrono::high_resolution_clock::now();
     if (srcImg.empty()) {
         std::cerr << "Error in Vintage1: empty input image\n";
         return cv::Mat();
@@ -29,9 +28,6 @@ cv::Mat Vintage1::apply(const cv::Mat& srcImg) {
     // if color image, make it warm
     if (srcImg.channels() == 3) {
         cv::Mat warmImg = ImageUtils::setVintageWarm(blendedImg);
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "load img Time: " << duration.count() << " ms" << std::endl;
         return warmImg;
     } else {
         return blendedImg;
