@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
         // Bild anzeigen
         cv::imshow("RAW Bild - 16-bit zu 8-bit konvertiert", img8);
 
-        std::cout << "Drücken Sie eine Taste um das Fenster zu schließen..." << std::endl;
+        std::cout << "Drücke eine Taste um das Fenster zu schließen..." << std::endl;
         cv::waitKey(0);
 
     } catch (const std::exception& e) {

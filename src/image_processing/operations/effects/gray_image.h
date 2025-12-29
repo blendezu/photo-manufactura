@@ -43,6 +43,7 @@ class GrayImage : public ImageOperation {
                 dstImg.at<D>(y, x) = newVal;
             }
         }
+        cv::cvtColor(dstImg, dstImg, cv::COLOR_GRAY2BGR);
         return dstImg;
     }
 };

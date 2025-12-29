@@ -1,0 +1,27 @@
+var _find_intrinsics_8h =
+[
+    [ "Halide::Internal::lower_widen_right_add", "namespace_halide_1_1_internal.html#a2747e2381aa255e5e68c5da44e80c0f1", null ],
+    [ "Halide::Internal::lower_widen_right_mul", "namespace_halide_1_1_internal.html#a7b1d7552c738220034a57048125449f4", null ],
+    [ "Halide::Internal::lower_widen_right_sub", "namespace_halide_1_1_internal.html#a77ca570db1c9d68fd46c628469b55486", null ],
+    [ "Halide::Internal::lower_widening_add", "namespace_halide_1_1_internal.html#a543f298be9b8105946543dd390b374ff", null ],
+    [ "Halide::Internal::lower_widening_mul", "namespace_halide_1_1_internal.html#ab8ae1b99eee51f16210b3d97effc25bd", null ],
+    [ "Halide::Internal::lower_widening_sub", "namespace_halide_1_1_internal.html#aaac43abd869f41381772e6bb7d2c6e5d", null ],
+    [ "Halide::Internal::lower_widening_shift_left", "namespace_halide_1_1_internal.html#a49839698df68c878972d04abb2f0c2e5", null ],
+    [ "Halide::Internal::lower_widening_shift_right", "namespace_halide_1_1_internal.html#a72390cac65d124349c7e74677aa87167", null ],
+    [ "Halide::Internal::lower_rounding_shift_left", "namespace_halide_1_1_internal.html#ad1e70aeecd9a6473b07d533436feee25", null ],
+    [ "Halide::Internal::lower_rounding_shift_right", "namespace_halide_1_1_internal.html#a8c3c2f27463a8c2007fb94474a7d31e6", null ],
+    [ "Halide::Internal::lower_saturating_add", "namespace_halide_1_1_internal.html#a52903c4a764166671b47c1bee5972657", null ],
+    [ "Halide::Internal::lower_saturating_sub", "namespace_halide_1_1_internal.html#acc65673b59449764669bf6424de17481", null ],
+    [ "Halide::Internal::lower_saturating_cast", "namespace_halide_1_1_internal.html#a665bcbdbb3b2749f1d5b263034c76fd3", null ],
+    [ "Halide::Internal::lower_halving_add", "namespace_halide_1_1_internal.html#a3cb06df309ffae62a414ff80f298064c", null ],
+    [ "Halide::Internal::lower_halving_sub", "namespace_halide_1_1_internal.html#a3ab3fa4ef1d631a29d7440487960a6e1", null ],
+    [ "Halide::Internal::lower_rounding_halving_add", "namespace_halide_1_1_internal.html#a433d347c813cf72a9fff938583a277f0", null ],
+    [ "Halide::Internal::lower_sorted_avg", "namespace_halide_1_1_internal.html#a0cb394d68a7ad936ee9c6653aa493d4e", null ],
+    [ "Halide::Internal::lower_mul_shift_right", "namespace_halide_1_1_internal.html#a34b142cb92430ccaabc491be73e179f1", null ],
+    [ "Halide::Internal::lower_rounding_mul_shift_right", "namespace_halide_1_1_internal.html#ab576461c931a66fd08808afe8c9c4eb8", null ],
+    [ "Halide::Internal::lower_intrinsic", "namespace_halide_1_1_internal.html#ab4767c0dccb944d87678d84e2eae8c7a", null ],
+    [ "Halide::Internal::find_intrinsics", "namespace_halide_1_1_internal.html#ab09931c2014b2d9371646a16e8f70040", null ],
+    [ "Halide::Internal::find_intrinsics", "namespace_halide_1_1_internal.html#ac549d8172be01dcee56b59f1b78801ef", null ],
+    [ "Halide::Internal::lower_intrinsics", "namespace_halide_1_1_internal.html#a771bb6d2ec214f749b0c1b294d5c5a90", null ],
+    [ "Halide::Internal::lower_intrinsics", "namespace_halide_1_1_internal.html#a24a93dc6272bd86b8d10c171d0c1e26d", null ]
+];

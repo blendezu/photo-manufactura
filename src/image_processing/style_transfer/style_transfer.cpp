@@ -10,7 +10,7 @@
 #include <vector>
 
 StyleTransfer::StyleTransfer(StyleType style)
-    : currentStyle(style), env(ORT_LOGGING_LEVEL_WARNING, "StyleTransfer") {
+    : currentStyle(style), env(ORT_LOGGING_LEVEL_ERROR, "StyleTransfer") {
     // Standard-Optionen
     sessionOptions.SetIntraOpNumThreads(1);
     sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_BASIC);
