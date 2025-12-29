@@ -27,6 +27,7 @@
 #include "image_controller.h"
 #include "image_resize.h"
 #include "image_utils.h"
+#include "light/auto_light.h"
 #include "light/black_adjust.h"
 #include "light/brightness_adjust.h"
 #include "light/contrast_adjust.h"
@@ -41,9 +42,9 @@
 int main() {
     try {
         // Bild laden
-        // cv::Mat testImage = cv::imread("images/Baum.jpg");
+        cv::Mat testImage = cv::imread("images/Baum_dark.jpg");
 
-        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
+        // cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
         // cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
 
@@ -69,6 +70,18 @@ int main() {
 
         // Zähler für die Schritte
         int stepCounter = 0;
+
+        AutoLightSettings settings = AutoLight::analyze(pipeline.getImg());
+
+        std::cout << "=== AutoLight Result ===" << std::endl;
+        std::cout << "Exposure:   " << settings.exposure << std::endl;
+        std::cout << "Contrast:   " << settings.contrast << std::endl;
+        std::cout << "Highlight:  " << settings.highlight << std::endl;
+        std::cout << "Shadow:     " << settings.shadow << std::endl;
+        std::cout << "White:      " << settings.white << std::endl;
+        std::cout << "Black:      " << settings.black << std::endl;
+        std::cout << "Brightness: " << settings.brightness << std::endl;
+        std::cout << "========================" << std::endl;
 
         // Hauptloop
         while (true) {
@@ -128,12 +141,12 @@ int main() {
                 // 1. RGB Block
                 pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
                 pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
-                pipeline.addOperation(std::make_shared<TintMagenta>(1));        // 3. TintMagenta
+                pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
 
                 // 2. HSL Block
-                pipeline.addOperation(std::make_shared<AdjustBrightness>(40));  // 4. Brightness
+                pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
                 pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
-                pipeline.addOperation(std::make_shared<AdjustShadow>(50));      // 6. Shadow
+                pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
                 pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White
                 pipeline.addOperation(std::make_shared<AdjustBlack>(20));       // 8. Black
                 pipeline.addOperation(std::make_shared<AdjustContrast>(20));    // 9. Contrast
@@ -145,10 +158,10 @@ int main() {
                 pipeline.addOperation(std::make_shared<Clarity>(20));  // 13. Clarity
 
                 // Geometry Operations (must match AOT test for fair comparison)
-                cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
-                pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
+                // cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
+                // pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
 
-                pipeline.addOperation(std::make_shared<Denoise>(100));
+                // pipeline.addOperation(std::make_shared<Denoise>(100));
 
                 // cv::Rect roi2 = cv::Rect(0, 0, testImage.cols, testImage.rows);
                 // pipeline.addOperation(std::make_shared<Rotate>(10, roi2));  // 14. Rotate
