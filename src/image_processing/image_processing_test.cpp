@@ -42,11 +42,11 @@
 int main() {
     try {
         // Bild laden
-        cv::Mat testImage = cv::imread("images/Baum_dark.jpg");
+        // cv::Mat testImage = cv::imread("images/Baum_dark.jpg");
 
-        // cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
+        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
-        // cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
 
         if (testImage.empty()) {
             std::cerr << "❌ Bild konnte nicht geladen werden!" << std::endl;

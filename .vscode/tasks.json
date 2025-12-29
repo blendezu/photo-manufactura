@@ -347,14 +347,13 @@
             "detail": "Run Tasks component tests"
         },
         {
-            "label": "Build All Components",
-            "dependsOrder": "parallel",
-            "dependsOn": [
-                "Build UI Component",
-                "Build Controller Component",
-                "Build Image Processing Component",
-                "Build Raw Processing Component",
-                "Build Tasks Component"
+            "label": "Build Image Processing Component (Release)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "--preset",
+                "release"
             ],
             "group": "build",
             "options": {
