@@ -11,12 +11,12 @@ Task::Task(int id, TaskPriority priority, QObject* parent)
 
 void Task::run() {
     // Emit started signal
-    emit started(m_id);
+    Q_EMIT started(m_id);
 
     try {
         // Check if already cancelled before starting
         if (isCancelled()) {
-            emit cancelled(m_id);
+            Q_EMIT cancelled(m_id);
             return;
         }
 
@@ -25,22 +25,22 @@ void Task::run() {
 
         // Check if cancelled during execution
         if (isCancelled()) {
-            emit cancelled(m_id);
+            Q_EMIT cancelled(m_id);
             return;
         }
 
         // Task completed successfully
-        emit completed(m_id, m_result);
+        Q_EMIT completed(m_id, m_result);
 
     } catch (const std::exception& e) {
         // Task failed with exception
         qWarning() << "Task" << m_id << "failed:" << e.what();
-        emit failed(m_id, QString::fromUtf8(e.what()));
+        Q_EMIT failed(m_id, QString::fromUtf8(e.what()));
 
     } catch (...) {
         // Unknown exception
         qWarning() << "Task" << m_id << "failed with unknown exception";
-        emit failed(m_id, "Unknown error occurred");
+        Q_EMIT failed(m_id, "Unknown error occurred");
     }
 }
 
@@ -52,7 +52,7 @@ void Task::cancel() {
 void Task::setProgress(int percent) {
     // Clamp to valid range
     int clampedPercent = qBound(0, percent, 100);
-    emit progress(m_id, clampedPercent);
+    Q_EMIT progress(m_id, clampedPercent);
 }
 
 void Task::setResult(const QVariant& result) {
