@@ -44,7 +44,7 @@ int main() {
         // Bild laden
         // cv::Mat testImage = cv::imread("images/Baum_dark.jpg");
 
-        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
+        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon2.cr3");
 
         // cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
 
@@ -187,23 +187,23 @@ int main() {
                 // State (Slider-Werte) setzen
                 ImageState state;
                 // 1. RGB
-                state.exposure = -0.2f;
-                state.temp = 20.0f;
-                state.tintMagenta = 20.0f;
+                state.exposure = -0.2f;     // 1.
+                state.temp = 20.0f;         // 2.
+                state.tintMagenta = 20.0f;  // 3.
 
                 // 2. HSL
-                state.brightness = 20.0f;
-                state.highlight = 20.0f;
-                state.shadow = 20.0f;
-                state.white = 20.0f;
-                state.black = 20.0f;
-                state.contrast = 20.0f;
-                state.saturation = 20.0f;
-                state.vibrance = 20.0f;
+                state.brightness = 20.0f;  // 4.
+                state.highlight = 20.0f;   // 5.
+                state.shadow = 20.0f;      // 6.
+                state.white = 20.0f;       // 7.
+                state.black = 20.0f;       // 8.
+                state.contrast = 20.0f;    // 9.
+                state.saturation = 20.0f;  // 10.
+                state.vibrance = 20.0f;    // 11.
 
                 // 3. Spatial
-                state.sharpen = 20.0f;
-                state.clarity = 20.0f;
+                state.sharpen = 20.0f;  // 12.
+                state.clarity = 20.0f;  // 13.
 
                 // 4. Geometry
                 // state.flip = 1;
