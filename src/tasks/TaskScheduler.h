@@ -124,7 +124,7 @@ class TaskScheduler : public QObject {
      */
     bool waitForAll(int timeoutMs = -1);
 
-   signals:
+   Q_SIGNALS:
     /**
      * @brief Emitted when a task starts execution
      * @param taskId Task ID

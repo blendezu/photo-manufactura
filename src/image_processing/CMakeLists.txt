@@ -175,6 +175,8 @@ target_include_directories(image_processing PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/style_transfer>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/mock>
+    # Local Halide include (before system paths to avoid conflicts)
+    ${HALIDE_INCLUDE_DIR}
     
     $<INSTALL_INTERFACE:include/image_processing>
 )
@@ -182,7 +184,6 @@ target_include_directories(image_processing PUBLIC
 target_include_directories(image_processing SYSTEM PUBLIC
     # --- Externe Libraries Includes ---
     ${ONNXRUNTIME_INCLUDE_DIR}
-    ${HALIDE_INCLUDE_DIR}
 )
 
 if(OpenMP_ROOT)

@@ -48,6 +48,9 @@ target_link_libraries(${PROJECT_NAME}
         image_processing
 )
 
+# Avoid Qt keyword conflicts with Halide (Qt defines 'emit' as a macro)
+target_compile_definitions(${PROJECT_NAME} PRIVATE QT_NO_KEYWORDS)
+
 # Compiler options
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>

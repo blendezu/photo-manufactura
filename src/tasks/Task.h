@@ -84,7 +84,7 @@ class Task : public QObject, public QRunnable {
         return QString("Task #%1").arg(m_id);
     }
 
-   signals:
+   Q_SIGNALS:
     /**
      * @brief Emitted when task starts execution
      * @param taskId Task ID
