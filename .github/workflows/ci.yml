@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /usr/local/Cellar
+          key: ${{ runner.os }}-homebrew-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-homebrew-
+      
+      - name: Install dependencies
+        run: |
+          brew install qt@6 opencv libraw ninja cmake
+          echo "$(brew --prefix qt@6)/bin" >> $GITHUB_PATH
+      
+      - name: Configure CMake
+        run: cmake --preset dev
+      
+      - name: Build
+        run: cmake --build --preset dev
+      
+      - name: Run Tests
+        run: ctest --preset debug --output-on-failure
+        continue-on-error: true
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs-macos
+          path: |
+            build/dev/CMakeFiles/CMakeOutput.log
+            build/dev/CMakeFiles/CMakeError.log
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            qt6-base-dev qt6-base-dev-tools \
+            libqt6opengl6-dev libqt6openglwidgets6 \
+            libopencv-dev \
+            libraw-dev
+      
+      - name: Configure CMake
+        run: cmake --preset dev
+      
+      - name: Build
+        run: cmake --build --preset dev
+      
+      - name: Run Tests
+        run: ctest --preset debug --output-on-failure
+        continue-on-error: true
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs-linux
+          path: |
+            build/dev/CMakeFiles/CMakeOutput.log
+            build/dev/CMakeFiles/CMakeError.log
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check CMake formatting
+        uses: cmake-lint/cmake-lint@v1
+        with:
+          args: --config=.cmake-format.yaml
+        continue-on-error: true
+      
+      - name: Check C++ formatting
+        run: |
+          sudo apt-get install -y clang-format
+          find src -name "*.cpp" -o -name "*.h" | head -20 | xargs clang-format --dry-run --Werror
+        continue-on-error: true
+
+  version-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Verify version consistency
+        run: |
+          VERSION_FILE=$(cat VERSION | tr -d '[:space:]')
+          CMAKE_VERSION=$(grep -oP 'VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt | head -1)
+          
+          echo "VERSION file: $VERSION_FILE"
+          echo "CMakeLists.txt: $CMAKE_VERSION"
+          
+          if [ "$VERSION_FILE" != "$CMAKE_VERSION" ]; then
+            echo "❌ Version mismatch! Please update VERSION file or CMakeLists.txt"
+            exit 1
+          fi
+          
+          echo "✅ Versions are consistent"
