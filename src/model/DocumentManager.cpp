@@ -120,6 +120,8 @@ bool DocumentManager::openDocument(const QString& filePath) {
     m_adjustments->resetAll();
     m_currentDocument->clear();
     m_imagePipeline->clearOperations();
+    m_undoStack.clear();
+    m_redoStack.clear();
 
     // Set up new document
     m_currentDocument->setFilePath(filePath);
@@ -190,9 +192,12 @@ void DocumentManager::closeDocument() {
     m_adjustments->resetAll();
     m_currentDocument->clear();
     m_imagePipeline->clearOperations();
+    m_undoStack.clear();
+    m_redoStack.clear();
 
     Q_EMIT documentClosed();
     Q_EMIT documentStateChanged();
+    updateUndoRedoState();
 }
 
 void DocumentManager::newDocument(int width, int height) {
@@ -287,6 +292,9 @@ void DocumentManager::rotateImage(int degrees) {
         return;
     }
 
+    // Save state for undo before making changes
+    saveStateToHistory();
+
     // Get the current image (processed if available, otherwise original)
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
 
@@ -308,6 +316,9 @@ void DocumentManager::rotateImage(int degrees) {
         Q_EMIT imageTransformed();
         qDebug() << "Image rotated by" << degrees << "degrees";
     } else {
+        // Remove the saved state if operation failed
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
         Q_EMIT errorOccurred("Failed to rotate image");
     }
 }
@@ -317,6 +328,9 @@ void DocumentManager::flipImage(int direction) {
         Q_EMIT errorOccurred("No document to flip");
         return;
     }
+
+    // Save state for undo before making changes
+    saveStateToHistory();
 
     // Get the current image
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
@@ -339,6 +353,9 @@ void DocumentManager::flipImage(int direction) {
         Q_EMIT imageTransformed();
         qDebug() << "Image flipped" << (direction == 1 ? "horizontally" : "vertically");
     } else {
+        // Remove the saved state if operation failed
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
         Q_EMIT errorOccurred("Failed to flip image");
     }
 }
@@ -354,6 +371,9 @@ void DocumentManager::cropImage(const QRect& cropArea) {
         return;
     }
 
+    // Save state for undo before making changes
+    saveStateToHistory();
+
     // Get the current image
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
 
@@ -361,6 +381,9 @@ void DocumentManager::cropImage(const QRect& cropArea) {
     cv::Rect cvCropRect(cropArea.x(), cropArea.y(), cropArea.width(), cropArea.height());
     if (cvCropRect.x < 0 || cvCropRect.y < 0 || cvCropRect.x + cvCropRect.width > cvImage.cols ||
         cvCropRect.y + cvCropRect.height > cvImage.rows) {
+        // Remove the saved state if validation fails
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
         Q_EMIT errorOccurred("Crop area exceeds image bounds");
         return;
     }
@@ -383,6 +406,87 @@ void DocumentManager::cropImage(const QRect& cropArea) {
         Q_EMIT imageTransformed();
         qDebug() << "Image cropped to" << cropArea;
     } else {
+        // Remove the saved state if operation failed
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
         Q_EMIT errorOccurred("Failed to crop image");
     }
+}
+
+bool DocumentManager::canUndo() const {
+    return !m_undoStack.isEmpty();
+}
+
+bool DocumentManager::canRedo() const {
+    return !m_redoStack.isEmpty();
+}
+
+void DocumentManager::saveStateToHistory() {
+    if (!hasDocument())
+        return;
+
+    // Save current state to undo stack
+    m_undoStack.push(m_currentDocument->processedImage().copy());
+
+    // Clear redo stack when new action is performed
+    m_redoStack.clear();
+
+    // Limit history size
+    while (m_undoStack.size() > MAX_HISTORY_SIZE) {
+        m_undoStack.remove(0);  // Remove oldest
+    }
+
+    updateUndoRedoState();
+}
+
+void DocumentManager::updateUndoRedoState() {
+    Q_EMIT undoRedoStateChanged(canUndo(), canRedo());
+}
+
+void DocumentManager::undo() {
+    if (!canUndo() || !hasDocument()) {
+        qDebug() << "Cannot undo - no history";
+        return;
+    }
+
+    // Save current state to redo stack
+    m_redoStack.push(m_currentDocument->processedImage().copy());
+
+    // Restore previous state
+    QImage previousState = m_undoStack.pop();
+    m_currentDocument->setOriginalImage(previousState);
+    m_currentDocument->setProcessedImage(previousState);
+
+    // Update the pipeline with the restored image
+    cv::Mat cvImage = qImageToCvMat(previousState);
+    m_imagePipeline->setImg(cvImage);
+
+    m_currentDocument->setModified(true);
+    Q_EMIT imageTransformed();
+    updateUndoRedoState();
+    qDebug() << "Undo performed, undo stack size:" << m_undoStack.size();
+}
+
+void DocumentManager::redo() {
+    if (!canRedo() || !hasDocument()) {
+        qDebug() << "Cannot redo - no history";
+        return;
+    }
+
+    // Save current state to undo stack
+    m_undoStack.push(m_currentDocument->processedImage().copy());
+
+    // Restore next state
+    QImage nextState = m_redoStack.pop();
+    m_currentDocument->setOriginalImage(nextState);
+    m_currentDocument->setProcessedImage(nextState);
+
+    // Update the pipeline with the restored image
+    cv::Mat cvImage = qImageToCvMat(nextState);
+    m_imagePipeline->setImg(cvImage);
+
+    m_currentDocument->setModified(true);
+    Q_EMIT imageTransformed();
+    updateUndoRedoState();
+    qDebug() << "Redo performed, redo stack size:" << m_redoStack.size();
 }

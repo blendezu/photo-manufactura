@@ -16,7 +16,8 @@ class ToolPanel : public QWidget {
 
     void resetAllAdjustments();
 
-   signals:
+   Q_SIGNALS:
+    // Adjustment signals
     void brightnessChanged(int value);
     void contrastChanged(int value);
     void saturationChanged(int value);
@@ -27,6 +28,17 @@ class ToolPanel : public QWidget {
     void blacksChanged(int value);
     void temperatureChanged(int value);
     void tintChanged(int value);
+
+    // Geometry signals
+    void rotateLeftRequested();
+    void rotateRightRequested();
+    void flipHorizontalRequested();
+    void flipVerticalRequested();
+    void cropRequested();
+    void straightenRequested();
+
+    // Reset signal
+    void resetAllRequested();
 
    private:
     void setupUI();
@@ -57,7 +69,4 @@ class ToolPanel : public QWidget {
     ToolPaletteWidget* m_cropToolPalette;
     ToolPaletteWidget* m_rotateToolPalette;
     ToolPaletteWidget* m_flipToolPalette;
-    ToolPaletteWidget* m_transformToolPalette;
-    ToolPaletteWidget* m_rezieToolPalette;
-    ToolPaletteWidget* m_selectToolPalette;
 };

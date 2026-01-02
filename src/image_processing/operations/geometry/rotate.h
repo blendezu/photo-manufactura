@@ -64,8 +64,15 @@ class Rotate : public HalideOperation {
     void getOutputDimensions([[maybe_unused]] int srcWidth, [[maybe_unused]] int srcHeight,
                              int& dstWidth, int& dstHeight) const override {
         if (m_roi.empty()) {
-            dstWidth = srcWidth;
-            dstHeight = srcHeight;
+            // For 90° and 270° rotations, swap width and height
+            int normalizedAngle = ((m_angle_deg % 360) + 360) % 360;
+            if (normalizedAngle == 90 || normalizedAngle == 270) {
+                dstWidth = srcHeight;
+                dstHeight = srcWidth;
+            } else {
+                dstWidth = srcWidth;
+                dstHeight = srcHeight;
+            }
         } else {
             dstWidth = m_roi.width;
             dstHeight = m_roi.height;
@@ -92,63 +99,73 @@ class Rotate : public HalideOperation {
         const int imgW = srcImg.cols;
         const int imgH = srcImg.rows;
 
-        // 3. Handle ROI (default to full image if empty)
-        cv::Rect effectiveROI = roi;
-        if (effectiveROI.empty()) {
-            effectiveROI = cv::Rect(0, 0, imgW, imgH);
+        // 3. Normalize angle to [0, 360)
+        int normalizedAngle = ((angle_deg % 360) + 360) % 360;
+
+        // 4. Handle ROI or calculate output dimensions
+        int dstW, dstH;
+        if (!roi.empty()) {
+            dstW = roi.width;
+            dstH = roi.height;
+        } else if (normalizedAngle == 90 || normalizedAngle == 270) {
+            // For 90° and 270°, swap dimensions
+            dstW = imgH;
+            dstH = imgW;
+        } else {
+            dstW = imgW;
+            dstH = imgH;
         }
 
-        // 4. Create Destination Image (ROI Size)
-        cv::Mat dstImg(effectiveROI.size(), srcImg.type(), cv::Scalar(0));
+        // 5. Create Destination Image
+        cv::Mat dstImg(dstH, dstW, srcImg.type(), cv::Scalar(0));
 
-        // 5. Get the Center Point of Original Image --> Rotation Point
-        const int cx = imgW / 2;
-        const int cy = imgH / 2;
+        // 6. Get the Center Points
+        const float srcCx = imgW / 2.0f;
+        const float srcCy = imgH / 2.0f;
+        const float dstCx = dstW / 2.0f;
+        const float dstCy = dstH / 2.0f;
 
-        // 6. Precalculation
+        // 7. Precalculation
         const double angle_rad = angle_deg * M_PI / 180.0;
         const double cosA = std::cos(angle_rad);
         const double sinA = std::sin(angle_rad);
 
-        // 7. Get the pointers of first pixel each lines in an array for better access
+        // 8. Get the pointers of first pixel each lines in an array for better access
         std::vector<const T*> srcRowPtrs(imgH);
         for (int y = 0; y < imgH; y++) {
             srcRowPtrs[y] = srcImg.ptr<T>(y);
         }
 
-        // 8. Create a Lambda Function for Boundary-Check
+        // 9. Create a Lambda Function for Boundary-Check
         auto inBounds = [imgW, imgH](int x, int y) -> bool {
             return static_cast<unsigned>(x) < static_cast<unsigned>(imgW) &&
                    static_cast<unsigned>(y) < static_cast<unsigned>(imgH);
         };
 
         // clang-format off
-        // 9. Iteration though the Destination pixels using OpenMP for Parallelism
+        // 10. Iteration though the Destination pixels using OpenMP for Parallelism
         #pragma omp parallel for
         // clang-format on
-        for (int y = 0; y < effectiveROI.height; y++) {
-            // 9.1 Get the pointer of first pixel each line in the Destination Image
+        for (int y = 0; y < dstH; y++) {
+            // 10.1 Get the pointer of first pixel each line in the Destination Image
             T* outPtr = dstImg.ptr<T>(y);
 
-            // 9.2 Execute pixel-wise using Inverse Mapping
-            for (int x = 0; x < effectiveROI.width; x++) {
-                // 9.2.1 Find the pixel on the Source Image and calculate Paramters for Weight
-                // Calculatation
-                // Calculate Global Coordinates
-                int globalX = x + effectiveROI.x;
-                int globalY = y + effectiveROI.y;
+            // 10.2 Execute pixel-wise using Inverse Mapping
+            for (int x = 0; x < dstW; x++) {
+                // Calculate offset from destination center
+                float dx = x - dstCx;
+                float dy = y - dstCy;
 
-                float dx = globalX - cx;
-                float dy = globalY - cy;
-                float oldX = dx * cosA + dy * sinA + cx;
-                float oldY = -dx * sinA + dy * cosA + cy;
+                // Inverse rotation to find source coordinates
+                float oldX = dx * cosA + dy * sinA + srcCx;
+                float oldY = -dx * sinA + dy * cosA + srcCy;
 
                 int i = static_cast<int>(oldX);
                 int j = static_cast<int>(oldY);
                 float a = oldX - i;
                 float b = oldY - j;
 
-                // 9.2.2 Calculate the weights
+                // 10.2.2 Calculate the weights
                 float wx[4], wy[4];
                 for (int m = 0; m < 4; m++) {
                     wx[m] = ImageUtils::calculateCubicWeight(a - (m - 1));

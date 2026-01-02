@@ -2,6 +2,8 @@
 
 #include <QGroupBox>
 
+#include "../widgets/histogramWidget.h"
+
 InfoPanel::InfoPanel(QWidget* parent) : QWidget(parent) {
     setupUI();
 }
@@ -20,6 +22,14 @@ void InfoPanel::setupUI() {
     m_mainLayout->addWidget(m_titleLabel);
     m_mainLayout->addSpacing(10);
 
+    // Histogram widget (at top for prominence)
+    QGroupBox* histogramGroup = new QGroupBox(tr("Histogram"), this);
+    QVBoxLayout* histogramLayout = new QVBoxLayout(histogramGroup);
+    histogramLayout->setContentsMargins(5, 10, 5, 5);
+    m_histogramWidget = new HistogramWidget(histogramGroup);
+    histogramLayout->addWidget(m_histogramWidget);
+    m_mainLayout->addWidget(histogramGroup);
+
     // Image metadata group
     QGroupBox* metadataGroup = new QGroupBox(tr("Metadata"), this);
     QVBoxLayout* metadataLayout = new QVBoxLayout(metadataGroup);
@@ -34,16 +44,6 @@ void InfoPanel::setupUI() {
     metadataLayout->addWidget(m_formatLabel);
     m_mainLayout->addWidget(metadataGroup);
 
-    // Histogram placeholder
-    QGroupBox* histogramGroup = new QGroupBox(tr("Histogram"), this);
-    QVBoxLayout* histogramLayout = new QVBoxLayout(histogramGroup);
-    m_histogramPlaceholder = new QLabel(tr("Histogram will appear here"), histogramGroup);
-    m_histogramPlaceholder->setMinimumHeight(150);
-    m_histogramPlaceholder->setAlignment(Qt::AlignCenter);
-    m_histogramPlaceholder->setStyleSheet("background-color: #f0f0f0; border: 1px solid #ccc;");
-    histogramLayout->addWidget(m_histogramPlaceholder);
-    m_mainLayout->addWidget(histogramGroup);
-
     // Add stretch to push everything to the top
     m_mainLayout->addStretch();
 
@@ -57,10 +57,13 @@ void InfoPanel::updateImageInfo(const QString& filePath, int width, int height,
     m_formatLabel->setText(tr("Format: %1").arg(format));
 }
 
+void InfoPanel::updateHistogram(const QImage& image) {
+    m_histogramWidget->setImage(image);
+}
+
 void InfoPanel::clearInfo() {
     m_filePathLabel->setText(tr("File: None"));
     m_dimensionsLabel->setText(tr("Dimensions: N/A"));
     m_formatLabel->setText(tr("Format: N/A"));
-    m_histogramPlaceholder->setText(tr("Histogram will appear here"));
-
+    m_histogramWidget->clear();
 }
