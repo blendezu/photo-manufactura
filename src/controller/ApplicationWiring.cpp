@@ -49,13 +49,22 @@ void ApplicationWiring::wireComponents(ApplicationController* controller, MainWi
     }
 
     // Wire UI components
-    if (auto* canvas = mainWindow->getCanvasWidget()) {
+    CanvasWidget* canvas = mainWindow->getCanvasWidget();
+    ToolPanel* toolPanel = mainWindow->getToolPanel();
+
+    if (canvas) {
         wireCanvas(canvas, controller);
         wireControllerToCanvas(controller, canvas);
     }
 
-    if (auto* toolPanel = mainWindow->getToolPanel()) {
+    if (toolPanel) {
         wireToolPanel(toolPanel, controller);
+    }
+
+    // Wire crop tool: ToolPanel -> Canvas crop mode
+    if (toolPanel && canvas) {
+        m_connections << connect(toolPanel, &ToolPanel::cropRequested, canvas,
+                                 [canvas]() { canvas->setCropMode(true); });
     }
 
     if (auto* infoPanel = mainWindow->getInfoPanel()) {
@@ -110,16 +119,6 @@ void ApplicationWiring::wireEditMenu(SubMenuEdit* editMenu, ApplicationControlle
                              &ApplicationController::undo);
     m_connections << connect(editMenu, &SubMenuEdit::redoRequested, controller,
                              &ApplicationController::redo);
-
-    // Geometry operations
-    m_connections << connect(editMenu, &SubMenuEdit::rotateLeftRequested, controller,
-                             [controller]() { controller->rotateImage(-90); });
-    m_connections << connect(editMenu, &SubMenuEdit::rotateRightRequested, controller,
-                             [controller]() { controller->rotateImage(90); });
-    m_connections << connect(editMenu, &SubMenuEdit::flipHorizontalRequested, controller,
-                             [controller]() { controller->flipImage(1); });
-    m_connections << connect(editMenu, &SubMenuEdit::flipVerticalRequested, controller,
-                             [controller]() { controller->flipImage(0); });
 }
 
 void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller) {
@@ -150,6 +149,10 @@ void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* 
 
     m_connections << connect(canvas, &CanvasWidget::fitToWindowRequested, controller,
                              &ApplicationController::fitToWindow);
+
+    // Crop: canvas emits cropRequested with the selected area
+    m_connections << connect(canvas, &CanvasWidget::cropRequested, controller,
+                             &ApplicationController::cropImage);
 }
 
 void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationController* controller) {
@@ -186,9 +189,29 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::saturationChanged, controller,
                              &ApplicationController::adjustSaturation);
 
-    // TODO: Add filter selection connections when available
-    // m_connections << connect(toolPanel, &ToolPanel::filterSelected,
-    //                          controller, &ApplicationController::applyFilter);
+    // Geometry tool connections
+    m_connections << connect(toolPanel, &ToolPanel::rotateLeftRequested, controller,
+                             [controller]() { controller->rotateImage(-90); });
+
+    m_connections << connect(toolPanel, &ToolPanel::rotateRightRequested, controller,
+                             [controller]() { controller->rotateImage(90); });
+
+    m_connections << connect(toolPanel, &ToolPanel::flipHorizontalRequested, controller,
+                             [controller]() { controller->flipImage(1); });
+
+    m_connections << connect(toolPanel, &ToolPanel::flipVerticalRequested, controller,
+                             [controller]() { controller->flipImage(0); });
+
+    // Reset all adjustments
+    m_connections << connect(toolPanel, &ToolPanel::resetAllRequested, controller,
+                             &ApplicationController::resetAdjustments);
+
+    // Crop tool - activates crop mode on canvas
+    // The actual crop is handled via canvas signals
+    // This is wired in wireCanvas
+
+    // TODO: Add straighten tool - needs interactive angle selection
+    // m_connections << connect(toolPanel, &ToolPanel::straightenRequested, ...);
 }
 
 void ApplicationWiring::wireInfoPanel(InfoPanel* infoPanel, ApplicationController* controller) {
@@ -247,12 +270,13 @@ void ApplicationWiring::wireDocumentToCanvas(ApplicationController* controller,
                 // Request fit-to-window through controller
                 controller->fitToWindow();
 
-                // Update info panel with image metadata
+                // Update info panel with image metadata and histogram
                 if (infoPanel) {
                     QFileInfo fileInfo(filePath);
                     infoPanel->updateImageInfo(fileInfo.fileName(), processedImage.width(),
                                                processedImage.height(),
                                                fileInfo.suffix().toUpper());
+                    infoPanel->updateHistogram(processedImage);
                 }
 
                 // Update window title
@@ -264,21 +288,32 @@ void ApplicationWiring::wireDocumentToCanvas(ApplicationController* controller,
             }
         });
 
-    // When processed image changes (after adjustments), update canvas
+    // When processed image changes (after adjustments), update canvas and histogram
     if (docManager->currentDocument()) {
         m_connections << connect(docManager->currentDocument(),
                                  &ImageDocument::processedImageChanged,
-                                 [canvas](const QImage& image) { canvas->setImage(image); });
+                                 [canvas, infoPanel](const QImage& image) {
+                                     canvas->setImage(image);
+                                     if (infoPanel) {
+                                         infoPanel->updateHistogram(image);
+                                     }
+                                 });
     }
 
     // Also connect for future documents - reconnect processedImageChanged signal
-    m_connections << connect(
-        docManager, &DocumentManager::documentOpened, [this, docManager, canvas](const QString&) {
-            // Reconnect processed image signal for new document
-            if (docManager->currentDocument()) {
-                m_connections << connect(
-                    docManager->currentDocument(), &ImageDocument::processedImageChanged,
-                    [canvas](const QImage& image) { canvas->setImage(image); });
-            }
-        });
+    m_connections << connect(docManager, &DocumentManager::documentOpened,
+                             [this, docManager, canvas, infoPanel](const QString&) {
+                                 // Reconnect processed image signal for new document
+                                 if (docManager->currentDocument()) {
+                                     m_connections
+                                         << connect(docManager->currentDocument(),
+                                                    &ImageDocument::processedImageChanged,
+                                                    [canvas, infoPanel](const QImage& image) {
+                                                        canvas->setImage(image);
+                                                        if (infoPanel) {
+                                                            infoPanel->updateHistogram(image);
+                                                        }
+                                                    });
+                                 }
+                             });
 }

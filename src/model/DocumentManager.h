@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QRect>
+#include <QStack>
 #include <memory>
 
 #include "AdjustmentSettings.h"
@@ -38,6 +39,10 @@ class DocumentManager : public QObject {
     QString currentFilePath() const;
     QString currentFileName() const;
 
+    // Undo/Redo state
+    bool canUndo() const;
+    bool canRedo() const;
+
    public Q_SLOTS:
     // Document lifecycle
     bool openDocument(const QString& filePath);
@@ -54,6 +59,10 @@ class DocumentManager : public QObject {
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
 
+    // Undo/Redo operations
+    void undo();
+    void redo();
+
    Q_SIGNALS:
     void documentOpened(const QString& filePath);
     void documentSaved(const QString& filePath);
@@ -62,9 +71,18 @@ class DocumentManager : public QObject {
     void documentStateChanged();
     void imageTransformed();                     // Emitted after rotate/flip/crop
     void errorOccurred(const QString& message);  // Error reporting
+    void undoRedoStateChanged(bool canUndo, bool canRedo);
 
    private:
+    void saveStateToHistory();
+    void updateUndoRedoState();
+
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
     std::unique_ptr<ImagePipeline> m_imagePipeline;
+
+    // Undo/Redo history
+    QStack<QImage> m_undoStack;
+    QStack<QImage> m_redoStack;
+    static const int MAX_HISTORY_SIZE = 20;
 };

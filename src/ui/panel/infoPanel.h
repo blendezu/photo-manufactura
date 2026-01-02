@@ -1,8 +1,11 @@
 #pragma once
 
+#include <QImage>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QWidget>
+
+class HistogramWidget;
 
 class InfoPanel : public QWidget {
     Q_OBJECT
@@ -11,6 +14,7 @@ class InfoPanel : public QWidget {
     ~InfoPanel();
 
     void updateImageInfo(const QString& filePath, int width, int height, const QString& format);
+    void updateHistogram(const QImage& image);
     void clearInfo();
 
    private:
@@ -21,5 +25,5 @@ class InfoPanel : public QWidget {
     QLabel* m_filePathLabel;
     QLabel* m_dimensionsLabel;
     QLabel* m_formatLabel;
-    QLabel* m_histogramPlaceholder;
+    HistogramWidget* m_histogramWidget;
 };

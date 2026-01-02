@@ -208,11 +208,11 @@ void ApplicationController::exitApplication() {
 
 // Edit operations
 void ApplicationController::undo() {
-    executeCommand("Undo");
+    m_documentManager->undo();
 }
 
 void ApplicationController::redo() {
-    executeCommand("Redo");
+    m_documentManager->redo();
 }
 
 void ApplicationController::copy() {

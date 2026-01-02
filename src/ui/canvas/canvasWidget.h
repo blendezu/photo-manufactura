@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QKeyEvent>
 #include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QOpenGLBuffer>
@@ -8,6 +9,7 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLWidget>
+#include <QRect>
 #include <QWheelEvent>
 #include <memory>
 
@@ -19,20 +21,33 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     ~CanvasWidget() override;
 
     void setImage(const QImage& image);
+    void resetView();  // Reset zoom and pan to center the image
     double getZoomFactor() const {
         return m_zoomFactor;
     }
 
-   public slots:
+    // Crop mode
+    void setCropMode(bool enabled);
+    bool isCropMode() const {
+        return m_cropMode;
+    }
+    QRect getCropSelection() const;  // Returns selection in image coordinates
+
+   public Q_SLOTS:
     // Receive zoom level from controller (0.1 to 10.0)
     void setZoomLevel(double level);
+    void applyCrop();   // Emit crop signal with current selection
+    void cancelCrop();  // Exit crop mode without applying
 
-   signals:
+   Q_SIGNALS:
     void imageClicked(QPoint position);
     // Request zoom changes from controller
     void zoomInRequested();
     void zoomOutRequested();
     void fitToWindowRequested();
+    // Crop signals
+    void cropRequested(const QRect& cropArea);
+    void cropModeChanged(bool enabled);
 
    protected:
     void initializeGL() override;
@@ -43,6 +58,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
    private:
     // OpenGL Resources (smart pointers for automatic cleanup)
@@ -66,6 +82,12 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     // Image properties
     QSize m_imageSize;
 
+    // Crop mode state
+    bool m_cropMode = false;
+    QRect m_cropSelection;  // Selection in widget coordinates
+    QPoint m_cropStartPoint;
+    bool m_selecting = false;
+
     // Constants
     static constexpr double MIN_ZOOM = 0.1;
     static constexpr double MAX_ZOOM = 10.0;
@@ -75,4 +97,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void setupShaders();
     void setupGeometry();
     void updateMatrices();
+    QPoint widgetToImageCoords(const QPoint& widgetPos) const;
+    QPoint imageToWidgetCoords(const QPoint& imagePos) const;
+    void drawCropOverlay(QPainter& painter);
 };

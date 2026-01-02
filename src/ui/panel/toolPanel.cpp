@@ -47,6 +47,7 @@ void ToolPanel::setupUI() {
     m_mainLayout->addSpacing(10);
 
     // Create collapsible sections
+    m_mainLayout->addWidget(createToolSection());  // Geometry tools first
     m_mainLayout->addWidget(createBasicSection());
     m_mainLayout->addWidget(createColorSection());
     m_mainLayout->addWidget(createDetailSection());  // Add stretch at the end
@@ -147,14 +148,6 @@ CollapsibleWidget* ToolPanel::createDetailSection() {
 }
 
 void ToolPanel::resetAllAdjustments() {
-    // TODO: MOVE TO CONTROLLER: Reset logic should be coordinated by ApplicationController
-    // The controller should handle:
-    //   1. Resetting ImagePipeline/processing parameters to defaults
-    //   2. Updating application state
-    //   3. Triggering image reprocessing
-    // The UI should emit a resetAllRequested() signal and the controller
-    // will call back to reset slider UI after processing is complete
-
     // Reset all sliders to default values
     m_exposureSlider->reset();
     m_contrastSlider->reset();
@@ -166,42 +159,67 @@ void ToolPanel::resetAllAdjustments() {
     m_tintSlider->reset();
     m_saturationSlider->reset();
     m_brightnessSlider->reset();
+
+    // Notify controller to reset processing parameters
+    Q_EMIT resetAllRequested();
 }
 
 CollapsibleWidget* ToolPanel::createToolSection() {
-    CollapsibleWidget* toolSection = new CollapsibleWidget("Tools", this);
+    CollapsibleWidget* toolSection = new CollapsibleWidget("Geometry Tools", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(8);
+    layout->setSpacing(12);
     layout->setContentsMargins(5, 10, 5, 10);
 
-    // Crop, Rotate, etc. tool options can be added here
-    m_cropToolPalette = new ToolPaletteWidget("Crop Tools", this);
-    m_cropToolPalette->addToolButton("Crop", "");
-    m_cropToolPalette->addToolButton("Straighten", "");
-    layout->addWidget(m_cropToolPalette);
-    m_flipToolPalette = new ToolPaletteWidget("Flip Tools", this);
-    m_flipToolPalette->addToolButton("Flip Horizontal", "");
-    m_flipToolPalette->addToolButton("Flip Vertical", "");
-    layout->addWidget(m_flipToolPalette);
-    m_rotateToolPalette = new ToolPaletteWidget("Rotate Tools", this);
-    m_rotateToolPalette->addToolButton("Rotate Left", "");
-    m_rotateToolPalette->addToolButton("Rotate Right", "");
-    layout->addWidget(m_rotateToolPalette);
-    m_transformToolPalette = new ToolPaletteWidget("Transform Tools", this);
-    m_transformToolPalette->addToolButton("Perspective", "");
-    m_transformToolPalette->addToolButton("Skew", "");
-    layout->addWidget(m_transformToolPalette);
-    m_selectToolPalette = new ToolPaletteWidget("Select Tools", this);
-    m_selectToolPalette->addToolButton("Rectangular Select", "");
-    m_selectToolPalette->addToolButton("Lasso Select", "");
-    layout->addWidget(m_selectToolPalette);
-    m_rezieToolPalette = new ToolPaletteWidget("Resize Tools", this);
-    m_rezieToolPalette->addToolButton("Resize", "");
-    layout->addWidget(m_rezieToolPalette);
+    // Rotate tools with icons
+    QLabel* rotateLabel = new QLabel("Rotate", this);
+    rotateLabel->setStyleSheet("font-weight: bold; color: #aaa;");
+    layout->addWidget(rotateLabel);
 
-    // Placeholder for future tool widgets (e.g., crop, rotate)
-    QLabel* placeholder = new QLabel("Tool options will be added here.", this);
-    layout->addWidget(placeholder);
+    m_rotateToolPalette = new ToolPaletteWidget("Rotate Tools", this);
+    m_rotateToolPalette->addToolButton("Rotate Left", ":/assets/icons/rotate_left.png");
+    m_rotateToolPalette->addToolButton("Rotate Right", ":/assets/icons/rotate_right.png");
+    connect(m_rotateToolPalette, &ToolPaletteWidget::toolActivated, this,
+            [this](const QString& tool) {
+                if (tool == "Rotate Left")
+                    Q_EMIT rotateLeftRequested();
+                else if (tool == "Rotate Right")
+                    Q_EMIT rotateRightRequested();
+            });
+    layout->addWidget(m_rotateToolPalette);
+
+    // Flip tools with icons
+    QLabel* flipLabel = new QLabel("Flip", this);
+    flipLabel->setStyleSheet("font-weight: bold; color: #aaa;");
+    layout->addWidget(flipLabel);
+
+    m_flipToolPalette = new ToolPaletteWidget("Flip Tools", this);
+    m_flipToolPalette->addToolButton("Flip Horizontal", ":/assets/icons/flip_horizontal.png");
+    m_flipToolPalette->addToolButton("Flip Vertical", ":/assets/icons/flip_vertical.png");
+    connect(m_flipToolPalette, &ToolPaletteWidget::toolActivated, this,
+            [this](const QString& tool) {
+                if (tool == "Flip Horizontal")
+                    Q_EMIT flipHorizontalRequested();
+                else if (tool == "Flip Vertical")
+                    Q_EMIT flipVerticalRequested();
+            });
+    layout->addWidget(m_flipToolPalette);
+
+    // Crop tool with icon
+    QLabel* cropLabel = new QLabel("Crop", this);
+    cropLabel->setStyleSheet("font-weight: bold; color: #aaa;");
+    layout->addWidget(cropLabel);
+
+    m_cropToolPalette = new ToolPaletteWidget("Crop Tools", this);
+    m_cropToolPalette->addToolButton("Crop", ":/assets/icons/crop.png");
+    m_cropToolPalette->addToolButton("Straighten", ":/assets/icons/straighten.png");
+    connect(m_cropToolPalette, &ToolPaletteWidget::toolActivated, this,
+            [this](const QString& tool) {
+                if (tool == "Crop")
+                    Q_EMIT cropRequested();
+                else if (tool == "Straighten")
+                    Q_EMIT straightenRequested();
+            });
+    layout->addWidget(m_cropToolPalette);
 
     toolSection->setContentLayout(layout);
     return toolSection;
