@@ -51,7 +51,7 @@ class ImageDocument : public QObject {
         return m_originalImage.height();
     }
 
-   public slots:
+   public Q_SLOTS:
     // Document operations
     void setFilePath(const QString& path);
     void setOriginalImage(const QImage& image);
@@ -62,7 +62,7 @@ class ImageDocument : public QObject {
     // Reset document
     void clear();
 
-   signals:
+Q_SIGNALS:
     void filePathChanged(const QString& path);
     void originalImageChanged(const QImage& image);
     void processedImageChanged(const QImage& image);

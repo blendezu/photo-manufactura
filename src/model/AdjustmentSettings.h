@@ -63,7 +63,7 @@ class AdjustmentSettings : public QObject {
     // Check if any adjustment is non-default
     bool hasAdjustments() const;
 
-   public slots:
+   public Q_SLOTS:
     // Basic adjustments
     void setExposure(int value);
     void setContrast(int value);
@@ -81,7 +81,7 @@ class AdjustmentSettings : public QObject {
     // Reset all to defaults
     void resetAll();
 
-   signals:
+Q_SIGNALS:
     void exposureChanged(int value);
     void contrastChanged(int value);
     void brightnessChanged(int value);

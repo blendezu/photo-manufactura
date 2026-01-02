@@ -49,7 +49,7 @@ class AppState : public QObject {
         return m_adjustmentPanelVisible;
     }
 
-   public slots:
+   public Q_SLOTS:
     void setTheme(const QString& theme);
     void setZoomLevel(double level);
     void setHistogramVisible(bool visible);
@@ -67,7 +67,7 @@ class AppState : public QObject {
     void toggleToolPanel();
     void toggleAdjustmentPanel();
 
-   signals:
+Q_SIGNALS:
     void themeChanged(const QString& theme);
     void zoomLevelChanged(double level);
     void histogramVisibleChanged(bool visible);

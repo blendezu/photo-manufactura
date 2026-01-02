@@ -30,15 +30,17 @@ set(MODEL_HEADERS
 # Create library
 add_library(model STATIC ${MODEL_SOURCES} ${MODEL_HEADERS})
 
+# Use QT_NO_KEYWORDS to avoid conflict with Halide's emit() method
+target_compile_definitions(model PRIVATE QT_NO_KEYWORDS)
+
 target_include_directories(model PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # image_processing headers are accessed via target's PUBLIC include directories
-# TODO: Re-enable when image_processing is available
 target_link_libraries(model PUBLIC
     Qt6::Core
     Qt6::Gui
-    # image_processing
+    image_processing
     ${OpenCV_LIBS}
 )

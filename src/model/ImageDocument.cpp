@@ -21,28 +21,28 @@ void ImageDocument::setFilePath(const QString& path) {
             m_format = info.suffix().toUpper();
         }
 
-        emit filePathChanged(path);
+        Q_EMIT filePathChanged(path);
     }
 }
 
 void ImageDocument::setOriginalImage(const QImage& image) {
     m_originalImage = image;
     m_processedImage = image;  // Initially, processed = original
-    emit originalImageChanged(image);
-    emit processedImageChanged(image);
+    Q_EMIT originalImageChanged(image);
+    Q_EMIT processedImageChanged(image);
 }
 
 void ImageDocument::setProcessedImage(const QImage& image) {
     if (m_processedImage != image) {
         m_processedImage = image;
-        emit processedImageChanged(image);
+        Q_EMIT processedImageChanged(image);
     }
 }
 
 void ImageDocument::setModified(bool modified) {
     if (m_isModified != modified) {
         m_isModified = modified;
-        emit modifiedChanged(modified);
+        Q_EMIT modifiedChanged(modified);
     }
 }
 
@@ -56,5 +56,5 @@ void ImageDocument::clear() {
     m_originalImage = QImage();
     m_processedImage = QImage();
     m_isModified = false;
-    emit documentCleared();
+    Q_EMIT documentCleared();
 }

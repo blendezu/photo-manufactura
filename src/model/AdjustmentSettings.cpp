@@ -11,80 +11,80 @@ bool AdjustmentSettings::hasAdjustments() const {
 void AdjustmentSettings::setExposure(int value) {
     if (m_exposure != value) {
         m_exposure = value;
-        emit exposureChanged(value);
-        emit anySettingChanged();
+        Q_EMIT exposureChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setContrast(int value) {
     if (m_contrast != value) {
         m_contrast = value;
-        emit contrastChanged(value);
-        emit anySettingChanged();
+        Q_EMIT contrastChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setBrightness(int value) {
     if (m_brightness != value) {
         m_brightness = value;
-        emit brightnessChanged(value);
-        emit anySettingChanged();
+        Q_EMIT brightnessChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setHighlights(int value) {
     if (m_highlights != value) {
         m_highlights = value;
-        emit highlightsChanged(value);
-        emit anySettingChanged();
+        Q_EMIT highlightsChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setShadows(int value) {
     if (m_shadows != value) {
         m_shadows = value;
-        emit shadowsChanged(value);
-        emit anySettingChanged();
+        Q_EMIT shadowsChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setWhites(int value) {
     if (m_whites != value) {
         m_whites = value;
-        emit whitesChanged(value);
-        emit anySettingChanged();
+        Q_EMIT whitesChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setBlacks(int value) {
     if (m_blacks != value) {
         m_blacks = value;
-        emit blacksChanged(value);
-        emit anySettingChanged();
+        Q_EMIT blacksChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setTemperature(int value) {
     if (m_temperature != value) {
         m_temperature = value;
-        emit temperatureChanged(value);
-        emit anySettingChanged();
+        Q_EMIT temperatureChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setTint(int value) {
     if (m_tint != value) {
         m_tint = value;
-        emit tintChanged(value);
-        emit anySettingChanged();
+        Q_EMIT tintChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
 void AdjustmentSettings::setSaturation(int value) {
     if (m_saturation != value) {
         m_saturation = value;
-        emit saturationChanged(value);
-        emit anySettingChanged();
+        Q_EMIT saturationChanged(value);
+        Q_EMIT anySettingChanged();
     }
 }
 
@@ -99,6 +99,6 @@ void AdjustmentSettings::resetAll() {
     m_temperature = 0;
     m_tint = 0;
     m_saturation = 0;
-    emit settingsReset();
-    emit anySettingChanged();
+    Q_EMIT settingsReset();
+    Q_EMIT anySettingChanged();
 }
