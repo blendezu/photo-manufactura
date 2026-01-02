@@ -106,6 +106,7 @@ class ApplicationController : public QObject {
     void adjustTint(int value);
     void adjustSaturation(int value);
     void rotateImage(int degrees);
+    void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
     void resetAdjustments();
 

@@ -6,9 +6,14 @@
 
 // ImagePipeline and operations from image_processing component
 // Note: include paths are relative to image_processing's PUBLIC include directories
+// These headers include Halide.h internally, but QT_NO_KEYWORDS is defined
+// which prevents Qt's emit/signals/slots from conflicting with Halide's emit
 #include "color/saturation_adjust.h"
 #include "color/tint_magenta.h"
 #include "color/white_balance.h"
+#include "geometry/crop.h"
+#include "geometry/flip.h"
+#include "geometry/rotate.h"
 #include "image_pipeline.h"
 #include "light/black_adjust.h"
 #include "light/brightness_adjust.h"
@@ -273,5 +278,111 @@ void DocumentManager::applyAdjustments() {
     } else {
         qDebug() << "Pipeline processing returned empty result, keeping original";
         m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
+    }
+}
+
+void DocumentManager::rotateImage(int degrees) {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to rotate");
+        return;
+    }
+
+    // Get the current image (processed if available, otherwise original)
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+
+    // Apply rotation
+    auto rotateOp = std::make_shared<Rotate>(degrees);
+    cv::Mat rotated = rotateOp->apply(cvImage);
+
+    if (!rotated.empty()) {
+        QImage rotatedQImage = cvMatToQImage(rotated);
+
+        // Update both original and processed - this is a destructive operation
+        m_currentDocument->setOriginalImage(rotatedQImage);
+        m_currentDocument->setProcessedImage(rotatedQImage);
+
+        // Update the pipeline with the new base image
+        m_imagePipeline->setImg(rotated);
+
+        m_currentDocument->setModified(true);
+        Q_EMIT imageTransformed();
+        qDebug() << "Image rotated by" << degrees << "degrees";
+    } else {
+        Q_EMIT errorOccurred("Failed to rotate image");
+    }
+}
+
+void DocumentManager::flipImage(int direction) {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to flip");
+        return;
+    }
+
+    // Get the current image
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+
+    // Apply flip (0 = vertical, 1 = horizontal)
+    auto flipOp = std::make_shared<Flip>(direction);
+    cv::Mat flipped = flipOp->apply(cvImage);
+
+    if (!flipped.empty()) {
+        QImage flippedQImage = cvMatToQImage(flipped);
+
+        // Update both original and processed - this is a destructive operation
+        m_currentDocument->setOriginalImage(flippedQImage);
+        m_currentDocument->setProcessedImage(flippedQImage);
+
+        // Update the pipeline with the new base image
+        m_imagePipeline->setImg(flipped);
+
+        m_currentDocument->setModified(true);
+        Q_EMIT imageTransformed();
+        qDebug() << "Image flipped" << (direction == 1 ? "horizontally" : "vertically");
+    } else {
+        Q_EMIT errorOccurred("Failed to flip image");
+    }
+}
+
+void DocumentManager::cropImage(const QRect& cropArea) {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to crop");
+        return;
+    }
+
+    if (!cropArea.isValid() || cropArea.isEmpty()) {
+        Q_EMIT errorOccurred("Invalid crop area");
+        return;
+    }
+
+    // Get the current image
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+
+    // Validate crop area against image dimensions
+    cv::Rect cvCropRect(cropArea.x(), cropArea.y(), cropArea.width(), cropArea.height());
+    if (cvCropRect.x < 0 || cvCropRect.y < 0 || cvCropRect.x + cvCropRect.width > cvImage.cols ||
+        cvCropRect.y + cvCropRect.height > cvImage.rows) {
+        Q_EMIT errorOccurred("Crop area exceeds image bounds");
+        return;
+    }
+
+    // Apply crop
+    auto cropOp = std::make_shared<Crop>(cvCropRect);
+    cv::Mat cropped = cropOp->apply(cvImage);
+
+    if (!cropped.empty()) {
+        QImage croppedQImage = cvMatToQImage(cropped);
+
+        // Update both original and processed - this is a destructive operation
+        m_currentDocument->setOriginalImage(croppedQImage);
+        m_currentDocument->setProcessedImage(croppedQImage);
+
+        // Update the pipeline with the new base image
+        m_imagePipeline->setImg(cropped);
+
+        m_currentDocument->setModified(true);
+        Q_EMIT imageTransformed();
+        qDebug() << "Image cropped to" << cropArea;
+    } else {
+        Q_EMIT errorOccurred("Failed to crop image");
     }
 }

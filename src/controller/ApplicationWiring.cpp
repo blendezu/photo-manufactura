@@ -105,20 +105,21 @@ void ApplicationWiring::wireFileMenu(SubMenuFile* fileMenu, ApplicationControlle
 void ApplicationWiring::wireEditMenu(SubMenuEdit* editMenu, ApplicationController* controller) {
     qDebug() << "Wiring Edit Menu...";
 
-    // TODO: Add these connections when SubMenuEdit signals are implemented
-    // m_connections << connect(editMenu, &SubMenuEdit::undoRequested,
-    //                          controller, &ApplicationController::undo);
-    // m_connections << connect(editMenu, &SubMenuEdit::redoRequested,
-    //                          controller, &ApplicationController::redo);
-    // m_connections << connect(editMenu, &SubMenuEdit::copyRequested,
-    //                          controller, &ApplicationController::copy);
-    // m_connections << connect(editMenu, &SubMenuEdit::pasteRequested,
-    //                          controller, &ApplicationController::paste);
-    // m_connections << connect(editMenu, &SubMenuEdit::cutRequested,
-    //                          controller, &ApplicationController::cut);
+    // Undo/Redo
+    m_connections << connect(editMenu, &SubMenuEdit::undoRequested, controller,
+                             &ApplicationController::undo);
+    m_connections << connect(editMenu, &SubMenuEdit::redoRequested, controller,
+                             &ApplicationController::redo);
 
-    Q_UNUSED(editMenu);
-    Q_UNUSED(controller);
+    // Geometry operations
+    m_connections << connect(editMenu, &SubMenuEdit::rotateLeftRequested, controller,
+                             [controller]() { controller->rotateImage(-90); });
+    m_connections << connect(editMenu, &SubMenuEdit::rotateRightRequested, controller,
+                             [controller]() { controller->rotateImage(90); });
+    m_connections << connect(editMenu, &SubMenuEdit::flipHorizontalRequested, controller,
+                             [controller]() { controller->flipImage(1); });
+    m_connections << connect(editMenu, &SubMenuEdit::flipVerticalRequested, controller,
+                             [controller]() { controller->flipImage(0); });
 }
 
 void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller) {

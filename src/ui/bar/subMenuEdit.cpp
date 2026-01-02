@@ -1,54 +1,54 @@
 #include "subMenuEdit.h"
 
 #include <QAction>
-#include <QMessageBox>
+#include <QKeySequence>
 
 // Constructor
 SubMenuEdit::SubMenuEdit(QWidget* parent) : QMenu(parent) {
     this->setTitle("Edit");
 
+    // === Undo/Redo Actions ===
     undoAction = new QAction("Undo", this);
     undoAction->setShortcut(QKeySequence::Undo);
-    // add icon to
-    undoAction->setIcon(QIcon::fromTheme("edit-undo"));  // Use a standard icon if available
-    // Toggle for undo action
-    undoAction->toggle();
+    undoAction->setIcon(QIcon::fromTheme("edit-undo"));
+    connect(undoAction, &QAction::triggered, this, &SubMenuEdit::undoRequested);
+
     redoAction = new QAction("Redo", this);
-    redoAction->setIcon(QIcon::fromTheme("edit-redo"));  // Use a standard icon if available
     redoAction->setShortcut(QKeySequence::Redo);
+    redoAction->setIcon(QIcon::fromTheme("edit-redo"));
+    connect(redoAction, &QAction::triggered, this, &SubMenuEdit::redoRequested);
 
-    // TODO: Move the slots to ApplicationController
-    connect(undoAction, &QAction::triggered, this, &SubMenuEdit::onUndoTriggered);
-    connect(redoAction, &QAction::triggered, this, &SubMenuEdit::onRedoTriggered);
-
-    // Add actions to menu
     this->addAction(undoAction);
     this->addAction(redoAction);
+    this->addSeparator();
+
+    // === Transform/Geometry Actions ===
+    rotateLeftAction = new QAction("Rotate Left", this);
+    rotateLeftAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_BracketLeft));  // Cmd+[
+    rotateLeftAction->setIcon(QIcon::fromTheme("object-rotate-left"));
+    connect(rotateLeftAction, &QAction::triggered, this, &SubMenuEdit::rotateLeftRequested);
+
+    rotateRightAction = new QAction("Rotate Right", this);
+    rotateRightAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_BracketRight));  // Cmd+]
+    rotateRightAction->setIcon(QIcon::fromTheme("object-rotate-right"));
+    connect(rotateRightAction, &QAction::triggered, this, &SubMenuEdit::rotateRightRequested);
+
+    flipHorizontalAction = new QAction("Flip Horizontal", this);
+    flipHorizontalAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H));
+    flipHorizontalAction->setIcon(QIcon::fromTheme("object-flip-horizontal"));
+    connect(flipHorizontalAction, &QAction::triggered, this, &SubMenuEdit::flipHorizontalRequested);
+
+    flipVerticalAction = new QAction("Flip Vertical", this);
+    flipVerticalAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_V));
+    flipVerticalAction->setIcon(QIcon::fromTheme("object-flip-vertical"));
+    connect(flipVerticalAction, &QAction::triggered, this, &SubMenuEdit::flipVerticalRequested);
+
+    this->addAction(rotateLeftAction);
+    this->addAction(rotateRightAction);
+    this->addSeparator();
+    this->addAction(flipHorizontalAction);
+    this->addAction(flipVerticalAction);
 }
 
 // Destructor
 SubMenuEdit::~SubMenuEdit() {}
-
-void SubMenuEdit::onUndoTriggered() {
-    // TODO: MOVE TO CONTROLLER: Undo logic should be handled by ApplicationController::undo()
-    // The controller should handle:
-    //   1. Managing the undo/redo stack
-    //   2. Coordinating with DocumentManager to revert changes
-    //   3. Updating application state
-    // The UI should only emit an undoRequested() signal
-
-    // TODO: Connect to ApplicationController for undo functionality
-    QMessageBox::information(this, tr("Undo"), tr("Undo functionality coming soon!"));
-}
-
-void SubMenuEdit::onRedoTriggered() {
-    // TODO: MOVE TO CONTROLLER: Redo logic should be handled by ApplicationController::redo()
-    // The controller should handle:
-    //   1. Managing the undo/redo stack
-    //   2. Coordinating with DocumentManager to reapply changes
-    //   3. Updating application state
-    // The UI should only emit a redoRequested() signal
-
-    // TODO: Connect to ApplicationController for redo functionality
-    QMessageBox::information(this, tr("Redo"), tr("Redo functionality coming soon!"));
-}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QRect>
 #include <memory>
 
 #include "AdjustmentSettings.h"
@@ -48,13 +49,19 @@ class DocumentManager : public QObject {
     // Apply adjustments to generate processed image
     void applyAdjustments();
 
-Q_SIGNALS:
+    // Geometry operations (destructive - modify the base image)
+    void rotateImage(int degrees);
+    void flipImage(int direction);  // 0 = vertical, 1 = horizontal
+    void cropImage(const QRect& cropArea);
+
+   Q_SIGNALS:
     void documentOpened(const QString& filePath);
     void documentSaved(const QString& filePath);
     void documentClosed();
     void documentCreated();
     void documentStateChanged();
-    void errorOccurred(const QString& error);
+    void imageTransformed();                     // Emitted after rotate/flip/crop
+    void errorOccurred(const QString& message);  // Error reporting
 
    private:
     std::unique_ptr<ImageDocument> m_currentDocument;

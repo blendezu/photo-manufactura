@@ -303,11 +303,42 @@ void ApplicationController::adjustSaturation(int value) {
 }
 
 void ApplicationController::rotateImage(int degrees) {
-    executeCommand("RotateImage", {{"degrees", degrees}});
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->rotateImage(degrees);
+        setState("isModified", true);
+
+        // Update canvas with transformed image
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
+void ApplicationController::flipImage(int direction) {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->flipImage(direction);
+        setState("isModified", true);
+
+        // Update canvas with transformed image
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
 }
 
 void ApplicationController::cropImage(const QRect& cropArea) {
-    executeCommand("CropImage", {{"cropArea", cropArea}});
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->cropImage(cropArea);
+        setState("isModified", true);
+
+        // Update canvas with transformed image
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
 }
 
 void ApplicationController::resetAdjustments() {
