@@ -6,7 +6,14 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-VERSION="0.1.0"
+
+# Read version from centralized VERSION file
+if [ -f "$PROJECT_ROOT/VERSION" ]; then
+    VERSION=$(cat "$PROJECT_ROOT/VERSION" | tr -d '[:space:]')
+else
+    VERSION="0.1.0"
+    echo "⚠️  VERSION file not found, using default: $VERSION"
+fi
 
 echo "🚀 Photo Manufactura Release Builder v${VERSION}"
 echo "================================================"
