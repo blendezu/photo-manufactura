@@ -1,9 +1,11 @@
 # Prerequisites
 *.d
 
-# mac OS files
+# macOS files
 .DS_Store
+**/.DS_Store
 *.dmg
+
 # Compiled Object files
 *.slo
 *.lo
@@ -40,11 +42,37 @@
 *.out
 *.app
 
-# debug information files
+# Debug information files
 *.dwo
 
+# Build directories
 build/
+**/build/
 docs/generated/
+
+# Cache directories
 .cache/
-.DS_Store
-**/.DS_Store
+**/.cache/
+.clangd/
+
+# External libraries (use Conan/CMake FetchContent instead)
+libs/
+
+# Large test assets (consider Git LFS)
+images/*.nef
+images/*.cr3
+images/*.RAF
+images/*.raf
+images/*.arw
+images/*.dng
+
+# IDE and editor
+*.swp
+*.swo
+*~
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
