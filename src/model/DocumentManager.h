@@ -37,7 +37,7 @@ class DocumentManager : public QObject {
     QString currentFilePath() const;
     QString currentFileName() const;
 
-   public slots:
+   public Q_SLOTS:
     // Document lifecycle
     bool openDocument(const QString& filePath);
     bool saveDocument();
@@ -48,7 +48,7 @@ class DocumentManager : public QObject {
     // Apply adjustments to generate processed image
     void applyAdjustments();
 
-   signals:
+Q_SIGNALS:
     void documentOpened(const QString& filePath);
     void documentSaved(const QString& filePath);
     void documentClosed();
@@ -59,6 +59,5 @@ class DocumentManager : public QObject {
    private:
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
-    // TODO: Re-enable when image_processing is available
-    // std::unique_ptr<ImagePipeline> m_imagePipeline;
+    std::unique_ptr<ImagePipeline> m_imagePipeline;
 };

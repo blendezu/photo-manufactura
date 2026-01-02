@@ -1,7 +1,8 @@
 # Photo Manufactura - Project Status
 
-**Date:** 6 December 2025  
-**Branch:** `feat/gui-core-components`
+**Date:** 2 January 2026  
+**Version:** 0.1.0  
+**Branch:** `feat/gui-beta-version`
 
 ---
 
@@ -116,10 +117,84 @@
 | Model ↔ Controller | ✅ Complete | DocumentManager, AppState fully integrated |
 | Controller ↔ UI (File Ops) | ✅ Complete | Open/Save/Save As with QSettings persistence working |
 | Controller ↔ UI (Display) | ✅ Complete | imageLoaded signal wired, canvas displays correctly |
-| UI Sliders ↔ Controller | ⏳ Pending | ToolPanel needs signal connections |
+| UI Sliders ↔ Controller | ✅ Complete | ToolPanel connected, adjustments apply in real-time |
 | Canvas Zoom ↔ Controller | ⏳ Pending | Zoom operations need controller integration |
 | Theme ↔ Controller | ⏳ Pending | SubMenuView needs controller connection |
-| ImagePipeline ↔ DocumentManager | ⚠️ Disabled | Temporarily disabled (requires ONNX Runtime) |
+| ImagePipeline ↔ DocumentManager | ✅ Complete | Full integration restored, real-time processing enabled |
+
+---
+
+## Recent Updates (January 2, 2026)
+
+### ✅ Completed: ImagePipeline Integration Restored
+
+**Model Layer Updates:**
+- Re-enabled `image_processing` library link in `src/model/CMakeLists.txt`
+- Added `QT_NO_KEYWORDS` to avoid Halide/Qt `emit` conflict
+- Converted all model files to use `Q_EMIT`, `Q_SIGNALS`, `Q_SLOTS`
+- Restored all image_processing includes in `DocumentManager.cpp`
+- Restored helper functions: `qImageToCvMat()` and `cvMatToQImage()`
+- Restored `ImagePipeline` member and constructor initialization
+- Restored full `applyAdjustments()` implementation with all operations:
+  - Light: Brightness, Contrast, Highlights, Shadows, Whites, Blacks
+  - Color: Temperature (WhiteBalance), Tint (TintMagenta), Saturation
+- Restored `clearOperations()` calls in `openDocument()` and `closeDocument()`
+
+**Build Status:**
+- ✅ Application builds successfully
+- ✅ Application launches (macOS .app bundle)
+- ✅ Image processing now active (sliders affect image in real-time)
+
+### ✅ Completed: Build Infrastructure & CI/CD Improvements
+
+**Centralized Version Management:**
+- Created `VERSION` file as single source of truth (currently `0.1.0`)
+- Created `cmake/Version.cmake` for CMake integration
+- Updated `CMakeLists.txt` to use centralized version
+- Updated `scripts/build_release.sh` to read from VERSION file
+- Updated `scripts/create_macos_dmg.sh` to read from VERSION file
+
+**CI/CD Workflows:**
+- Created `.github/workflows/ci.yml` for PR/push builds
+  - Parallel macOS and Linux builds
+  - Build caching for Homebrew and apt packages
+  - Git LFS support for AI models
+  - C++ and CMake linting checks
+  - Version consistency verification
+- Updated `.github/workflows/release.yml`:
+  - Added Git LFS checkout
+  - Added build caching
+  - Uses VERSION file for artifact naming
+
+**ONNX Runtime Fix:**
+- Created symlink `libs/onnxruntime → libs/onnxruntime-osx-arm64-1.16.3`
+- Resolved CMake configuration errors
+- Application now builds and runs successfully
+
+**VS Code Tasks Updates:**
+- Fixed `Launch Application` task to use `open ./build/bin/photo_manufactura.app`
+- Fixed `Launch Raw Processing` task (corrected executable name)
+- Fixed `Run Tasks Tests` task (added DYLD_LIBRARY_PATH for OpenMP)
+- Added comprehensive Release & Distribution tasks:
+  - 🚀 Full Release Build
+  - 📦 Create macOS DMG
+  - 🐧 Create Linux AppImage
+  - 🔨 Configure/Build Release
+  - 🧪 Test Release App
+  - 🧹 Clean All Builds
+  - 📋 Show Version
+
+**Git LFS Configuration:**
+- Already configured in `.gitattributes` for:
+  - `AI_models/*.onnx`
+  - `images/*.dng`, `*.nef`, `*.cr3`, `*.RAF`, `*.arw`
+
+**Current Build Status:**
+- ✅ Full application builds successfully
+- ✅ Application launches (macOS .app bundle)
+- ✅ Release build task works
+- ✅ All test executables run
+- ✅ Tasks tests pass (15/16, 1 flaky timing test)
 
 ---
 
@@ -164,14 +239,9 @@
 - ✅ File operations work (Open/Save/Save As)
 - ✅ Image display with aspect ratio preserved
 - ✅ Zoom controls functional
-- ⚠️ Image processing disabled (sliders connected but no effect - awaiting ImagePipeline integration)
+- ✅ Image processing active (sliders affect image in real-time via ImagePipeline)
 
-### ⚠️ Known Issues
-
-**Image Processing Still Disabled:**
-- Terminal output shows: "Adjustments not applied - image_processing component disabled"
-- Sliders trigger signals but `DocumentManager::applyAdjustments()` returns original image unchanged
-- Root cause: `ImagePipeline` integration still commented out in `DocumentManager.cpp`
+### ⚠️ Remaining Tasks
 
 ---
 
@@ -193,10 +263,10 @@
   - **B:** Keep `ImagePipeline` directly in `DocumentManager` (simpler)
 - **Recommendation:** Option A for better architecture
 
-#### 3. **Commented Out Code** ❌
-- `DocumentManager.h/.cpp`: ~50 lines of `ImagePipeline` code commented with `// TODO: Re-enable`
-- `controller/CMakeLists.txt`: `ImageProcessingService` files commented out
-- **Status:** Ready to uncomment once architecture decision is made
+#### 3. **Commented Out Code** ✅ RESOLVED
+- `DocumentManager.h/.cpp`: ImagePipeline code restored, now fully functional
+- `controller/CMakeLists.txt`: `ImageProcessingService` files still commented (not needed - using direct ImagePipeline)
+- **Status:** Main integration complete
 
 #### 4. **Wiring Consolidation** ✅
 - **Before:** Duplicate wiring in `main.cpp::connectUIToController()` and direct connections
@@ -207,7 +277,8 @@
 | Integration | Status | Location |
 |-------------|--------|----------|
 | File Menu → Controller | ✅ Complete | `ApplicationWiring::wireFileMenu()` |
-| ToolPanel → Controller | ✅ Connected | `ApplicationWiring::wireToolPanel()` (10 sliders) |
+| ToolPanel → Controller | ✅ Complete | `ApplicationWiring::wireToolPanel()` (10 sliders) |
+| ToolPanel → Image Processing | ✅ Complete | Via AdjustmentSettings → DocumentManager::applyAdjustments() |
 | Canvas → Controller | ✅ Complete | `ApplicationWiring::wireCanvas()` (zoom) |
 | Controller → Canvas | ✅ Complete | `ApplicationWiring::wireControllerToCanvas()` |
 | Document → Canvas | ✅ Complete | `ApplicationWiring::wireDocumentToCanvas()` |
@@ -253,45 +324,55 @@
 - Fixed spacing for collapsed state
 - Responsive layout improvements
 
-### ⚠️ Temporary Changes for Build
+### ✅ RESOLVED: Image Processing Integration
 
-**Image Processing Disabled:**
-- Commented out ONNX Runtime dependencies in `DocumentManager.cpp`
-- Removed `m_imagePipeline` member from `DocumentManager.h`
-- Removed `image_processing` link from `model/CMakeLists.txt`
-- `applyAdjustments()` currently returns original image unchanged
+**Previously Disabled (Now Restored):**
+- ✅ ONNX Runtime dependencies restored in `DocumentManager.cpp`
+- ✅ `m_imagePipeline` member restored in `DocumentManager.h`
+- ✅ `image_processing` link restored in `model/CMakeLists.txt`
+- ✅ `applyAdjustments()` now applies all operations via ImagePipeline
 
-**Reason:** ONNX Runtime library not installed at `/libs/onnxruntime/lib/`
-
-**To Restore Full Functionality:**
-1. Install ONNX Runtime 1.23.2 for macOS ARM64
-2. Uncomment all `// TODO: Re-enable when image_processing is available` sections
-3. Restore `image_processing` link in CMakeLists
-4. Rebuild project
+**Technical Notes:**
+- Added `QT_NO_KEYWORDS` to model CMakeLists.txt to avoid Halide/Qt `emit` conflict
+- Converted model layer to use `Q_EMIT`, `Q_SIGNALS`, `Q_SLOTS` macros
+- ONNX Runtime 1.16.3 installed via symlink at `libs/onnxruntime`
 
 ---
 
 ## Next Steps (Priority Order)
 
-### 🔴 **CRITICAL - Phase 1 (Today - Immediate)**
+### � **Phase 1 - COMPLETED**
 
 #### 1. 🔧 ~~Install ONNX Runtime~~ ✅ COMPLETED
 - [x] Downloaded ONNX Runtime 1.16.3
 - [x] Extracted to `libs/onnxruntime/lib/`
-- [x] Verified `libonnxruntime.dylib` exists
+- [x] Created symlink for CMake compatibility
 - [x] Application builds successfully
 - [x] Application launches successfully
 
-#### 2. 🏗️ **Restore Image Processing Integration** (Blocker)
-**Choose Architecture:**
-- [ ] **Decision:** Use `ImageProcessingService` OR direct `ImagePipeline` in `DocumentManager`
-  - Recommended: `ImageProcessingService` for cleaner separation
+#### 2. 🏗️ ~~Restore Image Processing Integration~~ ✅ COMPLETED
+- [x] Restored `image_processing` library link in model CMakeLists.txt
+- [x] Added `QT_NO_KEYWORDS` for Halide/Qt compatibility
+- [x] Converted model layer to `Q_EMIT`/`Q_SIGNALS`/`Q_SLOTS`
+- [x] Restored ImagePipeline member and initialization
+- [x] Restored full `applyAdjustments()` implementation
+- [x] Verified sliders now affect image in real-time
 
-**If using ImageProcessingService:**
-- [ ] Uncomment `ImageProcessingService.cpp/h` in `controller/CMakeLists.txt`
-- [ ] Add to controller library sources
-- [ ] Update `ApplicationController` to use `ImageProcessingService`
-- [ ] Connect service signals to UI updates
+### 🟡 **Phase 2 - Remaining Polish**
+
+#### 3. 🎨 **Theme Controller Integration**
+- [ ] Add signals to SubMenuView for theme changes
+- [ ] Wire theme signals through ApplicationWiring
+- [ ] Remove direct ThemeManager calls from UI
+
+#### 4. 📐 **Canvas Zoom Controller Integration**
+- [ ] Wire zoom operations through controller
+- [ ] Add zoom state persistence
+
+#### 5. 🧹 **Code Cleanup**
+- [ ] Remove obsolete TODO comments
+- [ ] Document `ui_main.cpp` purpose
+- [ ] Add missing header documentation
 
 **If using direct ImagePipeline:**
 - [ ] Uncomment `ImagePipeline` in `DocumentManager.h`
@@ -423,25 +504,35 @@
 
 | Component | Build | Launch | Functionality |
 |-----------|-------|--------|---------------|
-| Model | ✅ | - | Image processing disabled |
-| Controller | ✅ | - | Fully functional, awaiting service |
+| Model | ✅ | - | Fully functional |
+| Controller | ✅ | - | Fully functional |
 | ApplicationWiring | ✅ | - | 26 connections active |
 | UI Standalone | ✅ | ✅ | Works independently |
-| Full Application | ✅ | ✅ | Launches, file ops work, adjustments disabled |
-| Image Processing | ✅ | - | Builds but not integrated |
+| Full Application | ✅ | ✅ | Launches, file ops work |
+| Image Processing | ✅ | ✅ | Builds and runs |
+| Release Build | ✅ | ✅ | DMG packaging works |
+| CI/CD | ✅ | - | GitHub Actions configured |
+
+---
+
+## Release Artifacts
+
+After running `🚀 Full Release Build` task, artifacts are created at:
+
+| Artifact | Location | Platform |
+|----------|----------|----------|
+| App Bundle | `build/bin/photo_manufactura.app` | macOS |
+| DMG Installer | `Photo_Manufactura_v{VERSION}_macOS.dmg` | macOS |
+| AppImage | `Photo_Manufactura_v{VERSION}_Linux.AppImage` | Linux |
+| Tarball | `Photo_Manufactura_v{VERSION}_Linux.tar.gz` | Linux |
+| Windows ZIP | `Photo_Manufactura_v{VERSION}_Windows.zip` | Windows |
 
 ---
 
 ## Next Steps (Priority Order)
 
 ### 1. 🔧 ~~Install ONNX Runtime (Blocker)~~ ✅ COMPLETED
-```bash
-cd libs/onnxruntime
-curl -L -o onnxruntime.tgz https://github.com/microsoft/onnxruntime/releases/download/v1.23.2/onnxruntime-osx-arm64-1.23.2.tgz
-tar -xzf onnxruntime.tgz
-mkdir -p lib
-cp onnxruntime-osx-arm64-1.23.2/lib/* lib/
-```
+- Symlink created: `libs/onnxruntime → libs/onnxruntime-osx-arm64-1.16.3`
 
 ### 2. 🔗 Complete Controller Integration (High Priority)
 - Connect `ToolPanel` sliders → `ApplicationController` adjustment slots

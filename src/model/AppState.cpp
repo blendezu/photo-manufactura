@@ -7,7 +7,7 @@ AppState::AppState(QObject* parent) : QObject(parent) {}
 void AppState::setTheme(const QString& theme) {
     if (m_theme != theme) {
         m_theme = theme;
-        emit themeChanged(theme);
+        Q_EMIT themeChanged(theme);
     }
 }
 
@@ -16,28 +16,28 @@ void AppState::setZoomLevel(double level) {
     double clampedLevel = std::clamp(level, MinZoom, MaxZoom);
     if (m_zoomLevel != clampedLevel) {
         m_zoomLevel = clampedLevel;
-        emit zoomLevelChanged(clampedLevel);
+        Q_EMIT zoomLevelChanged(clampedLevel);
     }
 }
 
 void AppState::setHistogramVisible(bool visible) {
     if (m_histogramVisible != visible) {
         m_histogramVisible = visible;
-        emit histogramVisibleChanged(visible);
+        Q_EMIT histogramVisibleChanged(visible);
     }
 }
 
 void AppState::setToolPanelVisible(bool visible) {
     if (m_toolPanelVisible != visible) {
         m_toolPanelVisible = visible;
-        emit toolPanelVisibleChanged(visible);
+        Q_EMIT toolPanelVisibleChanged(visible);
     }
 }
 
 void AppState::setAdjustmentPanelVisible(bool visible) {
     if (m_adjustmentPanelVisible != visible) {
         m_adjustmentPanelVisible = visible;
-        emit adjustmentPanelVisibleChanged(visible);
+        Q_EMIT adjustmentPanelVisibleChanged(visible);
     }
 }
 
