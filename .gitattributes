@@ -1,0 +1,7 @@
+images/*.dng filter=lfs diff=lfs merge=lfs -text
+AI_models/*.onnx filter=lfs diff=lfs merge=lfs -text
+images/*.nef filter=lfs diff=lfs merge=lfs -text
+images/*.cr3 filter=lfs diff=lfs merge=lfs -text
+images/*.RAF filter=lfs diff=lfs merge=lfs -text
+images/*.raf filter=lfs diff=lfs merge=lfs -text
+images/*.arw filter=lfs diff=lfs merge=lfs -text
