@@ -42,7 +42,8 @@ The Model layer (`src/model/`) contains the application's data and business stat
 | `ImageDocument.h/cpp` | Single image document state |
 | `AdjustmentSettings.h/cpp` | All adjustment slider values |
 | `AppState.h/cpp` | Application UI state (theme, zoom) |
-| `DocumentManager.h/cpp` | Facade for document operations |
+| `DocumentManager.h/cpp` | Facade for document operations with undo/redo |
+| `PresetManager.h/cpp` | Save/load adjustment presets (JSON) |
 | `CMakeLists.txt` | Build configuration |
 
 ## 🔧 CLASSES
@@ -156,7 +157,7 @@ signals:
 
 ### DocumentManager
 
-Facade that coordinates all model operations.
+Facade that coordinates all model operations, including undo/redo and geometry transforms.
 
 ```cpp
 class DocumentManager : public QObject {
@@ -171,6 +172,11 @@ public:
     bool hasDocument() const;
     bool hasUnsavedChanges() const;
     QString currentFilePath() const;
+    QString currentFileName() const;
+    
+    // Undo/Redo state
+    bool canUndo() const;
+    bool canRedo() const;
 
 public slots:
     // Document lifecycle
@@ -182,13 +188,31 @@ public slots:
     
     // Processing
     void applyAdjustments();
+    void applyAdjustmentsDebounced();  // For slider dragging
+    void setDebouncedMode(bool enabled);
+    
+    // Geometry operations (destructive)
+    void rotateImage(int degrees);
+    void flipImage(int direction);  // 0=vertical, 1=horizontal
+    void cropImage(const QRect& cropArea);
+    
+    // Filter operations
+    void applyFilter(const QString& filterName);
+    void removeFilter();
+    
+    // Undo/Redo
+    void undo();
+    void redo();
 
 signals:
     void documentOpened(const QString& filePath);
     void documentSaved(const QString& filePath);
     void documentClosed();
+    void documentCreated();
     void documentStateChanged();
+    void imageTransformed();  // After rotate/flip/crop
     void errorOccurred(const QString& error);
+    void undoRedoStateChanged(bool canUndo, bool canRedo);
 };
 ```
 
@@ -256,6 +280,44 @@ void ApplicationController::adjustBrightness(int value) {
 3. **Single Source of Truth**: One `DocumentManager` owns all state
 4. **Decoupled from UI**: Models know nothing about Views
 5. **Qt Properties**: Enable QML binding if needed later
+
+---
+
+## 🎨 PresetManager
+
+Manages named adjustment presets for quick application of settings.
+
+```cpp
+class PresetManager : public QObject {
+    Q_OBJECT
+
+public:
+    // Built-in presets (read-only)
+    static QStringList builtInPresets();
+    static QJsonObject getBuiltInPreset(const QString& name);
+    
+    // User presets (stored in app data directory)
+    QStringList userPresets() const;
+    bool savePreset(const QString& name, const AdjustmentSettings* settings);
+    bool loadPreset(const QString& name, AdjustmentSettings* settings);
+    bool deletePreset(const QString& name);
+    bool presetExists(const QString& name) const;
+    
+    // Combined list
+    QStringList allPresets() const;
+
+signals:
+    void presetSaved(const QString& name);
+    void presetDeleted(const QString& name);
+    void presetLoaded(const QString& name);
+};
+```
+
+**Built-in Presets:**
+- Portrait, Landscape, B&W, Vivid, Cinematic, etc.
+
+**Storage:**
+- User presets saved as JSON in `~/.local/share/photo_manufactura/presets/`
 
 ## 📝 EXTENDING THE MODEL
 
