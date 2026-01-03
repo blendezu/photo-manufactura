@@ -120,6 +120,12 @@ void ApplicationController::openFile() {
                                                     tr(FileFormats::OpenFilter));
 
     if (!fileName.isEmpty()) {
+        // Save zoom for current file before switching
+        QString currentFile = m_documentManager->currentFilePath();
+        if (!currentFile.isEmpty()) {
+            m_appState->saveZoomForFile(currentFile);
+        }
+
         // Save the directory for next time
         QFileInfo fileInfo(fileName);
         settings.setValue("lastImageDirectory", fileInfo.absolutePath());
@@ -127,6 +133,9 @@ void ApplicationController::openFile() {
         if (m_documentManager->openDocument(fileName)) {
             setState("currentFile", fileName);
             setState("isModified", false);
+
+            // Restore zoom for this file
+            m_appState->restoreZoomForFile(fileName);
 
             // Emit signal with the loaded image
             if (m_documentManager->currentDocument() &&
@@ -212,6 +221,12 @@ void ApplicationController::closeFile() {
         } else if (ret == QMessageBox::Cancel) {
             return;
         }
+    }
+
+    // Save zoom before closing
+    QString currentFile = m_documentManager->currentFilePath();
+    if (!currentFile.isEmpty()) {
+        m_appState->saveZoomForFile(currentFile);
     }
 
     m_documentManager->closeDocument();
