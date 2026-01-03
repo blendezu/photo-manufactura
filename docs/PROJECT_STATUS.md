@@ -1,6 +1,6 @@
 # Photo Manufactura - Project Status
 
-**Date:** 3 January 2026  
+**Date:** 4 January 2026  
 **Version:** 0.1.0  
 **Branch:** `feat/app-beta-version`
 
@@ -38,9 +38,9 @@
 |------|--------|-------------|
 | `ImageDocument.h/cpp` | ✅ Complete | Document state (image, path, modified flag) |
 | `AdjustmentSettings.h/cpp` | ✅ Complete | All 10 adjustment sliders with signals |
-| `AppState.h/cpp` | ✅ Complete | Theme, zoom, panel visibility state |
-| `DocumentManager.h/cpp` | ✅ Complete | Document lifecycle (open/save/close) |
-| `PresetManager.h/cpp` | ✅ Complete | Save/load adjustment presets (JSON) |
+| `AppState.h/cpp` | ✅ Complete | Theme, zoom persistence per file, panel visibility |
+| `DocumentManager.h/cpp` | ✅ Complete | Document lifecycle, applyAdjustmentsPermanently |
+| `PresetManager.h/cpp` | ✅ Complete | Save/load adjustment presets (JSON), user presets |
 | `CMakeLists.txt` | ✅ Complete | Build configuration |
 
 ### ✅ Controller Layer (`src/controller/`)
@@ -56,17 +56,16 @@
 | Component | Status | Description |
 |-----------|--------|-------------|
 | `mainwindow` | ✅ Refactored | Pure UI display, receives signals from controller |
-| `canvas/canvasWidget` | ✅ | OpenGL image display (GLSL 120), aspect ratio preserved |
+| `canvas/canvasWidget` | ✅ | OpenGL image display, zoom notification to InfoPanel |
 | `bar/toolBar` | ✅ | Main toolbar |
 | `bar/subMenuFile` | ✅ Refactored | Signal-only pattern, Save & Save As fully implemented |
 | `bar/subMenuEdit` | ✅ | Edit menu |
 | `bar/subMenuView` | ✅ | View menu with theme switching (Ctrl+T) |
-| `panel/toolPanel` | ✅ | Adjustment sliders (TODO: connect to controller) |
-| `panel/infoPanel` | ✅ | Image info display |
+| `panel/toolPanel` | ✅ | Quick actions (Apply, Compare, Preset, Reset), collapsible sections, responsive sliders |
+| `panel/infoPanel` | ✅ | Image metadata, histogram, zoom level display |
+| `widgets/modernSlider` | ✅ | Responsive slider - hides spinbox when narrow |
 | `widgets/collapsibleWidget` | ✅ | Collapsible sections with animations |
-| `widgets/labeledSlider` | ✅ | Slider with label |
 | `resources/theme/` | ✅ | Theme manager, dark/light QSS |
-| `ui_main.cpp` | ✅ Complete | Full controller wiring including Save & Save As |
 
 ### ✅ Image Processing (`src/image_processing/`)
 
