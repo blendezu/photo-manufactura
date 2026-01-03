@@ -4,10 +4,10 @@
 #include <QPushButton>
 #include <QScrollBar>
 
-#include "../widgets/collapsibleWidget.h"
-#include "../widgets/labeledSlider.h"
+#include "../widgets/modernButton.h"
+#include "../widgets/modernCollapsible.h"
+#include "../widgets/modernSlider.h"
 #include "../widgets/modernToolButton.h"
-#include "../widgets/toolPaletteWidget.h"
 
 ToolPanel::ToolPanel(QWidget* parent) : QWidget(parent) {
     setupUI();
@@ -28,7 +28,7 @@ void ToolPanel::setupUI() {
     // Separator line
     QFrame* separator = new QFrame(this);
     separator->setFrameShape(QFrame::HLine);
-    separator->setStyleSheet("background: #404040; max-height: 1px;");
+    separator->setStyleSheet("background: #333; max-height: 1px;");
     mainLayout->addWidget(separator);
 
     // Create scroll area for the content
@@ -37,31 +37,41 @@ void ToolPanel::setupUI() {
     m_scrollArea->setFrameShape(QFrame::NoFrame);
     m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_scrollArea->setStyleSheet(
-        "QScrollArea { background: transparent; }"
-        "QScrollBar:vertical {"
-        "  background: #2a2a2a; width: 8px; margin: 0;"
-        "}"
-        "QScrollBar::handle:vertical {"
-        "  background: #505050; border-radius: 4px; min-height: 30px;"
-        "}"
-        "QScrollBar::handle:vertical:hover { background: #606060; }"
-        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
-        "  height: 0; background: none;"
-        "}");
+    m_scrollArea->setStyleSheet(R"(
+        QScrollArea { background: #1e1e1e; }
+        QScrollBar:vertical {
+            background: #1e1e1e;
+            width: 6px;
+            margin: 0;
+            border-radius: 3px;
+        }
+        QScrollBar::handle:vertical {
+            background: #404040;
+            border-radius: 3px;
+            min-height: 40px;
+        }
+        QScrollBar::handle:vertical:hover { background: #505050; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0; background: none;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: none;
+        }
+    )");
 
     // Content widget
     m_contentWidget = new QWidget();
+    m_contentWidget->setStyleSheet("background: #1e1e1e;");
     m_mainLayout = new QVBoxLayout(m_contentWidget);
-    m_mainLayout->setContentsMargins(8, 12, 8, 12);
-    m_mainLayout->setSpacing(8);
+    m_mainLayout->setContentsMargins(0, 8, 0, 16);
+    m_mainLayout->setSpacing(4);
 
     // Create collapsible sections in logical order
     m_mainLayout->addWidget(createEffectsSection());  // Filters first (most used)
     m_mainLayout->addWidget(createAIStyleSection());  // AI Style Transfer
-    m_mainLayout->addWidget(createToolSection());     // Geometry tools
     m_mainLayout->addWidget(createBasicSection());    // Light adjustments
     m_mainLayout->addWidget(createColorSection());    // Color adjustments
+    m_mainLayout->addWidget(createToolSection());     // Geometry tools
     m_mainLayout->addWidget(createDetailSection());   // Detail/other
     m_mainLayout->addStretch();
 
@@ -72,8 +82,8 @@ void ToolPanel::setupUI() {
 
 QWidget* ToolPanel::createQuickActionsBar() {
     QWidget* bar = new QWidget(this);
-    bar->setStyleSheet("background: #2d2d2d;");
-    bar->setFixedHeight(90);
+    bar->setStyleSheet("background: #252525; border-bottom: 1px solid #333;");
+    bar->setFixedHeight(80);
 
     QHBoxLayout* layout = new QHBoxLayout(bar);
     layout->setContentsMargins(12, 8, 12, 8);
@@ -110,48 +120,39 @@ QWidget* ToolPanel::createQuickActionsBar() {
     return bar;
 }
 
-CollapsibleWidget* ToolPanel::createBasicSection() {
-    CollapsibleWidget* basicSection = new CollapsibleWidget("Basic Adjustments", this);
+ModernCollapsible* ToolPanel::createBasicSection() {
+    ModernCollapsible* basicSection = new ModernCollapsible("Light", "☀️", this);
     QVBoxLayout* layout = new QVBoxLayout();
+    layout->setSpacing(2);
+    layout->setContentsMargins(8, 8, 8, 12);
 
-    layout->setSpacing(8);
-    layout->setContentsMargins(5, 10, 5, 10);
-
-    // Create sliders
-    m_exposureSlider = new LabeledSlider("Exposure", -100, 100, 0, this);
+    // Create modern sliders
+    m_exposureSlider = new ModernSlider("Exposure", -100, 100, 0, this);
     m_exposureSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
 
-    m_contrastSlider = new LabeledSlider("Contrast", -100, 100, 0, this);
+    m_contrastSlider = new ModernSlider("Contrast", -100, 100, 0, this);
     m_contrastSlider->setTooltip(
         "Adjust the difference between light and dark\nDouble-click to reset");
 
-    m_highlightsSlider = new LabeledSlider("Highlights", -100, 100, 0, this);
+    m_highlightsSlider = new ModernSlider("Highlights", -100, 100, 0, this);
     m_highlightsSlider->setTooltip("Recover or brighten bright areas\nDouble-click to reset");
 
-    m_shadowsSlider = new LabeledSlider("Shadows", -100, 100, 0, this);
+    m_shadowsSlider = new ModernSlider("Shadows", -100, 100, 0, this);
     m_shadowsSlider->setTooltip("Brighten or darken shadow areas\nDouble-click to reset");
 
-    m_whitesSlider = new LabeledSlider("Whites", -100, 100, 0, this);
+    m_whitesSlider = new ModernSlider("Whites", -100, 100, 0, this);
     m_whitesSlider->setTooltip("Adjust white point and bright tones\nDouble-click to reset");
 
-    m_blacksSlider = new LabeledSlider("Blacks", -100, 100, 0, this);
+    m_blacksSlider = new ModernSlider("Blacks", -100, 100, 0, this);
     m_blacksSlider->setTooltip("Adjust black point and dark tones\nDouble-click to reset");
 
     // Connect signals
-    // TODO: MOVE TO CONTROLLER: These signals should connect to ApplicationController slots
-    // The controller should handle:
-    //   1. Receiving adjustment values
-    //   2. Coordinating with ImageProcessingService to apply adjustments
-    //   3. Managing state and undo/redo history
-    //   4. Triggering image reprocessing via ImagePipeline
-    // Example: connect(m_exposureSlider, &LabeledSlider::valueChanged,
-    //                  controller, &ApplicationController::adjustExposure);
-    connect(m_exposureSlider, &LabeledSlider::valueChanged, this, &ToolPanel::exposureChanged);
-    connect(m_contrastSlider, &LabeledSlider::valueChanged, this, &ToolPanel::contrastChanged);
-    connect(m_highlightsSlider, &LabeledSlider::valueChanged, this, &ToolPanel::highlightsChanged);
-    connect(m_shadowsSlider, &LabeledSlider::valueChanged, this, &ToolPanel::shadowsChanged);
-    connect(m_whitesSlider, &LabeledSlider::valueChanged, this, &ToolPanel::whitesChanged);
-    connect(m_blacksSlider, &LabeledSlider::valueChanged, this, &ToolPanel::blacksChanged);
+    connect(m_exposureSlider, &ModernSlider::valueChanged, this, &ToolPanel::exposureChanged);
+    connect(m_contrastSlider, &ModernSlider::valueChanged, this, &ToolPanel::contrastChanged);
+    connect(m_highlightsSlider, &ModernSlider::valueChanged, this, &ToolPanel::highlightsChanged);
+    connect(m_shadowsSlider, &ModernSlider::valueChanged, this, &ToolPanel::shadowsChanged);
+    connect(m_whitesSlider, &ModernSlider::valueChanged, this, &ToolPanel::whitesChanged);
+    connect(m_blacksSlider, &ModernSlider::valueChanged, this, &ToolPanel::blacksChanged);
 
     // Add to layout
     layout->addWidget(m_exposureSlider);
@@ -162,33 +163,31 @@ CollapsibleWidget* ToolPanel::createBasicSection() {
     layout->addWidget(m_blacksSlider);
 
     basicSection->setContentLayout(layout);
-    basicSection->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     return basicSection;
 }
 
-CollapsibleWidget* ToolPanel::createColorSection() {
-    CollapsibleWidget* colorSection = new CollapsibleWidget("Color Adjustments", this);
+ModernCollapsible* ToolPanel::createColorSection() {
+    ModernCollapsible* colorSection = new ModernCollapsible("Color", "🎨", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(8);
-    layout->setContentsMargins(5, 10, 5, 10);
+    layout->setSpacing(2);
+    layout->setContentsMargins(8, 8, 8, 12);
 
-    // Create sliders
-    m_temperatureSlider = new LabeledSlider("Temperature", -100, 100, 0, this);
+    // Create modern sliders
+    m_temperatureSlider = new ModernSlider("Temperature", -100, 100, 0, this);
     m_temperatureSlider->setTooltip(
         "Adjust color temperature\nCooler (blue) ← → Warmer (yellow)\nDouble-click to reset");
 
-    m_tintSlider = new LabeledSlider("Tint", -100, 100, 0, this);
+    m_tintSlider = new ModernSlider("Tint", -100, 100, 0, this);
     m_tintSlider->setTooltip(
         "Adjust green-magenta balance\nGreen ← → Magenta\nDouble-click to reset");
 
-    m_saturationSlider = new LabeledSlider("Saturation", -100, 100, 0, this);
+    m_saturationSlider = new ModernSlider("Saturation", -100, 100, 0, this);
     m_saturationSlider->setTooltip("Adjust color intensity\nDouble-click to reset");
 
     // Connect signals
-    connect(m_temperatureSlider, &LabeledSlider::valueChanged, this,
-            &ToolPanel::temperatureChanged);
-    connect(m_tintSlider, &LabeledSlider::valueChanged, this, &ToolPanel::tintChanged);
-    connect(m_saturationSlider, &LabeledSlider::valueChanged, this, &ToolPanel::saturationChanged);
+    connect(m_temperatureSlider, &ModernSlider::valueChanged, this, &ToolPanel::temperatureChanged);
+    connect(m_tintSlider, &ModernSlider::valueChanged, this, &ToolPanel::tintChanged);
+    connect(m_saturationSlider, &ModernSlider::valueChanged, this, &ToolPanel::saturationChanged);
 
     // Add to layout
     layout->addWidget(m_temperatureSlider);
@@ -199,31 +198,32 @@ CollapsibleWidget* ToolPanel::createColorSection() {
     return colorSection;
 }
 
-CollapsibleWidget* ToolPanel::createDetailSection() {
-    CollapsibleWidget* detailSection = new CollapsibleWidget("Detail", this);
+ModernCollapsible* ToolPanel::createDetailSection() {
+    ModernCollapsible* detailSection = new ModernCollapsible("Detail", "✨", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(8);
-    layout->setContentsMargins(5, 10, 5, 10);
+    layout->setSpacing(2);
+    layout->setContentsMargins(8, 8, 8, 12);
 
-    // Create sliders
-    m_brightnessSlider = new LabeledSlider("Brightness", -100, 100, 0, this);
+    // Create modern slider
+    m_brightnessSlider = new ModernSlider("Brightness", -100, 100, 0, this);
     m_brightnessSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
 
     // Connect signals
-    connect(m_brightnessSlider, &LabeledSlider::valueChanged, this, &ToolPanel::brightnessChanged);
+    connect(m_brightnessSlider, &ModernSlider::valueChanged, this, &ToolPanel::brightnessChanged);
 
     // Add to layout
     layout->addWidget(m_brightnessSlider);
 
     detailSection->setContentLayout(layout);
+    detailSection->setExpanded(false);  // Start collapsed
     return detailSection;
 }
 
-CollapsibleWidget* ToolPanel::createEffectsSection() {
-    CollapsibleWidget* effectsSection = new CollapsibleWidget("✨ Effects & Filters", this);
+ModernCollapsible* ToolPanel::createEffectsSection() {
+    ModernCollapsible* effectsSection = new ModernCollapsible("Effects", "✨", this);
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setSpacing(8);
-    layout->setContentsMargins(5, 10, 5, 10);
+    layout->setContentsMargins(8, 8, 8, 12);
 
     // Filter gallery with preview cards
     m_filterGallery = new FilterGalleryWidget(this);
@@ -249,16 +249,16 @@ CollapsibleWidget* ToolPanel::createEffectsSection() {
     return effectsSection;
 }
 
-CollapsibleWidget* ToolPanel::createAIStyleSection() {
-    CollapsibleWidget* styleSection = new CollapsibleWidget("🎨 AI Style Transfer", this);
+ModernCollapsible* ToolPanel::createAIStyleSection() {
+    ModernCollapsible* styleSection = new ModernCollapsible("AI Style Transfer", "🎨", this);
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setSpacing(8);
-    layout->setContentsMargins(5, 10, 5, 10);
+    layout->setContentsMargins(8, 8, 8, 12);
 
     // Info label
     QLabel* infoLabel = new QLabel(
-        "<span style='color: #888; font-size: 11px;'>"
-        "Transform your photo into artistic styles using neural networks</span>",
+        "<span style='color: #666; font-size: 10px;'>"
+        "Transform your photo using neural networks</span>",
         this);
     infoLabel->setWordWrap(true);
     layout->addWidget(infoLabel);
@@ -291,7 +291,7 @@ CollapsibleWidget* ToolPanel::createAIStyleSection() {
 
     // Processing indicator (hidden by default)
     QLabel* processingLabel = new QLabel(
-        "<span style='color: #6366f1; font-size: 11px;'>"
+        "<span style='color: #6366f1; font-size: 10px;'>"
         "⏳ Processing... AI style transfer may take a few seconds</span>",
         this);
     processingLabel->setWordWrap(true);
@@ -300,11 +300,12 @@ CollapsibleWidget* ToolPanel::createAIStyleSection() {
     layout->addWidget(processingLabel);
 
     styleSection->setContentLayout(layout);
+    styleSection->setExpanded(false);  // Start collapsed
     return styleSection;
 }
 
 void ToolPanel::resetAllAdjustments() {
-    // Reset all sliders to default values
+    // Reset all modern sliders to default values
     m_exposureSlider->reset();
     m_contrastSlider->reset();
     m_highlightsSlider->reset();
@@ -320,112 +321,133 @@ void ToolPanel::resetAllAdjustments() {
     Q_EMIT resetAllRequested();
 }
 
-CollapsibleWidget* ToolPanel::createToolSection() {
-    CollapsibleWidget* toolSection = new CollapsibleWidget("Geometry Tools", this);
+ModernCollapsible* ToolPanel::createToolSection() {
+    ModernCollapsible* toolSection = new ModernCollapsible("Transform", "📐", this);
     QVBoxLayout* layout = new QVBoxLayout();
     layout->setSpacing(12);
-    layout->setContentsMargins(5, 10, 5, 10);
+    layout->setContentsMargins(8, 8, 8, 12);
 
-    // Rotate tools with icons
-    QLabel* rotateLabel = new QLabel("Rotate", this);
-    rotateLabel->setStyleSheet("font-weight: bold; color: #aaa;");
+    // Rotate tools
+    QLabel* rotateLabel = new QLabel("ROTATE", this);
+    rotateLabel->setStyleSheet(
+        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px;");
     layout->addWidget(rotateLabel);
 
-    m_rotateToolPalette = new ToolPaletteWidget("Rotate Tools", this);
-    m_rotateToolPalette->addToolButton("Rotate Left", ":/assets/icons/rotate_left.png");
-    m_rotateToolPalette->addToolButton("Rotate Right", ":/assets/icons/rotate_right.png");
-    connect(m_rotateToolPalette, &ToolPaletteWidget::toolActivated, this,
-            [this](const QString& tool) {
-                if (tool == "Rotate Left")
-                    Q_EMIT rotateLeftRequested();
-                else if (tool == "Rotate Right")
-                    Q_EMIT rotateRightRequested();
-            });
-    layout->addWidget(m_rotateToolPalette);
+    QHBoxLayout* rotateLayout = new QHBoxLayout();
+    rotateLayout->setSpacing(8);
 
-    // Flip tools with icons
-    QLabel* flipLabel = new QLabel("Flip", this);
-    flipLabel->setStyleSheet("font-weight: bold; color: #aaa;");
+    IconButton* rotateLeftBtn =
+        new IconButton(":/assets/icons/rotate_left.png", "Rotate Left", this);
+    rotateLeftBtn->setIconEmoji("↺");
+    connect(rotateLeftBtn, &QPushButton::clicked, this, &ToolPanel::rotateLeftRequested);
+
+    IconButton* rotateRightBtn =
+        new IconButton(":/assets/icons/rotate_right.png", "Rotate Right", this);
+    rotateRightBtn->setIconEmoji("↻");
+    connect(rotateRightBtn, &QPushButton::clicked, this, &ToolPanel::rotateRightRequested);
+
+    rotateLayout->addWidget(rotateLeftBtn);
+    rotateLayout->addWidget(rotateRightBtn);
+    rotateLayout->addStretch();
+    layout->addLayout(rotateLayout);
+
+    // Flip tools
+    QLabel* flipLabel = new QLabel("FLIP", this);
+    flipLabel->setStyleSheet(
+        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px;");
     layout->addWidget(flipLabel);
 
-    m_flipToolPalette = new ToolPaletteWidget("Flip Tools", this);
-    m_flipToolPalette->addToolButton("Flip Horizontal", ":/assets/icons/flip_horizontal.png");
-    m_flipToolPalette->addToolButton("Flip Vertical", ":/assets/icons/flip_vertical.png");
-    connect(m_flipToolPalette, &ToolPaletteWidget::toolActivated, this,
-            [this](const QString& tool) {
-                if (tool == "Flip Horizontal")
-                    Q_EMIT flipHorizontalRequested();
-                else if (tool == "Flip Vertical")
-                    Q_EMIT flipVerticalRequested();
-            });
-    layout->addWidget(m_flipToolPalette);
+    QHBoxLayout* flipLayout = new QHBoxLayout();
+    flipLayout->setSpacing(8);
 
-    // Crop tool with icon
-    QLabel* cropLabel = new QLabel("Crop", this);
-    cropLabel->setStyleSheet("font-weight: bold; color: #aaa;");
-    layout->addWidget(cropLabel);
+    IconButton* flipHBtn =
+        new IconButton(":/assets/icons/flip_horizontal.png", "Flip Horizontal", this);
+    flipHBtn->setIconEmoji("↔");
+    connect(flipHBtn, &QPushButton::clicked, this, &ToolPanel::flipHorizontalRequested);
 
-    m_cropToolPalette = new ToolPaletteWidget("Crop Tools", this);
-    m_cropToolPalette->addToolButton("Crop", ":/assets/icons/crop.png");
-    m_cropToolPalette->addToolButton("Straighten", ":/assets/icons/straighten.png");
-    connect(m_cropToolPalette, &ToolPaletteWidget::toolActivated, this,
-            [this](const QString& tool) {
-                if (tool == "Crop")
-                    Q_EMIT cropRequested();
-                else if (tool == "Straighten")
-                    Q_EMIT straightenRequested();
-            });
-    layout->addWidget(m_cropToolPalette);
+    IconButton* flipVBtn =
+        new IconButton(":/assets/icons/flip_vertical.png", "Flip Vertical", this);
+    flipVBtn->setIconEmoji("↕");
+    connect(flipVBtn, &QPushButton::clicked, this, &ToolPanel::flipVerticalRequested);
 
-    // Crop options - Aspect Ratio / Fixed Size
-    QLabel* cropOptionsLabel = new QLabel("Crop Mode", this);
-    cropOptionsLabel->setStyleSheet("font-weight: bold; color: #aaa; margin-top: 8px;");
+    flipLayout->addWidget(flipHBtn);
+    flipLayout->addWidget(flipVBtn);
+    flipLayout->addStretch();
+    layout->addLayout(flipLayout);
+
+    // Crop mode
+    QLabel* cropOptionsLabel = new QLabel("CROP MODE", this);
+    cropOptionsLabel->setStyleSheet(
+        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
     layout->addWidget(cropOptionsLabel);
 
     m_cropModeCombo = new QComboBox(this);
-    m_cropModeCombo->addItem("Free", 0);             // AspectRatioPreset::Free
-    m_cropModeCombo->addItem("1:1 Square", 1);       // AspectRatioPreset::Square_1_1
-    m_cropModeCombo->addItem("4:3 Photo", 2);        // AspectRatioPreset::Photo_4_3
-    m_cropModeCombo->addItem("3:2 Photo", 3);        // AspectRatioPreset::Photo_3_2
-    m_cropModeCombo->addItem("16:9 Widescreen", 4);  // AspectRatioPreset::Widescreen_16_9
-    m_cropModeCombo->addItem("21:9 Ultrawide", 5);   // AspectRatioPreset::Widescreen_21_9
-    m_cropModeCombo->addItem("3:4 Portrait", 6);     // AspectRatioPreset::Portrait_3_4
-    m_cropModeCombo->addItem("2:3 Portrait", 7);     // AspectRatioPreset::Portrait_2_3
-    m_cropModeCombo->addItem("9:16 Portrait", 8);    // AspectRatioPreset::Portrait_9_16
-    m_cropModeCombo->addItem("Fixed Size...", 100);  // Special: Fixed size
-    m_cropModeCombo->setStyleSheet(
-        "QComboBox { background: #3a3a3a; border: 1px solid #555; border-radius: 3px; "
-        "padding: 4px 8px; color: #ddd; }"
-        "QComboBox::drop-down { border: none; }"
-        "QComboBox::down-arrow { image: url(:/assets/icons/dropdown.png); width: 12px; }"
-        "QComboBox QAbstractItemView { background: #3a3a3a; color: #ddd; "
-        "selection-background-color: #555; }");
+    m_cropModeCombo->addItem("Free", 0);
+    m_cropModeCombo->addItem("1:1 Square", 1);
+    m_cropModeCombo->addItem("4:3 Photo", 2);
+    m_cropModeCombo->addItem("3:2 Photo", 3);
+    m_cropModeCombo->addItem("16:9 Widescreen", 4);
+    m_cropModeCombo->addItem("21:9 Ultrawide", 5);
+    m_cropModeCombo->addItem("3:4 Portrait", 6);
+    m_cropModeCombo->addItem("2:3 Portrait", 7);
+    m_cropModeCombo->addItem("9:16 Portrait", 8);
+    m_cropModeCombo->addItem("Fixed Size...", 100);
+    m_cropModeCombo->setStyleSheet(R"(
+        QComboBox {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #d0d0d0;
+            font-size: 12px;
+        }
+        QComboBox:hover { border-color: #4a4a4a; background: #303030; }
+        QComboBox:focus { border-color: #0078d4; }
+        QComboBox::drop-down { border: none; width: 24px; }
+        QComboBox::down-arrow { image: url(:/assets/icons/dropdown.png); width: 10px; }
+        QComboBox QAbstractItemView {
+            background: #2a2a2a;
+            color: #d0d0d0;
+            selection-background-color: #0078d4;
+            selection-color: white;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 4px;
+        }
+    )");
     layout->addWidget(m_cropModeCombo);
 
     // Fixed size options (initially hidden)
     m_fixedSizeWidget = new QWidget(this);
     QHBoxLayout* fixedSizeLayout = new QHBoxLayout(m_fixedSizeWidget);
-    fixedSizeLayout->setContentsMargins(0, 4, 0, 0);
-    fixedSizeLayout->setSpacing(4);
+    fixedSizeLayout->setContentsMargins(0, 8, 0, 0);
+    fixedSizeLayout->setSpacing(8);
 
     m_cropWidthSpin = new QSpinBox(this);
     m_cropWidthSpin->setRange(1, 10000);
     m_cropWidthSpin->setValue(800);
     m_cropWidthSpin->setSuffix(" px");
-    m_cropWidthSpin->setStyleSheet(
-        "QSpinBox { background: #3a3a3a; border: 1px solid #555; border-radius: 3px; "
-        "padding: 2px 4px; color: #ddd; }");
+    m_cropWidthSpin->setStyleSheet(R"(
+        QSpinBox {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: #d0d0d0;
+            font-size: 12px;
+        }
+        QSpinBox:hover { border-color: #4a4a4a; }
+        QSpinBox:focus { border-color: #0078d4; }
+    )");
 
     QLabel* xLabel = new QLabel("×", this);
-    xLabel->setStyleSheet("color: #aaa;");
+    xLabel->setStyleSheet("color: #666; font-size: 14px; font-weight: bold;");
 
     m_cropHeightSpin = new QSpinBox(this);
     m_cropHeightSpin->setRange(1, 10000);
     m_cropHeightSpin->setValue(600);
     m_cropHeightSpin->setSuffix(" px");
-    m_cropHeightSpin->setStyleSheet(
-        "QSpinBox { background: #3a3a3a; border: 1px solid #555; border-radius: 3px; "
-        "padding: 2px 4px; color: #ddd; }");
+    m_cropHeightSpin->setStyleSheet(m_cropWidthSpin->styleSheet());
 
     fixedSizeLayout->addWidget(m_cropWidthSpin);
     fixedSizeLayout->addWidget(xLabel);
@@ -439,7 +461,6 @@ CollapsibleWidget* ToolPanel::createToolSection() {
             [this](int index) {
                 int presetValue = m_cropModeCombo->itemData(index).toInt();
                 if (presetValue == 100) {
-                    // Fixed size mode
                     m_fixedSizeWidget->setVisible(true);
                     Q_EMIT cropFixedSizeChanged(m_cropWidthSpin->value(),
                                                 m_cropHeightSpin->value());
@@ -462,5 +483,6 @@ CollapsibleWidget* ToolPanel::createToolSection() {
     });
 
     toolSection->setContentLayout(layout);
+    toolSection->setExpanded(false);  // Start collapsed
     return toolSection;
 }

@@ -78,16 +78,18 @@ set(PANEL_SOURCES
 )
 
 set(WIDGET_SOURCES
-    widgets/collapsibleWidget.h
-    widgets/collapsibleWidget.cpp
-    widgets/labeledSlider.h
-    widgets/labeledSlider.cpp
-    widgets/toolPaletteWidget.h
-    widgets/toolPaletteWidget.cpp
-    widgets/histogramWidget.h
-    widgets/histogramWidget.cpp
+    # Modern UI widgets (current)
     widgets/modernToolButton.h
     widgets/modernToolButton.cpp
+    widgets/modernSlider.h
+    widgets/modernSlider.cpp
+    widgets/modernCollapsible.h
+    widgets/modernCollapsible.cpp
+    widgets/modernButton.h
+    widgets/modernButton.cpp
+    # Utility widgets
+    widgets/histogramWidget.h
+    widgets/histogramWidget.cpp
 )
 
 set(CANVAS_SOURCES
