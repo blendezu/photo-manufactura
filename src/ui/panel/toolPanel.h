@@ -1,12 +1,20 @@
 #pragma once
 
+#include <QComboBox>
 #include <QScrollArea>
+#include <QSpinBox>
 #include <QVBoxLayout>
 #include <QWidget>
 
 class LabeledSlider;
 class CollapsibleWidget;
 class ToolPaletteWidget;
+class ModernToolButton;
+class FilterGalleryWidget;
+
+// Forward declare crop types from canvasWidget
+enum class CropType;
+enum class AspectRatioPreset;
 
 class ToolPanel : public QWidget {
     Q_OBJECT
@@ -37,6 +45,20 @@ class ToolPanel : public QWidget {
     void cropRequested();
     void straightenRequested();
 
+    // Crop option signals
+    void cropAspectRatioChanged(int presetIndex);  // AspectRatioPreset as int
+    void cropFixedSizeChanged(int width, int height);
+
+    // Filter/Effect signals
+    void filterOriginalRequested();
+    void filterGrayscaleRequested();
+    void filterVintageRequested();
+    void filterAutoEnhanceRequested();
+
+    // AI Style Transfer signals
+    void styleTransferRequested(
+        int styleType);  // 0=Mosaic, 1=Candy, 2=RainPrincess, 3=Udnie, 4=Pointillism
+
     // Reset signal
     void resetAllRequested();
 
@@ -46,6 +68,9 @@ class ToolPanel : public QWidget {
     CollapsibleWidget* createColorSection();
     CollapsibleWidget* createDetailSection();
     CollapsibleWidget* createToolSection();
+    CollapsibleWidget* createEffectsSection();
+    CollapsibleWidget* createAIStyleSection();
+    QWidget* createQuickActionsBar();
 
     QScrollArea* m_scrollArea;
     QWidget* m_contentWidget;
@@ -69,4 +94,20 @@ class ToolPanel : public QWidget {
     ToolPaletteWidget* m_cropToolPalette;
     ToolPaletteWidget* m_rotateToolPalette;
     ToolPaletteWidget* m_flipToolPalette;
+
+    // Crop options
+    QComboBox* m_cropModeCombo;
+    QWidget* m_fixedSizeWidget;
+    QSpinBox* m_cropWidthSpin;
+    QSpinBox* m_cropHeightSpin;
+
+    // Quick actions (modern buttons)
+    ModernToolButton* m_autoEnhanceBtn;
+    ModernToolButton* m_cropBtn;
+    ModernToolButton* m_rotateBtn;
+    ModernToolButton* m_filtersBtn;
+
+    // Effects/Filters
+    FilterGalleryWidget* m_filterGallery;
+    FilterGalleryWidget* m_styleGallery;
 };

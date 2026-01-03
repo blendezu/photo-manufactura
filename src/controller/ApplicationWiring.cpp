@@ -65,6 +65,18 @@ void ApplicationWiring::wireComponents(ApplicationController* controller, MainWi
     if (toolPanel && canvas) {
         m_connections << connect(toolPanel, &ToolPanel::cropRequested, canvas,
                                  [canvas]() { canvas->setCropMode(true); });
+
+        // Wire crop options: ToolPanel -> Canvas
+        m_connections << connect(
+            toolPanel, &ToolPanel::cropAspectRatioChanged, canvas, [canvas](int presetIndex) {
+                canvas->setAspectRatioPreset(static_cast<AspectRatioPreset>(presetIndex));
+            });
+
+        m_connections << connect(toolPanel, &ToolPanel::cropFixedSizeChanged, canvas,
+                                 [canvas](int width, int height) {
+                                     canvas->setFixedCropSize(QSize(width, height));
+                                     canvas->setCropType(CropType::FixedSize);
+                                 });
     }
 
     if (auto* infoPanel = mainWindow->getInfoPanel()) {
@@ -205,6 +217,23 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     // Reset all adjustments
     m_connections << connect(toolPanel, &ToolPanel::resetAllRequested, controller,
                              &ApplicationController::resetAdjustments);
+
+    // Filter/Effect connections
+    m_connections << connect(toolPanel, &ToolPanel::filterOriginalRequested, controller,
+                             &ApplicationController::applyFilterOriginal);
+
+    m_connections << connect(toolPanel, &ToolPanel::filterGrayscaleRequested, controller,
+                             &ApplicationController::applyFilterGrayscale);
+
+    m_connections << connect(toolPanel, &ToolPanel::filterVintageRequested, controller,
+                             &ApplicationController::applyFilterVintage);
+
+    m_connections << connect(toolPanel, &ToolPanel::filterAutoEnhanceRequested, controller,
+                             &ApplicationController::applyAutoEnhance);
+
+    // AI Style Transfer connections
+    m_connections << connect(toolPanel, &ToolPanel::styleTransferRequested, controller,
+                             &ApplicationController::applyStyleTransfer);
 
     // Crop tool - activates crop mode on canvas
     // The actual crop is handled via canvas signals

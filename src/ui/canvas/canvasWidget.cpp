@@ -301,12 +301,10 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         if (m_cropMode && m_selecting) {
             m_selecting = false;
-            // Convert widget rectangle to image coordinates and store
-            QRect widgetRect = QRect(m_cropStartPoint, event->pos()).normalized();
-            QPoint imgTopLeft = widgetToImageCoords(widgetRect.topLeft());
-            QPoint imgBottomRight = widgetToImageCoords(widgetRect.bottomRight());
-            m_cropSelection = QRect(imgTopLeft, imgBottomRight).normalized();
-            qDebug() << "Crop selection stored in IMAGE coords:" << m_cropSelection;
+            // Use constrained crop selection based on crop type
+            m_cropSelection = constrainCropSelection(m_cropStartPoint, event->pos());
+            qDebug() << "Crop selection stored in IMAGE coords:" << m_cropSelection
+                     << "CropType:" << static_cast<int>(m_cropType);
             update();
         } else {
             m_panning = false;
@@ -326,6 +324,195 @@ void CanvasWidget::setCropMode(bool enabled) {
         }
         Q_EMIT cropModeChanged(enabled);
         update();
+    }
+}
+
+void CanvasWidget::setCropType(CropType type) {
+    if (m_cropType != type) {
+        m_cropType = type;
+        m_cropSelection = QRect();  // Reset selection when type changes
+
+        // Update aspect ratio based on type
+        if (type == CropType::Free) {
+            m_aspectRatio = 0.0;
+        } else if (type == CropType::FixedSize && m_fixedCropSize.isValid()) {
+            m_aspectRatio = static_cast<double>(m_fixedCropSize.width()) / m_fixedCropSize.height();
+        }
+
+        Q_EMIT cropTypeChanged(type);
+        update();
+    }
+}
+
+void CanvasWidget::setFixedCropSize(const QSize& size) {
+    if (size.isValid() && size.width() > 0 && size.height() > 0) {
+        m_fixedCropSize = size;
+        if (m_cropType == CropType::FixedSize) {
+            m_aspectRatio = static_cast<double>(size.width()) / size.height();
+            m_cropSelection = QRect();  // Reset selection
+            update();
+        }
+    }
+}
+
+void CanvasWidget::setAspectRatioPreset(AspectRatioPreset preset) {
+    m_aspectPreset = preset;
+    m_aspectRatio = getPresetAspectRatio(preset);
+
+    if (preset == AspectRatioPreset::Free) {
+        m_cropType = CropType::Free;
+    } else {
+        m_cropType = CropType::AspectRatio;
+    }
+
+    m_cropSelection = QRect();  // Reset selection
+    Q_EMIT cropTypeChanged(m_cropType);
+    update();
+}
+
+void CanvasWidget::setCustomAspectRatio(double widthRatio, double heightRatio) {
+    if (widthRatio > 0 && heightRatio > 0) {
+        m_aspectRatio = widthRatio / heightRatio;
+        m_aspectPreset = AspectRatioPreset::Custom;
+        m_cropType = CropType::AspectRatio;
+        m_cropSelection = QRect();
+        Q_EMIT cropTypeChanged(m_cropType);
+        update();
+    }
+}
+
+double CanvasWidget::getPresetAspectRatio(AspectRatioPreset preset) const {
+    switch (preset) {
+        case AspectRatioPreset::Square_1_1:
+            return 1.0;
+        case AspectRatioPreset::Photo_4_3:
+            return 4.0 / 3.0;
+        case AspectRatioPreset::Photo_3_2:
+            return 3.0 / 2.0;
+        case AspectRatioPreset::Widescreen_16_9:
+            return 16.0 / 9.0;
+        case AspectRatioPreset::Widescreen_21_9:
+            return 21.0 / 9.0;
+        case AspectRatioPreset::Portrait_3_4:
+            return 3.0 / 4.0;
+        case AspectRatioPreset::Portrait_2_3:
+            return 2.0 / 3.0;
+        case AspectRatioPreset::Portrait_9_16:
+            return 9.0 / 16.0;
+        case AspectRatioPreset::Custom:
+        case AspectRatioPreset::Free:
+        default:
+            return 0.0;  // 0 means free/no constraint
+    }
+}
+
+QString CanvasWidget::getCropModeLabel() const {
+    switch (m_cropType) {
+        case CropType::FixedSize:
+            return QString("Fixed: %1×%2 px")
+                .arg(m_fixedCropSize.width())
+                .arg(m_fixedCropSize.height());
+        case CropType::AspectRatio:
+            switch (m_aspectPreset) {
+                case AspectRatioPreset::Square_1_1:
+                    return "1:1 Square";
+                case AspectRatioPreset::Photo_4_3:
+                    return "4:3 Photo";
+                case AspectRatioPreset::Photo_3_2:
+                    return "3:2 Photo";
+                case AspectRatioPreset::Widescreen_16_9:
+                    return "16:9 Widescreen";
+                case AspectRatioPreset::Widescreen_21_9:
+                    return "21:9 Ultrawide";
+                case AspectRatioPreset::Portrait_3_4:
+                    return "3:4 Portrait";
+                case AspectRatioPreset::Portrait_2_3:
+                    return "2:3 Portrait";
+                case AspectRatioPreset::Portrait_9_16:
+                    return "9:16 Portrait";
+                case AspectRatioPreset::Custom:
+                    return QString("Custom %1").arg(m_aspectRatio, 0, 'f', 2);
+                default:
+                    return "Aspect Ratio";
+            }
+        case CropType::Free:
+        default:
+            return "Free";
+    }
+}
+
+QRect CanvasWidget::constrainCropSelection(const QPoint& startWidget,
+                                           const QPoint& endWidget) const {
+    // Convert widget points to image coordinates
+    QPoint imgStart = widgetToImageCoords(startWidget);
+    QPoint imgEnd = widgetToImageCoords(endWidget);
+
+    // Create base rectangle in image coordinates
+    QRect baseRect = QRect(imgStart, imgEnd).normalized();
+
+    // Clamp to image bounds first
+    baseRect = baseRect.intersected(QRect(QPoint(0, 0), m_imageSize));
+
+    if (baseRect.isEmpty()) {
+        return QRect();
+    }
+
+    // Apply constraints based on crop type
+    switch (m_cropType) {
+        case CropType::FixedSize: {
+            // Fixed size: center the fixed rectangle at the drag center
+            int centerX = (imgStart.x() + imgEnd.x()) / 2;
+            int centerY = (imgStart.y() + imgEnd.y()) / 2;
+
+            int halfW = m_fixedCropSize.width() / 2;
+            int halfH = m_fixedCropSize.height() / 2;
+
+            int left = qBound(0, centerX - halfW, m_imageSize.width() - m_fixedCropSize.width());
+            int top = qBound(0, centerY - halfH, m_imageSize.height() - m_fixedCropSize.height());
+
+            // Ensure fixed size doesn't exceed image
+            int w = qMin(m_fixedCropSize.width(), m_imageSize.width());
+            int h = qMin(m_fixedCropSize.height(), m_imageSize.height());
+
+            return QRect(left, top, w, h);
+        }
+
+        case CropType::AspectRatio: {
+            if (m_aspectRatio <= 0) {
+                return baseRect;  // No constraint
+            }
+
+            // Maintain aspect ratio - use the smaller dimension to fit
+            double currentRatio = static_cast<double>(baseRect.width()) / baseRect.height();
+            int newW, newH;
+
+            if (currentRatio > m_aspectRatio) {
+                // Too wide, constrain width
+                newH = baseRect.height();
+                newW = static_cast<int>(newH * m_aspectRatio);
+            } else {
+                // Too tall, constrain height
+                newW = baseRect.width();
+                newH = static_cast<int>(newW / m_aspectRatio);
+            }
+
+            // Keep the same top-left corner
+            QRect constrained(baseRect.topLeft(), QSize(newW, newH));
+
+            // Clamp to image bounds
+            if (constrained.right() >= m_imageSize.width()) {
+                constrained.moveRight(m_imageSize.width() - 1);
+            }
+            if (constrained.bottom() >= m_imageSize.height()) {
+                constrained.moveBottom(m_imageSize.height() - 1);
+            }
+
+            return constrained;
+        }
+
+        case CropType::Free:
+        default:
+            return baseRect;
     }
 }
 
@@ -368,42 +555,62 @@ QRectF CanvasWidget::getDisplayedImageBounds() const {
     }
 
     // Must match EXACTLY how OpenGL renders the texture
-    // OpenGL uses normalized coords (-1 to 1) which map to the full widget
+    // OpenGL vertex shader: gl_Position = mvpMatrix * position
+    // mvpMatrix = projection * view * model
+    //
+    // Model: scales quad for aspect ratio (quad is -1 to 1)
+    // View: scale(zoom) then translate(pan) - so pan is scaled by zoom
+    // Projection: ortho(-1,1,-1,1,-1,1)
 
     double widgetAspect = static_cast<double>(width()) / height();
     double imageAspect = static_cast<double>(m_imageSize.width()) / m_imageSize.height();
 
-    // These represent the size in normalized coordinates (-1 to 1) = 2.0 units
-    double normalizedWidth = 2.0;
-    double normalizedHeight = 2.0;
+    // Start with the image quad size in normalized coordinates
+    // The quad is from -1 to 1, so total size is 2.0 units
+    double quadWidth = 2.0;
+    double quadHeight = 2.0;
 
-    // Apply aspect ratio correction (matches model matrix)
+    // Apply model matrix: aspect ratio correction
     if (imageAspect > widgetAspect) {
         // Image is wider - height is scaled down
-        normalizedHeight *= widgetAspect / imageAspect;
+        quadHeight *= widgetAspect / imageAspect;
     } else {
         // Image is taller - width is scaled down
-        normalizedWidth *= imageAspect / widgetAspect;
+        quadWidth *= imageAspect / widgetAspect;
     }
 
-    // Apply zoom (matches view matrix scale)
-    normalizedWidth *= m_zoomFactor;
-    normalizedHeight *= m_zoomFactor;
+    // Apply view matrix: first scale, then translate
+    // m_viewMatrix.scale(m_zoomFactor);
+    // m_viewMatrix.translate(m_panOffset.x(), m_panOffset.y());
+    // In Qt matrix ops: V = I * Scale * Translate
+    // Transform: V * p = Scale * (Translate * p) = Scale * (p + pan)
+    // So: result = zoom * (original + pan) = zoom*original + zoom*pan
 
-    // Apply pan (matches view matrix translate - in normalized coords)
-    double normalizedCenterX = m_panOffset.x();
-    double normalizedCenterY = m_panOffset.y();
+    double scaledWidth = quadWidth * m_zoomFactor;
+    double scaledHeight = quadHeight * m_zoomFactor;
 
-    // Convert from normalized coordinates (-1 to 1) to widget pixel coordinates
-    // Center is at (0, 0) in normalized space = (width/2, height/2) in pixels
-    double pixelWidth = normalizedWidth * width() / 2.0;
-    double pixelHeight = normalizedHeight * height() / 2.0;
+    // Pan offset is also scaled by zoom (applied before scale in vertex transform)
+    double panPixelX = m_panOffset.x() * m_zoomFactor * width() / 2.0;
+    double panPixelY = m_panOffset.y() * m_zoomFactor * height() / 2.0;
 
-    double centerX = width() / 2.0 + normalizedCenterX * width() / 2.0;
-    double centerY = height() / 2.0 - normalizedCenterY * height() / 2.0;  // Y is inverted
+    // Convert from normalized coordinates to widget pixel coordinates
+    // Normalized (-1 to 1) maps to (0 to width) and (0 to height)
+    double pixelWidth = scaledWidth * width() / 2.0;
+    double pixelHeight = scaledHeight * height() / 2.0;
+
+    // Center of image in widget coordinates
+    // Without pan: center is at widget center
+    // With pan: offset by panPixel (Y inverted because OpenGL Y is up, widget Y is down)
+    double centerX = width() / 2.0 + panPixelX;
+    double centerY = height() / 2.0 - panPixelY;  // Y inverted
 
     double offsetX = centerX - pixelWidth / 2.0;
     double offsetY = centerY - pixelHeight / 2.0;
+
+    qDebug() << "getDisplayedImageBounds:"
+             << "widget:" << width() << "x" << height() << "image:" << m_imageSize
+             << "zoom:" << m_zoomFactor << "pan:" << m_panOffset
+             << "result:" << QRectF(offsetX, offsetY, pixelWidth, pixelHeight);
 
     return QRectF(offsetX, offsetY, pixelWidth, pixelHeight);
 }
@@ -456,14 +663,26 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
     QRectF imageBounds = getDisplayedImageBounds();
 
     QRect displaySelection;
+    QRect imageSelection;  // In image coordinates for display
 
     // Determine what to display
     if (m_selecting) {
-        // User is currently dragging - show live widget rectangle
+        // User is currently dragging - compute constrained selection for live preview
         QPoint currentPos = mapFromGlobal(QCursor::pos());
-        displaySelection = QRect(m_cropStartPoint, currentPos).normalized();
+        imageSelection = constrainCropSelection(m_cropStartPoint, currentPos);
+
+        // Convert to widget coords for display
+        if (!imageSelection.isEmpty()) {
+            QPoint widgetTopLeft = imageToWidgetCoords(imageSelection.topLeft());
+            QPoint widgetBottomRight = imageToWidgetCoords(imageSelection.bottomRight());
+            displaySelection = QRect(widgetTopLeft, widgetBottomRight).normalized();
+        } else {
+            // Fall back to raw widget rect if constraint fails
+            displaySelection = QRect(m_cropStartPoint, currentPos).normalized();
+        }
     } else if (!m_cropSelection.isEmpty()) {
         // User has finished selecting - convert stored image coords to widget coords
+        imageSelection = m_cropSelection;
         QPoint widgetTopLeft = imageToWidgetCoords(m_cropSelection.topLeft());
         QPoint widgetBottomRight = imageToWidgetCoords(m_cropSelection.bottomRight());
         displaySelection = QRect(widgetTopLeft, widgetBottomRight).normalized();
@@ -471,8 +690,10 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
         // No selection yet - just darken the entire image slightly
         painter.fillRect(rect(), QColor(0, 0, 0, 80));
 
-        // Draw instruction text
-        QString instructions = "Drag to select • Enter to crop • Esc to cancel";
+        // Draw instruction text with crop mode info
+        QString modeLabel = getCropModeLabel();
+        QString instructions =
+            QString("Mode: %1 • Drag to select • Enter to crop • Esc to cancel").arg(modeLabel);
         QFont font = painter.font();
         font.setPointSize(12);
         painter.setFont(font);
@@ -540,21 +761,13 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
     painter.drawEllipse(bl);
     painter.drawEllipse(br);
 
-    // Draw size info
-    QRect dimensionRect;
-    if (m_selecting) {
-        // During drag, convert current widget rect to image coords for display
-        QPoint imgTL = widgetToImageCoords(displaySelection.topLeft());
-        QPoint imgBR = widgetToImageCoords(displaySelection.bottomRight());
-        dimensionRect = QRect(imgTL, imgBR).normalized();
-    } else {
-        // After selection, use stored image coords directly
-        dimensionRect = m_cropSelection;
-    }
-
-    if (dimensionRect.isValid()) {
-        QString sizeText =
-            QString("%1 × %2 px").arg(dimensionRect.width()).arg(dimensionRect.height());
+    // Draw size info with mode label
+    if (imageSelection.isValid()) {
+        QString modeLabel = getCropModeLabel();
+        QString sizeText = QString("%1 × %2 px • %3")
+                               .arg(imageSelection.width())
+                               .arg(imageSelection.height())
+                               .arg(modeLabel);
         QFont font = painter.font();
         font.setPointSize(10);
         font.setBold(true);
