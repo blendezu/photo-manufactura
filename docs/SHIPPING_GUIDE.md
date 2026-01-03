@@ -249,20 +249,13 @@ See: `.github/workflows/release.yml`
 
 ## 💡 Version Management
 
-Update version in two places:
-
-**1. CMakeLists.txt** (line 3):
-```cmake
-project(photo_manufactura
-    VERSION 0.1.0  # ← Change this
-    LANGUAGES CXX
-)
-```
-
-**2. scripts/build_release.sh** (line 7):
+Update version in the `VERSION` file at project root:
 ```bash
-VERSION="0.1.0"  # ← Change this
+cat VERSION  # View current version
+echo "0.2.0" > VERSION  # Update version
 ```
+
+The CMake build system and release scripts automatically read from this file.
 
 ### Versioning Scheme
 - `v0.1.0` - Initial beta

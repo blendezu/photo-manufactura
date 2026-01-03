@@ -197,18 +197,13 @@ zip -r Photo_Manufactura.zip photo_manufactura.app
 ## 💡 Pro Tips
 
 ### Version Numbering
-Update version in:
-- `CMakeLists.txt` (line 3): `VERSION 0.1.0`
-- `scripts/build_release.sh` (line 7): `VERSION="0.1.0"`
-
-### Size Optimization
+Update version in the `VERSION` file at project root:
 ```bash
-# Strip symbols (reduces size ~30%)
-strip build/bin/photo_manufactura.app/Contents/MacOS/photo_manufactura
-
-# Remove unused AI models
-rm build/bin/AI_models/unused_model.onnx
+cat VERSION  # View current version
+echo "0.2.0" > VERSION  # Update version
 ```
+
+The build scripts automatically read from this file.
 
 ### Testing
 ```bash

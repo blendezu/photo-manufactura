@@ -1,8 +1,8 @@
 # Photo Manufactura - Technical Documentation
 
-**Version:** 1.0  
-**Date:** 29 November 2025  
-**Branch:** feat/gui-core-components
+**Version:** 0.1.0  
+**Date:** 3 January 2026  
+**Branch:** `feat/gui-beta-version`
 
 ---
 
