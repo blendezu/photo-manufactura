@@ -10,13 +10,17 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     // Zoom submenu
     QMenu* zoomMenu = new QMenu("Zoom", this);
 
-    m_zoomInAction = new QAction("Zoom In", this);
-    m_zoomInAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Plus));
-    connect(m_zoomInAction, &QAction::triggered, this, &SubMenuView::zoomInRequested);
+    // Zoom mode toggle action
+    m_zoomModeAction = new QAction("Zoom Tool", this);
+    m_zoomModeAction->setShortcut(QKeySequence(Qt::Key_Z));
+    m_zoomModeAction->setCheckable(true);
+    m_zoomModeAction->setChecked(false);
+    m_zoomModeAction->setToolTip(
+        "Toggle Zoom mode\nClick = zoom in, Alt+Click = zoom out\nScroll to zoom");
+    connect(m_zoomModeAction, &QAction::toggled, this, &SubMenuView::zoomModeToggled);
 
-    m_zoomOutAction = new QAction("Zoom Out", this);
-    m_zoomOutAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus));
-    connect(m_zoomOutAction, &QAction::triggered, this, &SubMenuView::zoomOutRequested);
+    zoomMenu->addAction(m_zoomModeAction);
+    zoomMenu->addSeparator();
 
     m_resetZoomAction = new QAction("Actual Size (100%)", this);
     m_resetZoomAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
@@ -26,9 +30,6 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     m_fitToWindowAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_9));
     connect(m_fitToWindowAction, &QAction::triggered, this, &SubMenuView::fitToWindowRequested);
 
-    zoomMenu->addAction(m_zoomInAction);
-    zoomMenu->addAction(m_zoomOutAction);
-    zoomMenu->addSeparator();
     zoomMenu->addAction(m_resetZoomAction);
     zoomMenu->addAction(m_fitToWindowAction);
 
@@ -128,6 +129,13 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
 }
 
 SubMenuView::~SubMenuView() {}
+
+void SubMenuView::setZoomModeChecked(bool checked) {
+    // Block signals to avoid recursive updates
+    m_zoomModeAction->blockSignals(true);
+    m_zoomModeAction->setChecked(checked);
+    m_zoomModeAction->blockSignals(false);
+}
 
 void SubMenuView::onDarkThemeTriggered() {
     // Emit signal for controller to handle, also apply directly for immediate feedback

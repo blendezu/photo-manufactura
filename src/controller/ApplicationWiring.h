@@ -54,7 +54,8 @@ class ApplicationWiring : public QObject {
     /**
      * @brief Connect view menu signals to controller slots
      */
-    void wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller);
+    void wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller,
+                      CanvasWidget* canvas);
 
     /**
      * @brief Connect canvas widget signals to controller slots

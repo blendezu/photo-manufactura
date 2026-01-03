@@ -13,8 +13,7 @@ class SubMenuView : public QMenu {
 
    signals:
     // Signals for controller to handle
-    void zoomInRequested();
-    void zoomOutRequested();
+    void zoomModeToggled(bool enabled);
     void resetZoomRequested();
     void fitToWindowRequested();
     void toggleHistogramRequested();
@@ -22,6 +21,9 @@ class SubMenuView : public QMenu {
     void toggleAdjustmentPanelRequested();
     void darkThemeRequested();
     void lightThemeRequested();
+
+   public slots:
+    void setZoomModeChecked(bool checked);
 
    private slots:
     void onDarkThemeTriggered();
@@ -41,8 +43,7 @@ class SubMenuView : public QMenu {
     QAction* m_toggleInfoPanelAction;
 
     // Zoom actions
-    QAction* m_zoomInAction;
-    QAction* m_zoomOutAction;
+    QAction* m_zoomModeAction;
     QAction* m_resetZoomAction;
     QAction* m_fitToWindowAction;
     QAction* m_toggleHistogramAction;

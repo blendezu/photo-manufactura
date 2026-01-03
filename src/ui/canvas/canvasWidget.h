@@ -13,6 +13,12 @@
 #include <QWheelEvent>
 #include <memory>
 
+// Zoom mode types
+enum class ZoomMode {
+    None,  // Normal panning mode
+    Zoom   // Click to zoom in, Alt+Click to zoom out
+};
+
 // Crop mode types
 enum class CropType {
     Free,        // Manual free-form crop
@@ -45,6 +51,12 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void resetView();  // Reset zoom and pan to center the image
     double getZoomFactor() const {
         return m_zoomFactor;
+    }
+
+    // Zoom mode
+    void setZoomMode(ZoomMode mode);
+    ZoomMode getZoomMode() const {
+        return m_zoomMode;
     }
 
     // Crop mode
@@ -96,6 +108,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void zoomInRequested();
     void zoomOutRequested();
     void fitToWindowRequested();
+    void zoomModeChanged(ZoomMode mode);
     // Crop signals
     void cropRequested(const QRect& cropArea);
     void cropModeChanged(bool enabled);
@@ -134,6 +147,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QPointF m_panOffset;
     QPoint m_lastPanPoint;
     bool m_panning;
+    ZoomMode m_zoomMode = ZoomMode::None;
 
     // Image properties
     QSize m_imageSize;

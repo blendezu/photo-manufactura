@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QScrollBar>
 
+#include "../../controller/ApplicationController.h"  // For StyleTransferType enum
 #include "../widgets/modernButton.h"
 #include "../widgets/modernCollapsible.h"
 #include "../widgets/modernSlider.h"
@@ -102,6 +103,13 @@ QWidget* ToolPanel::createQuickActionsBar() {
     m_compareBtn->setToolTip("Toggle before/after comparison (Space)");
     connect(m_compareBtn, &ModernToolButton::clicked, this, &ToolPanel::compareModeToggled);
 
+    // Zoom button (toggleable)
+    m_zoomBtn = new ModernToolButton("Zoom", ":/assets/icons/zoom_in.png", bar);
+    m_zoomBtn->setCheckable(true);
+    m_zoomBtn->setToolTip(
+        "Toggle Zoom mode (Z)\nClick = zoom in, Alt+Click = zoom out\nScroll to zoom");
+    connect(m_zoomBtn, &ModernToolButton::toggled, this, &ToolPanel::zoomModeToggled);
+
     // Reset button
     ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.png", bar);
     resetBtn->setToolTip("Reset all adjustments");
@@ -109,6 +117,7 @@ QWidget* ToolPanel::createQuickActionsBar() {
 
     layout->addWidget(m_autoEnhanceBtn);
     layout->addWidget(m_compareBtn);
+    layout->addWidget(m_zoomBtn);
     layout->addStretch();
     layout->addWidget(resetBtn);
 
@@ -182,8 +191,6 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
                 if (!presetName.isEmpty()) {
                     Q_EMIT presetSelected(presetName);
                 }
-                // Reset to first item after selection
-                m_presetCombo->setCurrentIndex(0);
             });
 
     layout->addWidget(m_presetCombo);
@@ -355,17 +362,17 @@ ModernCollapsible* ToolPanel::createAIStyleSection() {
 
     connect(m_styleGallery, &FilterGalleryWidget::filterSelected, this,
             [this](const QString& styleName) {
-                int styleType = 0;
+                StyleTransferType styleType = StyleTransferType::Mosaic;
                 if (styleName == "Mosaic")
-                    styleType = 0;
+                    styleType = StyleTransferType::Mosaic;
                 else if (styleName == "Candy")
-                    styleType = 1;
+                    styleType = StyleTransferType::Candy;
                 else if (styleName == "Rain Princess")
-                    styleType = 2;
+                    styleType = StyleTransferType::RainPrincess;
                 else if (styleName == "Udnie")
-                    styleType = 3;
+                    styleType = StyleTransferType::Udnie;
                 else if (styleName == "Pointillism")
-                    styleType = 4;
+                    styleType = StyleTransferType::Pointillism;
                 Q_EMIT styleTransferRequested(styleType);
             });
 
@@ -584,4 +591,11 @@ ModernCollapsible* ToolPanel::createToolSection() {
     toolSection->setContentLayout(layout);
     toolSection->setExpanded(false);  // Start collapsed
     return toolSection;
+}
+
+void ToolPanel::setZoomModeChecked(bool checked) {
+    // Block signals to avoid recursive updates
+    m_zoomBtn->blockSignals(true);
+    m_zoomBtn->setChecked(checked);
+    m_zoomBtn->blockSignals(false);
 }

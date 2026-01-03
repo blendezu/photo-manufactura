@@ -35,6 +35,10 @@ void ApplicationWiring::wireComponents(ApplicationController* controller, MainWi
 
     qDebug() << "Wiring application components...";
 
+    // Wire UI components
+    CanvasWidget* canvas = mainWindow->getCanvasWidget();
+    ToolPanel* toolPanel = mainWindow->getToolPanel();
+
     // Wire menu components
     if (auto* fileMenu = mainWindow->getFileMenu()) {
         wireFileMenu(fileMenu, controller);
@@ -45,12 +49,8 @@ void ApplicationWiring::wireComponents(ApplicationController* controller, MainWi
     }
 
     if (auto* viewMenu = mainWindow->getViewMenu()) {
-        wireViewMenu(viewMenu, controller);
+        wireViewMenu(viewMenu, controller, canvas);
     }
-
-    // Wire UI components
-    CanvasWidget* canvas = mainWindow->getCanvasWidget();
-    ToolPanel* toolPanel = mainWindow->getToolPanel();
 
     if (canvas) {
         wireCanvas(canvas, controller);
@@ -133,14 +133,23 @@ void ApplicationWiring::wireEditMenu(SubMenuEdit* editMenu, ApplicationControlle
                              &ApplicationController::redo);
 }
 
-void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller) {
+void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller,
+                                     CanvasWidget* canvas) {
     qDebug() << "Wiring View Menu...";
 
-    // Zoom controls
-    m_connections << connect(viewMenu, &SubMenuView::zoomInRequested, controller,
-                             &ApplicationController::zoomIn);
-    m_connections << connect(viewMenu, &SubMenuView::zoomOutRequested, controller,
-                             &ApplicationController::zoomOut);
+    // Zoom mode toggle - connect view menu to canvas
+    if (canvas) {
+        m_connections << connect(viewMenu, &SubMenuView::zoomModeToggled, canvas,
+                                 [canvas](bool enabled) {
+                                     canvas->setZoomMode(enabled ? ZoomMode::Zoom : ZoomMode::None);
+                                 });
+
+        // Connect canvas zoom mode changes back to view menu for sync
+        m_connections << connect(
+            canvas, &CanvasWidget::zoomModeChanged, viewMenu,
+            [viewMenu](ZoomMode mode) { viewMenu->setZoomModeChecked(mode == ZoomMode::Zoom); });
+    }
+
     m_connections << connect(viewMenu, &SubMenuView::resetZoomRequested, controller,
                              &ApplicationController::resetZoom);
     m_connections << connect(viewMenu, &SubMenuView::fitToWindowRequested, controller,
@@ -250,6 +259,19 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     CanvasWidget* canvas = m_mainWindow->getCanvasWidget();
     m_connections << connect(toolPanel, &ToolPanel::compareModeToggled, canvas,
                              &CanvasWidget::toggleCompareMode);
+
+    // Zoom mode toggles - connect tool panel buttons to canvas
+    if (canvas) {
+        m_connections << connect(toolPanel, &ToolPanel::zoomModeToggled, canvas,
+                                 [canvas](bool enabled) {
+                                     canvas->setZoomMode(enabled ? ZoomMode::Zoom : ZoomMode::None);
+                                 });
+
+        // Connect canvas zoom mode changes back to tool panel for sync
+        m_connections << connect(
+            canvas, &CanvasWidget::zoomModeChanged, toolPanel,
+            [toolPanel](ZoomMode mode) { toolPanel->setZoomModeChecked(mode == ZoomMode::Zoom); });
+    }
 
     // Preset connections
     m_connections << connect(toolPanel, &ToolPanel::presetSelected, controller,
