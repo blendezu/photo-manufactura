@@ -81,9 +81,9 @@ void MainWindow::setupDockPanels() {
 }
 
 void MainWindow::setupConnections() {
-    // Connect canvas mouse coordinates to info panel for debugging
-    connect(m_canvasWidget, &CanvasWidget::mouseCoordinatesChanged, m_infoPanel,
-            &InfoPanel::updateMouseCoords);
+    // Connect canvas zoom level changes to info panel
+    connect(m_canvasWidget, &CanvasWidget::zoomLevelChanged, m_infoPanel,
+            &InfoPanel::updateZoomLevel);
 }
 
 void MainWindow::onImageLoaded(const QImage& image, const QString& filePath) {

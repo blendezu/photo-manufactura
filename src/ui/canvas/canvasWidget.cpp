@@ -242,6 +242,7 @@ void CanvasWidget::setZoomLevel(double level) {
         m_zoomFactor = level;
         updateMatrices();
         update();
+        Q_EMIT zoomLevelChanged(level);
     }
 }
 
@@ -323,12 +324,6 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
 }
 
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
-    // Emit mouse coordinates for info panel
-    if (!m_imageSize.isEmpty()) {
-        QPoint imagePos = widgetToImageCoords(event->pos());
-        Q_EMIT mouseCoordinatesChanged(event->pos(), imagePos);
-    }
-
     // Handle compare mode split dragging
     if (m_draggingSplit && m_compareMode) {
         QRectF imageBounds = getDisplayedImageBounds();
