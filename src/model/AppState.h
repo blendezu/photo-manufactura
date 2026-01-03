@@ -62,6 +62,10 @@ class AppState : public QObject {
     void zoomToFit();
     void zoomToActual();
 
+    // Zoom persistence per document
+    void saveZoomForFile(const QString& filePath);
+    void restoreZoomForFile(const QString& filePath);
+
     // Toggle helpers
     void toggleHistogram();
     void toggleToolPanel();

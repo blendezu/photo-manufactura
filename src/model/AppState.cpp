@@ -1,5 +1,7 @@
 #include "AppState.h"
 
+#include <QCryptographicHash>
+#include <QSettings>
 #include <algorithm>
 
 AppState::AppState(QObject* parent) : QObject(parent) {}
@@ -71,4 +73,30 @@ void AppState::toggleToolPanel() {
 
 void AppState::toggleAdjustmentPanel() {
     setAdjustmentPanelVisible(!m_adjustmentPanelVisible);
+}
+
+void AppState::saveZoomForFile(const QString& filePath) {
+    if (filePath.isEmpty()) return;
+    
+    QSettings settings("PhotoManufactura", "ZoomState");
+    // Use hash of file path as key to avoid special characters
+    QString key = QString(QCryptographicHash::hash(filePath.toUtf8(), 
+                          QCryptographicHash::Md5).toHex());
+    settings.setValue(key, m_zoomLevel);
+}
+
+void AppState::restoreZoomForFile(const QString& filePath) {
+    if (filePath.isEmpty()) return;
+    
+    QSettings settings("PhotoManufactura", "ZoomState");
+    QString key = QString(QCryptographicHash::hash(filePath.toUtf8(), 
+                          QCryptographicHash::Md5).toHex());
+    
+    if (settings.contains(key)) {
+        double savedZoom = settings.value(key).toDouble();
+        setZoomLevel(savedZoom);
+    } else {
+        // Default to 1.0 for new files
+        setZoomLevel(DefaultZoom);
+    }
 }
