@@ -67,6 +67,7 @@ void ToolPanel::setupUI() {
     m_mainLayout->setSpacing(4);
 
     // Create collapsible sections in logical order
+    m_mainLayout->addWidget(createPresetsSection());  // Presets at top
     m_mainLayout->addWidget(createEffectsSection());  // Filters first (most used)
     m_mainLayout->addWidget(createAIStyleSection());  // AI Style Transfer
     m_mainLayout->addWidget(createBasicSection());    // Light adjustments
@@ -96,15 +97,10 @@ QWidget* ToolPanel::createQuickActionsBar() {
     connect(m_autoEnhanceBtn, &ModernToolButton::clicked, this,
             &ToolPanel::filterAutoEnhanceRequested);
 
-    // Crop button
-    m_cropBtn = new ModernToolButton("Crop", ":/assets/icons/crop.png", bar);
-    m_cropBtn->setToolTip("Crop image");
-    connect(m_cropBtn, &ModernToolButton::clicked, this, &ToolPanel::cropRequested);
-
-    // Rotate button
-    m_rotateBtn = new ModernToolButton("Rotate", ":/assets/icons/rotate_right.png", bar);
-    m_rotateBtn->setToolTip("Rotate image 90°");
-    connect(m_rotateBtn, &ModernToolButton::clicked, this, &ToolPanel::rotateRightRequested);
+    // Before/After compare button
+    m_compareBtn = new ModernToolButton("Compare", ":/assets/icons/compare.png", bar);
+    m_compareBtn->setToolTip("Toggle before/after comparison (Space)");
+    connect(m_compareBtn, &ModernToolButton::clicked, this, &ToolPanel::compareModeToggled);
 
     // Reset button
     ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.png", bar);
@@ -112,12 +108,98 @@ QWidget* ToolPanel::createQuickActionsBar() {
     connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetAllAdjustments);
 
     layout->addWidget(m_autoEnhanceBtn);
-    layout->addWidget(m_cropBtn);
-    layout->addWidget(m_rotateBtn);
+    layout->addWidget(m_compareBtn);
     layout->addStretch();
     layout->addWidget(resetBtn);
 
     return bar;
+}
+
+ModernCollapsible* ToolPanel::createPresetsSection() {
+    ModernCollapsible* presetsSection = new ModernCollapsible("Presets", "🎛️", this);
+    QVBoxLayout* layout = new QVBoxLayout();
+    layout->setSpacing(8);
+    layout->setContentsMargins(8, 8, 8, 12);
+
+    // Info label
+    QLabel* infoLabel = new QLabel(
+        "<span style='color: #888; font-size: 10px;'>"
+        "Apply pre-configured adjustment styles</span>",
+        this);
+    infoLabel->setWordWrap(true);
+    layout->addWidget(infoLabel);
+
+    // Preset combo box
+    m_presetCombo = new QComboBox(this);
+    m_presetCombo->addItem("Select a preset...");
+    m_presetCombo->insertSeparator(1);
+
+    // Add built-in presets
+    QStringList builtInPresets = {"Cinematic", "Portrait",     "Landscape",     "Warm Sunset",
+                                  "Cool Blue", "Vintage Film", "High Contrast", "Soft Light",
+                                  "Dramatic",  "Natural"};
+    for (const QString& preset : builtInPresets) {
+        m_presetCombo->addItem("📦 " + preset, preset);
+    }
+
+    m_presetCombo->setStyleSheet(R"(
+        QComboBox {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #d0d0d0;
+            font-size: 12px;
+            min-height: 20px;
+        }
+        QComboBox:hover { border-color: #4a4a4a; background: #303030; }
+        QComboBox:focus { border-color: #6366f1; }
+        QComboBox::drop-down { border: none; width: 24px; }
+        QComboBox::down-arrow { image: url(:/assets/icons/dropdown.png); width: 10px; }
+        QComboBox QAbstractItemView {
+            background: #2a2a2a;
+            color: #d0d0d0;
+            selection-background-color: #6366f1;
+            selection-color: white;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 4px;
+        }
+        QComboBox QAbstractItemView::item {
+            padding: 6px 12px;
+            min-height: 24px;
+        }
+        QComboBox QAbstractItemView::item:hover {
+            background: #3a3a3a;
+        }
+    )");
+
+    connect(m_presetCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int index) {
+                if (index <= 1)
+                    return;  // Skip "Select..." and separator
+                QString presetName = m_presetCombo->itemData(index).toString();
+                if (!presetName.isEmpty()) {
+                    Q_EMIT presetSelected(presetName);
+                }
+                // Reset to first item after selection
+                m_presetCombo->setCurrentIndex(0);
+            });
+
+    layout->addWidget(m_presetCombo);
+
+    // Save preset button
+    IconButton* saveBtn = new IconButton("", "Save Current as Preset", this);
+    saveBtn->setIconEmoji("💾");
+    saveBtn->setToolTip("Save current adjustments as a new preset");
+    connect(saveBtn, &QPushButton::clicked, this, [this]() {
+        // For now, emit a signal - proper dialog would be added later
+        Q_EMIT savePresetRequested("Custom");
+    });
+    layout->addWidget(saveBtn);
+
+    presetsSection->setContentLayout(layout);
+    return presetsSection;
 }
 
 ModernCollapsible* ToolPanel::createBasicSection() {
@@ -375,8 +457,25 @@ ModernCollapsible* ToolPanel::createToolSection() {
     flipLayout->addStretch();
     layout->addLayout(flipLayout);
 
-    // Crop mode
-    QLabel* cropOptionsLabel = new QLabel("CROP MODE", this);
+    // Crop section
+    QLabel* cropLabel = new QLabel("CROP", this);
+    cropLabel->setStyleSheet(
+        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
+    layout->addWidget(cropLabel);
+
+    // Crop button to activate crop mode
+    IconButton* cropBtn = new IconButton(":/assets/icons/crop.png", "Start Crop", this);
+    cropBtn->setIconEmoji("✂️");
+    cropBtn->setToolTip("Click to enter crop mode, then drag on image to select area");
+    connect(cropBtn, &QPushButton::clicked, this, &ToolPanel::cropRequested);
+
+    QHBoxLayout* cropBtnLayout = new QHBoxLayout();
+    cropBtnLayout->addWidget(cropBtn);
+    cropBtnLayout->addStretch();
+    layout->addLayout(cropBtnLayout);
+
+    // Crop mode options
+    QLabel* cropOptionsLabel = new QLabel("ASPECT RATIO", this);
     cropOptionsLabel->setStyleSheet(
         "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
     layout->addWidget(cropOptionsLabel);

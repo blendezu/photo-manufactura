@@ -60,11 +60,19 @@ class ToolPanel : public QWidget {
     void styleTransferRequested(
         int styleType);  // 0=Mosaic, 1=Candy, 2=RainPrincess, 3=Udnie, 4=Pointillism
 
+    // Preset signals
+    void presetSelected(const QString& presetName);
+    void savePresetRequested(const QString& presetName);
+
     // Reset signal
     void resetAllRequested();
 
+    // Compare mode signal
+    void compareModeToggled();
+
    private:
     void setupUI();
+    ModernCollapsible* createPresetsSection();
     ModernCollapsible* createBasicSection();
     ModernCollapsible* createColorSection();
     ModernCollapsible* createDetailSection();
@@ -99,11 +107,12 @@ class ToolPanel : public QWidget {
 
     // Quick actions (modern buttons)
     ModernToolButton* m_autoEnhanceBtn;
-    ModernToolButton* m_cropBtn;
-    ModernToolButton* m_rotateBtn;
-    ModernToolButton* m_filtersBtn;
+    ModernToolButton* m_compareBtn;
 
     // Effects/Filters
     FilterGalleryWidget* m_filterGallery;
     FilterGalleryWidget* m_styleGallery;
+
+    // Presets
+    QComboBox* m_presetCombo;
 };

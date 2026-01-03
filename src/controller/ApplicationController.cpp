@@ -10,6 +10,7 @@
 #include <QWidget>
 
 #include "ICommand.h"
+#include "PresetManager.h"
 
 ApplicationController::ApplicationController(QObject* parent)
     : QObject(parent),
@@ -431,6 +432,43 @@ void ApplicationController::applyStyleTransfer(int styleType) {
             QImage image = m_documentManager->currentDocument()->processedImage();
             emit imageLoaded(image, m_documentManager->currentFilePath());
         }
+    }
+}
+
+// Preset operations
+void ApplicationController::applyPreset(const QString& presetName) {
+    if (!m_documentManager->hasDocument()) {
+        qDebug() << "No document open to apply preset";
+        return;
+    }
+
+    PresetManager presetManager;
+    AdjustmentSettings* settings = m_documentManager->adjustments();
+
+    if (presetManager.loadPreset(presetName, settings)) {
+        qDebug() << "Preset applied:" << presetName;
+        // Settings have been updated, now apply to image
+        m_documentManager->applyAdjustments();
+        setState("currentPreset", presetName);
+        setState("isModified", true);
+    } else {
+        qDebug() << "Failed to load preset:" << presetName;
+    }
+}
+
+void ApplicationController::saveCurrentAsPreset(const QString& presetName) {
+    if (!m_documentManager->hasDocument()) {
+        qDebug() << "No document open to save preset";
+        return;
+    }
+
+    PresetManager presetManager;
+    AdjustmentSettings* settings = m_documentManager->adjustments();
+
+    if (presetManager.savePreset(presetName, settings)) {
+        qDebug() << "Preset saved:" << presetName;
+    } else {
+        qDebug() << "Failed to save preset:" << presetName;
     }
 }
 

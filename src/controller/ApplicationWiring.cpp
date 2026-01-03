@@ -235,6 +235,18 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::styleTransferRequested, controller,
                              &ApplicationController::applyStyleTransfer);
 
+    // Compare mode toggle
+    CanvasWidget* canvas = m_mainWindow->getCanvasWidget();
+    m_connections << connect(toolPanel, &ToolPanel::compareModeToggled, canvas,
+                             &CanvasWidget::toggleCompareMode);
+
+    // Preset connections
+    m_connections << connect(toolPanel, &ToolPanel::presetSelected, controller,
+                             &ApplicationController::applyPreset);
+
+    m_connections << connect(toolPanel, &ToolPanel::savePresetRequested, controller,
+                             &ApplicationController::saveCurrentAsPreset);
+
     // Crop tool - activates crop mode on canvas
     // The actual crop is handled via canvas signals
     // This is wired in wireCanvas
@@ -294,7 +306,9 @@ void ApplicationWiring::wireDocumentToCanvas(ApplicationController* controller,
         [canvas, controller, docManager, infoPanel, mainWindow](const QString& filePath) {
             if (docManager->hasDocument()) {
                 QImage processedImage = docManager->currentDocument()->processedImage();
+                QImage originalImage = docManager->currentDocument()->originalImage();
                 canvas->setImage(processedImage);
+                canvas->setOriginalImage(originalImage);  // Store original for comparison
 
                 // Request fit-to-window through controller
                 controller->fitToWindow();

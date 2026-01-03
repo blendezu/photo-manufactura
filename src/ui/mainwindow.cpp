@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QImageWriter>
+#include <QKeyEvent>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -108,4 +109,13 @@ void MainWindow::onFileSaved(const QString& filePath) {
 
 void MainWindow::onError(const QString& message) {
     QMessageBox::warning(this, tr("Error"), message);
+}
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+    // Forward Space key to canvas for compare toggle
+    if (event->key() == Qt::Key_Space) {
+        m_canvasWidget->toggleCompareMode();
+        event->accept();
+        return;
+    }
+    QMainWindow::keyPressEvent(event);
 }

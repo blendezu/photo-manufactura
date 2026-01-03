@@ -71,12 +71,22 @@ DocumentManager::DocumentManager(QObject* parent)
     : QObject(parent),
       m_currentDocument(std::make_unique<ImageDocument>(this)),
       m_adjustments(std::make_unique<AdjustmentSettings>(this)),
-      m_imagePipeline(std::make_unique<ImagePipeline>()) {
+      m_imagePipeline(std::make_unique<ImagePipeline>()),
+      m_debounceTimer(new QTimer(this)),
+      m_debouncedMode(false) {
+    // Setup debounce timer
+    m_debounceTimer->setSingleShot(true);
+    connect(m_debounceTimer, &QTimer::timeout, this, &DocumentManager::applyAdjustments);
+
     // Connect adjustment changes to document modified state
     connect(m_adjustments.get(), &AdjustmentSettings::anySettingChanged, this, [this]() {
         if (m_currentDocument && !m_currentDocument->originalImage().isNull()) {
             m_currentDocument->setModified(true);
-            applyAdjustments();
+            if (m_debouncedMode) {
+                applyAdjustmentsDebounced();
+            } else {
+                applyAdjustments();
+            }
         }
     });
 
@@ -288,6 +298,20 @@ void DocumentManager::applyAdjustments() {
     } else {
         qDebug() << "Pipeline processing returned empty result, keeping original";
         m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
+    }
+}
+
+void DocumentManager::applyAdjustmentsDebounced() {
+    // Restart the timer - processing will happen when timer fires
+    m_debounceTimer->start(DEBOUNCE_DELAY_MS);
+}
+
+void DocumentManager::setDebouncedMode(bool enabled) {
+    m_debouncedMode = enabled;
+    if (!enabled && m_debounceTimer->isActive()) {
+        // If disabling debounce while timer is active, apply immediately
+        m_debounceTimer->stop();
+        applyAdjustments();
     }
 }
 
