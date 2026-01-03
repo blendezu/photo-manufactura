@@ -164,7 +164,41 @@ public:
 
 **Location:** `src/image_processing/core/operation_registry.h`
 
-### 2.4 Chain of Responsibility
+### 2.4 Dependency Injection (ApplicationWiring)
+
+**Implementation:** `ApplicationWiring` class centralizes all signal/slot connections
+
+```cpp
+class ApplicationWiring : public QObject {
+    Q_OBJECT
+public:
+    void wireComponents(ApplicationController* controller, MainWindow* mainWindow);
+    void unwireComponents();
+
+private:
+    void wireFileMenu(SubMenuFile* fileMenu, ApplicationController* controller);
+    void wireEditMenu(SubMenuEdit* editMenu, ApplicationController* controller);
+    void wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller, CanvasWidget* canvas);
+    void wireCanvas(CanvasWidget* canvas, ApplicationController* controller);
+    void wireToolPanel(ToolPanel* toolPanel, ApplicationController* controller);
+    void wireInfoPanel(InfoPanel* infoPanel, ApplicationController* controller);
+    void wireControllerToMainWindow(ApplicationController* controller, MainWindow* mainWindow);
+    void wireDocumentToCanvas(DocumentManager* docMgr, CanvasWidget* canvas);
+    void wireControllerToCanvas(ApplicationController* controller, CanvasWidget* canvas);
+    
+    QList<QMetaObject::Connection> m_connections;  // Track for cleanup
+};
+```
+
+**Benefits:**
+- Single source of truth for all component connections
+- Clean `main()` function (just creates objects and calls `wireComponents()`)
+- Easy to modify/debug signal flows
+- Proper cleanup via `unwireComponents()`
+
+**Location:** `src/controller/ApplicationWiring.h/.cpp`
+
+### 2.5 Chain of Responsibility
 
 **Implementation:** `ImagePipeline` operation chain
 
@@ -369,25 +403,86 @@ private:
 **Responsibility:** Orchestrates all application operations
 
 ```cpp
+// AI Style Transfer types
+enum class StyleTransferType {
+    Mosaic = 0, Candy = 1, RainPrincess = 2, Udnie = 3, Pointillism = 4
+};
+
+// Supported file formats
+namespace FileFormats {
+    OpenFilter = "Image Files (*.png *.jpg *.jpeg *.bmp *.tiff...);;"
+                 "RAW Files (*.raw *.cr2 *.cr3 *.nef *.arw *.dng...);;"
+                 "All Files (*)";
+    SaveFilter = "PNG Image (*.png);;JPEG Image (*.jpg);;...";
+}
+
 class ApplicationController : public QObject {
 private:
     std::unique_ptr<DocumentManager> m_documentManager;
     std::unique_ptr<AppState> m_appState;
-    std::unordered_map<QString, std::unique_ptr<ICommand>> m_commands;
     
 public slots:
     // File operations
+    void newDocument();
     void openFile();
     void saveFile();
+    void saveAsFile();
+    void closeFile();
+    void exitApplication();
     
-    // Image adjustments (connected to sliders)
+    // Edit operations
+    void undo();
+    void redo();
+    void copy();
+    void paste();
+    void cut();
+    
+    // Image adjustments (10 sliders)
     void adjustBrightness(int value);
     void adjustContrast(int value);
-    // ... all 10 adjustments
+    void adjustExposure(int value);
+    void adjustHighlights(int value);
+    void adjustShadows(int value);
+    void adjustWhites(int value);
+    void adjustBlacks(int value);
+    void adjustTemperature(int value);
+    void adjustTint(int value);
+    void adjustSaturation(int value);
+    void resetAdjustments();
+    
+    // Geometry operations
+    void rotateImage(int degrees);
+    void flipImage(int direction);  // 0=vertical, 1=horizontal
+    void cropImage(const QRect& cropArea);
+    
+    // Filter/Effect operations
+    void applyFilterOriginal();
+    void applyFilterGrayscale();
+    void applyFilterVintage();
+    void applyAutoEnhance();
+    void applyStyleTransfer(StyleTransferType styleType);
+    
+    // Preset operations
+    void applyPreset(const QString& presetName);
+    void saveCurrentAsPreset(const QString& presetName);
+    
+    // View operations
+    void zoomIn();
+    void zoomOut();
+    void resetZoom();
+    void fitToWindow();
+    void setTheme(const QString& themeName);
+    void toggleHistogram();
+    void toggleToolPanel();
     
 signals:
+    void imageLoaded(const QImage& image, const QString& filePath);
     void fileOpened(const QString& filePath);
+    void fileSaved(const QString& filePath);
     void imageProcessed();
+    void errorOccurred(const QString& message);
+    void themeChanged(const QString& theme);
+    void zoomChanged(double level);
 };
 ```
 
@@ -409,22 +504,57 @@ class MainWindow : public QMainWindow {
 private:
     CanvasWidget* m_canvasWidget;      // Center: image display
     ToolPanel* m_toolPanel;            // Right: adjustment sliders
-    InfoPanel* m_infoPanel;            // Right: image info
+    InfoPanel* m_infoPanel;            // Right: image info + histogram
     SubMenuFile* m_fileMenu;           // Menu bar
     SubMenuEdit* m_editMenu;
     SubMenuView* m_viewMenu;
 };
 ```
 
-#### 3.3.2 CanvasWidget (OpenGL)
+#### 3.3.2 InfoPanel
 
-**Responsibility:** Hardware-accelerated image rendering with toggleable zoom mode
+**Responsibility:** Image metadata, mouse coordinates, and histogram display
+
+```cpp
+class InfoPanel : public QWidget {
+public:
+    void setImageInfo(const QImage& image, const QString& filePath);
+    void updateHistogram(const QImage& image);
+    void updateMouseCoords(const QPoint& widgetPos, const QPoint& imagePos);
+    void updateZoomLevel(double level);
+    
+private:
+    // Image info labels
+    QLabel* m_filenameLabel;
+    QLabel* m_dimensionsLabel;
+    QLabel* m_fileSizeLabel;
+    QLabel* m_formatLabel;
+    
+    // Live tracking
+    QLabel* m_coordsLabel;      // "X: 123, Y: 456"
+    QLabel* m_zoomLabel;        // "100%"
+    
+    // Histogram
+    HistogramWidget* m_histogram;
+};
+```
+
+#### 3.3.3 CanvasWidget (OpenGL)
+
+**Responsibility:** Hardware-accelerated image rendering with zoom, crop, and compare modes
 
 ```cpp
 // Zoom mode types
 enum class ZoomMode {
     None,  // Normal panning mode
     Zoom   // Click to zoom in, Alt+Click to zoom out
+};
+
+// Crop configuration
+enum class CropType { Free, FixedSize, AspectRatio };
+enum class AspectRatioPreset {
+    Free, Square_1_1, Photo_4_3, Photo_3_2, Widescreen_16_9,
+    Widescreen_21_9, Portrait_3_4, Portrait_2_3, Portrait_9_16, Custom
 };
 
 class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
@@ -435,19 +565,40 @@ private:
     double m_zoomFactor;
     QPointF m_panOffset;
     ZoomMode m_zoomMode;
+    bool m_cropMode;
+    bool m_compareMode;
     
 public:
     void setImage(const QImage& image);
-    void setZoomMode(ZoomMode mode);  // Toggle zoom mode
-    // Zoom behavior when mode is Zoom:
-    // - Click = zoom in
-    // - Alt+Click = zoom out
-    // - Scroll up = zoom in, scroll down = zoom out
+    void setOriginalImage(const QImage& image);  // For compare mode
+    
+    // Zoom
+    void setZoomMode(ZoomMode mode);
+    
+    // Crop
+    void setCropMode(bool enabled);
+    void setCropAspectRatio(AspectRatioPreset preset);
+    void setCropFixedSize(int width, int height);
+    
+    // Compare (before/after)
+    void setCompareMode(bool enabled);
+    void setCompareSplitPosition(float position);  // 0.0 to 1.0
 
 signals:
+    // Zoom signals
     void zoomInRequested();
     void zoomOutRequested();
     void zoomModeChanged(ZoomMode mode);
+    
+    // Crop signals
+    void cropModeChanged(bool enabled);
+    void cropRequested(const QRect& cropArea);
+    
+    // Compare signals
+    void compareModeChanged(bool enabled);
+    
+    // Mouse tracking
+    void mouseCoordinatesChanged(const QPoint& widgetPos, const QPoint& imagePos);
 };
 ```
 
@@ -479,21 +630,69 @@ void main() {
 }
 ```
 
-#### 3.3.3 ToolPanel
+#### 3.3.4 ToolPanel
 
-**Responsibility:** Adjustment sliders UI
+**Responsibility:** Adjustment sliders, geometry tools, filters, and presets UI
 
 ```cpp
 class ToolPanel : public QWidget {
 signals:
+    // Adjustment signals (10 sliders, range -100 to +100)
     void brightnessChanged(int value);
     void contrastChanged(int value);
-    // ... all 10 adjustment signals
+    void saturationChanged(int value);
+    void exposureChanged(int value);
+    void highlightsChanged(int value);
+    void shadowsChanged(int value);
+    void whitesChanged(int value);
+    void blacksChanged(int value);
+    void temperatureChanged(int value);
+    void tintChanged(int value);
+    
+    // Geometry signals
+    void rotateLeftRequested();
+    void rotateRightRequested();
+    void flipHorizontalRequested();
+    void flipVerticalRequested();
+    void cropRequested();
+    void straightenRequested();
+    
+    // Crop options
+    void cropAspectRatioChanged(int presetIndex);
+    void cropFixedSizeChanged(int width, int height);
+    
+    // Filter/Effect signals
+    void filterOriginalRequested();
+    void filterGrayscaleRequested();
+    void filterVintageRequested();
+    void filterAutoEnhanceRequested();
+    
+    // AI Style Transfer
+    void styleTransferRequested(StyleTransferType styleType);
+    
+    // Preset signals
+    void presetSelected(const QString& presetName);
+    void savePresetRequested(const QString& presetName);
+    
+    // Quick actions
+    void resetAllRequested();
+    void compareModeToggled();
+    void zoomModeToggled(bool enabled);
     
 private:
-    LabeledSlider* m_brightnessSlider;
-    LabeledSlider* m_contrastSlider;
-    // ... all sliders (-100 to +100 range)
+    // Modern UI widgets (not LabeledSlider)
+    ModernSlider* m_brightnessSlider;
+    ModernSlider* m_contrastSlider;
+    // ... all sliders
+    
+    ModernToolButton* m_autoEnhanceBtn;
+    ModernToolButton* m_compareBtn;
+    ModernToolButton* m_zoomBtn;
+    
+    FilterGalleryWidget* m_filterGallery;
+    FilterGalleryWidget* m_styleGallery;
+    
+    QComboBox* m_presetCombo;
 };
 ```
 
@@ -558,6 +757,30 @@ public:
     virtual std::string getSettings() const = 0;
 };
 ```
+
+#### 3.4.3 AI Style Transfer (ONNX Runtime)
+
+**Responsibility:** Neural network-based artistic style transfer
+
+```cpp
+// StyleTransferType enum values map to ONNX models
+enum class StyleTransferType {
+    Mosaic = 0,       // AI_models/mosaic-9.onnx
+    Candy = 1,        // AI_models/candy-8.onnx
+    RainPrincess = 2, // AI_models/rain-princess-9.onnx
+    Udnie = 3,        // AI_models/udnie-9.onnx
+    Pointillism = 4   // AI_models/pointilism.onnx
+};
+```
+
+**Model Files (in AI_models/):**
+- `mosaic-9.onnx` - Mosaic/tile art style
+- `candy-8.onnx` - Vibrant candy colors
+- `rain-princess-9.onnx` - Impressionist rain style
+- `udnie-9.onnx` - Abstract Udnie painting style
+- `pointilism.onnx` - Pointillist dot technique
+
+**Runtime:** ONNX Runtime 1.16.3 (libs/onnxruntime/)
 
 **Light Operations:**
 

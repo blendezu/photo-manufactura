@@ -6,12 +6,12 @@ Architecture and design patterns for Photo Manufactura components.
 
 ```
 photo_manufactura (main)
-├── model           # Application state (ImageDocument, Settings)
-├── controller      # Business logic orchestration
-├── ui              # Qt6 user interface (View)
-├── image_processing # Core algorithms (ImagePipeline)
-├── raw_processing  # RAW file handling
-└── scheduler_worker # Task management
+├── model           # Application state (ImageDocument, Settings, Presets)
+├── controller      # Business logic orchestration + ApplicationWiring
+├── ui              # Qt6 user interface (View) + Modern widgets
+├── image_processing # Core algorithms (ImagePipeline, AI Style Transfer)
+├── raw_processing  # RAW file handling (LibRaw)
+└── tasks           # Task scheduling and background processing
 ```
 
 > **See also**: [Model Layer](Model.md) for detailed Model documentation.
@@ -143,6 +143,37 @@ std::expected<Result, ErrorCode> process(const Input& input) {
  * @return ProcessResult or error
  */
 ProcessResult process(const Image& input, const Params& params = {});
+```
+
+## Modern UI Widgets
+
+Custom widgets in `src/ui/widgets/`:
+
+| Widget | Purpose |
+|--------|--------|
+| `ModernSlider` | Styled slider with value display, range -100 to +100 |
+| `ModernToolButton` | Checkable tool button with icon (used for Zoom, Compare) |
+| `ModernButton` | Styled push button with hover effects |
+| `ModernCollapsible` | Animated collapsible section with QPropertyAnimation |
+| `IconButton` | Compact icon-only button for toolbars |
+| `FilterGalleryWidget` | Thumbnail gallery for filters and AI style transfer |
+| `HistogramWidget` | Real-time RGB histogram display |
+
+### ModernSlider Usage
+
+```cpp
+ModernSlider* slider = new ModernSlider("Brightness", -100, 100, 0, parent);
+connect(slider, &ModernSlider::valueChanged, this, &Panel::brightnessChanged);
+```
+
+### FilterGalleryWidget Usage
+
+```cpp
+FilterGalleryWidget* gallery = new FilterGalleryWidget(parent);
+gallery->addFilter("Original", QPixmap(":/thumbnails/original.png"));
+gallery->addFilter("B&W", QPixmap(":/thumbnails/bw.png"));
+connect(gallery, &FilterGalleryWidget::filterSelected, 
+        this, &Panel::onFilterSelected);
 ```
 
 ## Theme System

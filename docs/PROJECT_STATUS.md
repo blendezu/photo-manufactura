@@ -476,24 +476,27 @@
 
 ### 🟢 **LOW PRIORITY - Phase 4 (Future Enhancements)**
 
-#### 10. ↩️ **Implement Undo/Redo**
-- [ ] Create `CommandHistory` class
-- [ ] Implement Command pattern for all adjustments
-- [ ] Wire Edit → Undo/Redo menu items
-- [ ] Add keyboard shortcuts (Cmd+Z, Cmd+Shift+Z)
-- [ ] Display command history in UI
+#### 10. ↩️ **Undo/Redo** ✅ IMPLEMENTED
+- [x] Undo/Redo stack in DocumentManager (QStack<QImage>)
+- [x] `canUndo()`, `canRedo()`, `undo()`, `redo()` methods
+- [x] `undoRedoStateChanged` signal for UI updates
+- [x] Max history size: 20 states
+- [ ] Display command history in UI (optional enhancement)
 
-#### 11. 📊 **Add Histogram Display**
-- [ ] Create `HistogramWidget` using existing `Histogram` utility
-- [ ] Add to `InfoPanel` or as separate dock widget
-- [ ] Update in real-time when adjustments change
-- [ ] Show before/after comparison
+#### 11. 📊 **Histogram Display** ✅ IMPLEMENTED
+- [x] `HistogramWidget` created in `src/ui/widgets/`
+- [x] Integrated into `InfoPanel`
+- [x] `updateHistogram(const QImage&)` method
+- [x] Toggle via View menu
+- [ ] Show before/after comparison (future)
 
-#### 12. 🎯 **Presets System**
-- [ ] Create `PresetManager` class
-- [ ] Save/load adjustment combinations as JSON
-- [ ] Add UI for preset selection in ToolPanel
-- [ ] Include built-in presets (Portrait, Landscape, B&W, etc.)
+#### 12. 🎯 **Presets System** ✅ IMPLEMENTED
+- [x] `PresetManager` class in `src/model/`
+- [x] Save/load presets as JSON files
+- [x] Built-in presets: Portrait, Landscape, B&W, Vivid, etc.
+- [x] User presets stored in app data directory
+- [x] ToolPanel preset combo box with signals
+- [x] `presetSelected`, `savePresetRequested` signals
 
 #### 13. 🚀 **Performance Optimization**
 - [ ] Move image processing to `QThread` for non-blocking UI
@@ -520,14 +523,21 @@
 6. Simplified `main.cpp` to 27 lines
 7. Successfully built and launched application
 8. Verified 26 signal connections working
+9. Implemented single Zoom toggle mode (Jan 3, 2026)
+10. Updated all documentation to match implementation
 
 ### In Progress 🔄
-1. Image processing integration (architecture decision pending)
-2. Testing adjustment sliders with real effects
-3. Documentation updates
+1. Theme controller integration (partial)
 
 ### Blocked ⛔
-- None (ONNX Runtime blocker resolved)
+- None
+
+### Completed ✅ (Previously Listed as TODO)
+- ✅ Undo/Redo - Implemented in DocumentManager with QStack
+- ✅ Histogram Display - HistogramWidget in InfoPanel
+- ✅ Presets System - PresetManager with JSON save/load
+- ✅ Zoom Controller Integration - Single toggle mode
+- ✅ Documentation Updates - All docs synchronized (Jan 3, 2026)
 
 ---
 
