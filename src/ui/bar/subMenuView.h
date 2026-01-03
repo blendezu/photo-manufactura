@@ -21,6 +21,7 @@ class SubMenuView : public QMenu {
     void toggleAdjustmentPanelRequested();
     void darkThemeRequested();
     void lightThemeRequested();
+    void themeToggleRequested();
 
    public slots:
     void setZoomModeChecked(bool checked);

@@ -150,7 +150,8 @@ void SubMenuView::onLightThemeTriggered() {
 }
 
 void SubMenuView::onToggleThemeTriggered() {
-    ThemeManager::instance().toggleTheme();
+    // Emit signal for controller to handle theme toggle
+    Q_EMIT themeToggleRequested();
 }
 
 void SubMenuView::onThemeChanged(ThemeManager::Theme theme) {
