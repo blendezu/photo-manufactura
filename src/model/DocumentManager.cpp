@@ -315,6 +315,34 @@ void DocumentManager::setDebouncedMode(bool enabled) {
     }
 }
 
+bool DocumentManager::applyAdjustmentsPermanently() {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to apply corrections to");
+        return false;
+    }
+
+    // Save state for undo before making permanent changes
+    saveStateToHistory();
+
+    // Get the current processed image and make it the new original
+    QImage processedImage = m_currentDocument->processedImage();
+    if (processedImage.isNull()) {
+        Q_EMIT errorOccurred("No processed image available");
+        return false;
+    }
+
+    // Set the processed image as the new original
+    m_currentDocument->setOriginalImage(processedImage);
+    m_currentDocument->setProcessedImage(processedImage);
+
+    // Reset all adjustments to zero since they're now baked in
+    m_adjustments->resetAll();
+
+    qDebug() << "Adjustments applied permanently - image is now the base";
+    Q_EMIT documentStateChanged();
+    return true;
+}
+
 void DocumentManager::rotateImage(int degrees) {
     if (!hasDocument()) {
         Q_EMIT errorOccurred("No document to rotate");

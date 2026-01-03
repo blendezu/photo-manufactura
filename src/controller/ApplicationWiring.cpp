@@ -257,10 +257,18 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::styleTransferRequested, controller,
                              &ApplicationController::applyStyleTransfer);
 
-    // Compare mode toggle
+    // Compare mode toggle - wire to canvas setCompareMode
     CanvasWidget* canvas = m_mainWindow->getCanvasWidget();
     m_connections << connect(toolPanel, &ToolPanel::compareModeToggled, canvas,
-                             &CanvasWidget::toggleCompareMode);
+                             &CanvasWidget::setCompareMode);
+
+    // Apply corrections permanently
+    m_connections << connect(toolPanel, &ToolPanel::applyRequested, controller,
+                             &ApplicationController::applyCorrections);
+
+    // Save preset button - shows dialog and saves
+    m_connections << connect(toolPanel, &ToolPanel::savePresetButtonClicked, controller,
+                             &ApplicationController::showSavePresetDialog);
 
     // Zoom mode toggles - connect tool panel buttons to canvas
     if (canvas) {
@@ -281,6 +289,14 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
 
     m_connections << connect(toolPanel, &ToolPanel::savePresetRequested, controller,
                              &ApplicationController::saveCurrentAsPreset);
+
+    // Refresh presets combo when user saves a new preset
+    m_connections << connect(controller, &ApplicationController::presetsChanged, toolPanel,
+                             &ToolPanel::refreshPresets);
+
+    // Update sliders when preset is applied
+    m_connections << connect(controller, &ApplicationController::adjustmentsChanged, toolPanel,
+                             &ToolPanel::updateSliders);
 
     // Crop tool - activates crop mode on canvas
     // The actual crop is handled via canvas signals

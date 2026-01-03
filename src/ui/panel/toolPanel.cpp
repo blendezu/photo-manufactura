@@ -88,8 +88,8 @@ QWidget* ToolPanel::createQuickActionsBar() {
     bar->setFixedHeight(80);
 
     QHBoxLayout* layout = new QHBoxLayout(bar);
-    layout->setContentsMargins(12, 8, 12, 8);
-    layout->setSpacing(8);
+    layout->setContentsMargins(8, 8, 8, 8);
+    layout->setSpacing(6);
 
     // Auto Enhance button
     m_autoEnhanceBtn = new ModernToolButton("Auto", ":/assets/icons/auto_enhance.png", bar);
@@ -98,10 +98,16 @@ QWidget* ToolPanel::createQuickActionsBar() {
     connect(m_autoEnhanceBtn, &ModernToolButton::clicked, this,
             &ToolPanel::filterAutoEnhanceRequested);
 
-    // Before/After compare button
+    // Apply button (applies corrections to permanent image)
+    ModernToolButton* applyBtn = new ModernToolButton("Apply", ":/assets/icons/apply.png", bar);
+    applyBtn->setToolTip("Apply current adjustments permanently");
+    connect(applyBtn, &ModernToolButton::clicked, this, &ToolPanel::applyRequested);
+
+    // Before/After compare button (checkable)
     m_compareBtn = new ModernToolButton("Compare", ":/assets/icons/compare.png", bar);
+    m_compareBtn->setCheckable(true);
     m_compareBtn->setToolTip("Toggle before/after comparison (Space)");
-    connect(m_compareBtn, &ModernToolButton::clicked, this, &ToolPanel::compareModeToggled);
+    connect(m_compareBtn, &ModernToolButton::toggled, this, &ToolPanel::compareModeToggled);
 
     // Zoom button (toggleable)
     m_zoomBtn = new ModernToolButton("Zoom", ":/assets/icons/zoom_in.png", bar);
@@ -110,14 +116,21 @@ QWidget* ToolPanel::createQuickActionsBar() {
         "Toggle Zoom mode (Z)\nClick = zoom in, Alt+Click = zoom out\nScroll to zoom");
     connect(m_zoomBtn, &ModernToolButton::toggled, this, &ToolPanel::zoomModeToggled);
 
+    // Save Preset button
+    ModernToolButton* savePresetBtn = new ModernToolButton("Preset", ":/assets/icons/save.png", bar);
+    savePresetBtn->setToolTip("Save current settings as preset");
+    connect(savePresetBtn, &ModernToolButton::clicked, this, &ToolPanel::savePresetButtonClicked);
+
     // Reset button
     ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.png", bar);
     resetBtn->setToolTip("Reset all adjustments");
     connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetAllAdjustments);
 
     layout->addWidget(m_autoEnhanceBtn);
+    layout->addWidget(applyBtn);
     layout->addWidget(m_compareBtn);
     layout->addWidget(m_zoomBtn);
+    layout->addWidget(savePresetBtn);
     layout->addStretch();
     layout->addWidget(resetBtn);
 
@@ -199,10 +212,7 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
     IconButton* saveBtn = new IconButton("", "Save Current as Preset", this);
     saveBtn->setIconEmoji("💾");
     saveBtn->setToolTip("Save current adjustments as a new preset");
-    connect(saveBtn, &QPushButton::clicked, this, [this]() {
-        // For now, emit a signal - proper dialog would be added later
-        Q_EMIT savePresetRequested("Custom");
-    });
+    connect(saveBtn, &QPushButton::clicked, this, &ToolPanel::savePresetButtonClicked);
     layout->addWidget(saveBtn);
 
     presetsSection->setContentLayout(layout);
@@ -598,4 +608,63 @@ void ToolPanel::setZoomModeChecked(bool checked) {
     m_zoomBtn->blockSignals(true);
     m_zoomBtn->setChecked(checked);
     m_zoomBtn->blockSignals(false);
+}
+
+void ToolPanel::refreshPresets(const QStringList& userPresets) {
+    if (!m_presetCombo) return;
+    
+    // Block signals during refresh
+    m_presetCombo->blockSignals(true);
+    
+    // Remember current selection
+    QString currentSelection = m_presetCombo->currentData().toString();
+    
+    // Clear and rebuild
+    m_presetCombo->clear();
+    m_presetCombo->addItem("Select a preset...");
+    m_presetCombo->insertSeparator(1);
+    
+    // Add built-in presets
+    QStringList builtInPresets = {"Cinematic", "Portrait", "Landscape", "Warm Sunset",
+                                  "Cool Blue", "Vintage Film", "High Contrast", "Soft Light",
+                                  "Dramatic", "Natural"};
+    for (const QString& preset : builtInPresets) {
+        m_presetCombo->addItem("📦 " + preset, preset);
+    }
+    
+    // Add separator if there are user presets
+    if (!userPresets.isEmpty()) {
+        m_presetCombo->insertSeparator(m_presetCombo->count());
+        
+        // Add user presets
+        for (const QString& preset : userPresets) {
+            m_presetCombo->addItem("👤 " + preset, preset);
+        }
+    }
+    
+    // Restore selection if it still exists
+    if (!currentSelection.isEmpty()) {
+        int index = m_presetCombo->findData(currentSelection);
+        if (index >= 0) {
+            m_presetCombo->setCurrentIndex(index);
+        }
+    }
+    
+    m_presetCombo->blockSignals(false);
+}
+
+void ToolPanel::updateSliders(int brightness, int contrast, int saturation, int exposure,
+                              int highlights, int shadows, int whites, int blacks,
+                              int temperature, int tint) {
+    // Update all sliders without triggering valueChanged signals
+    m_brightnessSlider->setValue(brightness);
+    m_contrastSlider->setValue(contrast);
+    m_saturationSlider->setValue(saturation);
+    m_exposureSlider->setValue(exposure);
+    m_highlightsSlider->setValue(highlights);
+    m_shadowsSlider->setValue(shadows);
+    m_whitesSlider->setValue(whites);
+    m_blacksSlider->setValue(blacks);
+    m_temperatureSlider->setValue(temperature);
+    m_tintSlider->setValue(tint);
 }

@@ -56,6 +56,7 @@ class DocumentManager : public QObject {
     void applyAdjustments();
     void applyAdjustmentsDebounced();     // Debounced version for slider dragging
     void setDebouncedMode(bool enabled);  // Enable/disable debouncing
+    bool applyAdjustmentsPermanently();   // Bake adjustments into base image
 
     // Geometry operations (destructive - modify the base image)
     void rotateImage(int degrees);

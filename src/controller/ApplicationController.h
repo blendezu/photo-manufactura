@@ -147,9 +147,13 @@ class ApplicationController : public QObject {
     void applyAutoEnhance();
     void applyStyleTransfer(StyleTransferType styleType);
 
+    // Apply corrections permanently (bake adjustments into image)
+    void applyCorrections();
+
     // Preset operations
     void applyPreset(const QString& presetName);
     void saveCurrentAsPreset(const QString& presetName);
+    void showSavePresetDialog();
 
     // View operations
     void zoomIn();
@@ -175,6 +179,10 @@ class ApplicationController : public QObject {
     void errorOccurred(const QString& message);
     void themeChanged(const QString& theme);
     void zoomChanged(double level);
+    void presetsChanged(const QStringList& userPresets);
+    void adjustmentsChanged(int brightness, int contrast, int saturation, int exposure,
+                           int highlights, int shadows, int whites, int blacks,
+                           int temperature, int tint);
 
    private slots:
     void onImageProcessingComplete();

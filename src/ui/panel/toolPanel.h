@@ -69,14 +69,24 @@ class ToolPanel : public QWidget {
     // Reset signal
     void resetAllRequested();
 
-    // Compare mode signal
-    void compareModeToggled();
+    // Apply corrections permanently
+    void applyRequested();
+
+    // Compare mode signal (checkable button)
+    void compareModeToggled(bool enabled);
 
     // Zoom mode signal
     void zoomModeToggled(bool enabled);
 
+    // Save preset button clicked (shows dialog)
+    void savePresetButtonClicked();
+
    public slots:
     void setZoomModeChecked(bool checked);
+    void refreshPresets(const QStringList& userPresets);  // Refresh combo with user presets
+    void updateSliders(int brightness, int contrast, int saturation, int exposure,
+                      int highlights, int shadows, int whites, int blacks,
+                      int temperature, int tint);  // Update sliders from preset
 
    private:
     void setupUI();
