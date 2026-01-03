@@ -80,8 +80,9 @@ void MainWindow::setupDockPanels() {
 }
 
 void MainWindow::setupConnections() {
-    // File menu signals will be connected to controller by main/ui_main
-    // This method is kept for future internal connections if needed
+    // Connect canvas mouse coordinates to info panel for debugging
+    connect(m_canvasWidget, &CanvasWidget::mouseCoordinatesChanged, m_infoPanel,
+            &InfoPanel::updateMouseCoords);
 }
 
 void MainWindow::onImageLoaded(const QImage& image, const QString& filePath) {

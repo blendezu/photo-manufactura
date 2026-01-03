@@ -17,6 +17,7 @@ class InfoPanel : public QWidget {
     void updateHistogram(const QImage& image);
     void clearInfo();
     void updateFileSize(qint64 sizeBytes);
+    void updateMouseCoords(const QPoint& widgetPos, const QPoint& imagePos);
 
    private:
     void setupUI();
@@ -29,5 +30,6 @@ class InfoPanel : public QWidget {
     QLabel* m_fileSizeLabel;
     QLabel* m_colorSpaceLabel;
     QLabel* m_megapixelsLabel;
+    QLabel* m_mouseCoordsLabel;
     HistogramWidget* m_histogramWidget;
 };
