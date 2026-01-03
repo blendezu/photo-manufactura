@@ -11,16 +11,21 @@
 #include "color/saturation_adjust.h"
 #include "color/tint_magenta.h"
 #include "color/white_balance.h"
+#include "effects/gray_image.h"
+#include "effects/vintage1.h"
 #include "geometry/crop.h"
 #include "geometry/flip.h"
 #include "geometry/rotate.h"
 #include "image_pipeline.h"
+#include "light/auto_light.h"
 #include "light/black_adjust.h"
 #include "light/brightness_adjust.h"
 #include "light/contrast_adjust.h"
+#include "light/exposure_adjust.h"
 #include "light/highlight_adjust.h"
 #include "light/shadow_adjust.h"
 #include "light/white_adjust.h"
+#include "style_transfer/style_transfer.h"
 
 namespace {
 // Helper: Convert QImage to cv::Mat
@@ -411,6 +416,113 @@ void DocumentManager::cropImage(const QRect& cropArea) {
             m_undoStack.pop();
         Q_EMIT errorOccurred("Failed to crop image");
     }
+}
+
+void DocumentManager::applyFilter(const QString& filterName) {
+    if (!hasDocument()) {
+        qDebug() << "Cannot apply filter - no document";
+        return;
+    }
+
+    qDebug() << "Applying filter:" << filterName;
+
+    // Save state for undo
+    saveStateToHistory();
+
+    // Get current image
+    QImage originalImage = m_currentDocument->originalImage();
+    cv::Mat srcMat = qImageToCvMat(originalImage);
+    cv::Mat resultMat;
+
+    try {
+        if (filterName == "Grayscale") {
+            GrayImage grayFilter;
+            resultMat = grayFilter.apply(srcMat);
+        } else if (filterName == "Vintage") {
+            Vintage1 vintageFilter;
+            resultMat = vintageFilter.apply(srcMat);
+        } else if (filterName == "AutoEnhance") {
+            // Apply auto light enhancement
+            AutoLightSettings autoSettings = AutoLight::analyze(srcMat);
+
+            // Apply each adjustment operation sequentially
+            resultMat = srcMat.clone();
+
+            // Apply exposure if significant
+            if (std::abs(autoSettings.exposure) > 0.01f) {
+                AdjustExposure exposure(autoSettings.exposure);
+                resultMat = exposure.apply(resultMat);
+            }
+
+            // Apply contrast if significant
+            if (std::abs(autoSettings.contrast) > 1.0f) {
+                AdjustContrast contrast(static_cast<int>(autoSettings.contrast));
+                resultMat = contrast.apply(resultMat);
+            }
+        } else if (filterName.startsWith("StyleTransfer_")) {
+            // AI Style Transfer
+            StyleType styleType = StyleType::Mosaic;  // Default
+
+            if (filterName.contains("Candy")) {
+                styleType = StyleType::Candy;
+            } else if (filterName.contains("RainPrincess")) {
+                styleType = StyleType::RainPrincess;
+            } else if (filterName.contains("Udnie")) {
+                styleType = StyleType::Udnie;
+            } else if (filterName.contains("Pointillism")) {
+                styleType = StyleType::Pointillism;
+            }
+
+            StyleTransfer styleTransfer(styleType);
+            resultMat = styleTransfer.apply(srcMat);
+        } else {
+            qDebug() << "Unknown filter:" << filterName;
+            return;
+        }
+
+        if (!resultMat.empty()) {
+            QImage resultImage = cvMatToQImage(resultMat);
+            m_currentDocument->setProcessedImage(resultImage);
+            m_currentDocument->setModified(true);
+            Q_EMIT imageTransformed();
+            qDebug() << "Filter applied successfully:" << filterName;
+        } else {
+            qDebug() << "Filter returned empty result:" << filterName;
+            // Restore from undo stack
+            if (!m_undoStack.isEmpty()) {
+                m_undoStack.pop();
+            }
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Filter error:" << e.what();
+        Q_EMIT errorOccurred(QString("Filter error: %1").arg(e.what()));
+        // Restore from undo stack
+        if (!m_undoStack.isEmpty()) {
+            m_undoStack.pop();
+        }
+    }
+}
+
+void DocumentManager::removeFilter() {
+    if (!hasDocument()) {
+        return;
+    }
+
+    // Reset to original image
+    QImage originalImage = m_currentDocument->originalImage();
+    m_currentDocument->setProcessedImage(originalImage);
+
+    // Reset pipeline
+    cv::Mat cvImage = qImageToCvMat(originalImage);
+    m_imagePipeline->setImg(cvImage);
+
+    // Reset all adjustments
+    if (m_adjustments) {
+        m_adjustments->resetAll();
+    }
+
+    Q_EMIT imageTransformed();
+    qDebug() << "Filter removed, restored original image";
 }
 
 bool DocumentManager::canUndo() const {

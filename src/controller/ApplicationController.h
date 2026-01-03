@@ -110,6 +110,14 @@ class ApplicationController : public QObject {
     void cropImage(const QRect& cropArea);
     void resetAdjustments();
 
+    // Filter/Effect operations
+    void applyFilterOriginal();
+    void applyFilterGrayscale();
+    void applyFilterVintage();
+    void applyAutoEnhance();
+    void applyStyleTransfer(
+        int styleType);  // 0=Mosaic, 1=Candy, 2=RainPrincess, 3=Udnie, 4=Pointillism
+
     // View operations
     void zoomIn();
     void zoomOut();

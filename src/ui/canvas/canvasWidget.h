@@ -13,6 +13,27 @@
 #include <QWheelEvent>
 #include <memory>
 
+// Crop mode types
+enum class CropType {
+    Free,        // Manual free-form crop
+    FixedSize,   // Fixed pixel dimensions
+    AspectRatio  // Fixed aspect ratio
+};
+
+// Common aspect ratio presets
+enum class AspectRatioPreset {
+    Free,
+    Square_1_1,
+    Photo_4_3,
+    Photo_3_2,
+    Widescreen_16_9,
+    Widescreen_21_9,
+    Portrait_3_4,
+    Portrait_2_3,
+    Portrait_9_16,
+    Custom
+};
+
 class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
 
@@ -33,6 +54,27 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     }
     QRect getCropSelection() const;  // Returns selection in image coordinates
 
+    // Crop options
+    void setCropType(CropType type);
+    CropType getCropType() const {
+        return m_cropType;
+    }
+
+    void setFixedCropSize(const QSize& size);
+    QSize getFixedCropSize() const {
+        return m_fixedCropSize;
+    }
+
+    void setAspectRatioPreset(AspectRatioPreset preset);
+    AspectRatioPreset getAspectRatioPreset() const {
+        return m_aspectPreset;
+    }
+
+    void setCustomAspectRatio(double widthRatio, double heightRatio);
+    double getAspectRatio() const {
+        return m_aspectRatio;
+    }
+
    public Q_SLOTS:
     // Receive zoom level from controller (0.1 to 10.0)
     void setZoomLevel(double level);
@@ -48,6 +90,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     // Crop signals
     void cropRequested(const QRect& cropArea);
     void cropModeChanged(bool enabled);
+    void cropTypeChanged(CropType type);
     // Mouse coordinate tracking for debugging
     void mouseCoordinatesChanged(const QPoint& widgetPos, const QPoint& imagePos);
 
@@ -91,6 +134,12 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     bool m_selecting = false;
     bool m_showRuleOfThirds = true;
 
+    // Crop options
+    CropType m_cropType = CropType::Free;
+    QSize m_fixedCropSize = QSize(800, 600);  // Default fixed size
+    AspectRatioPreset m_aspectPreset = AspectRatioPreset::Free;
+    double m_aspectRatio = 0.0;  // 0 = free, otherwise width/height ratio
+
     // Constants
     static constexpr double MIN_ZOOM = 0.1;
     static constexpr double MAX_ZOOM = 10.0;
@@ -104,4 +153,9 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QPoint imageToWidgetCoords(const QPoint& imagePos) const;
     QRectF getDisplayedImageBounds() const;
     void drawCropOverlay(QPainter& painter);
+
+    // Crop helper methods
+    QRect constrainCropSelection(const QPoint& startWidget, const QPoint& endWidget) const;
+    double getPresetAspectRatio(AspectRatioPreset preset) const;
+    QString getCropModeLabel() const;
 };

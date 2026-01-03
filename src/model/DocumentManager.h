@@ -59,6 +59,10 @@ class DocumentManager : public QObject {
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
 
+    // Filter operations
+    void applyFilter(const QString& filterName);
+    void removeFilter();
+
     // Undo/Redo operations
     void undo();
     void redo();

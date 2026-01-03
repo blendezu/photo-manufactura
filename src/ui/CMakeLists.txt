@@ -86,6 +86,8 @@ set(WIDGET_SOURCES
     widgets/toolPaletteWidget.cpp
     widgets/histogramWidget.h
     widgets/histogramWidget.cpp
+    widgets/modernToolButton.h
+    widgets/modernToolButton.cpp
 )
 
 set(CANVAS_SOURCES

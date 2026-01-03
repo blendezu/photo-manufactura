@@ -347,6 +347,93 @@ void ApplicationController::resetAdjustments() {
     }
 }
 
+// Filter/Effect operations
+void ApplicationController::applyFilterOriginal() {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->removeFilter();
+        setState("currentFilter", "Original");
+
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
+void ApplicationController::applyFilterGrayscale() {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->applyFilter("Grayscale");
+        setState("currentFilter", "Grayscale");
+        setState("isModified", true);
+
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
+void ApplicationController::applyFilterVintage() {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->applyFilter("Vintage");
+        setState("currentFilter", "Vintage");
+        setState("isModified", true);
+
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
+void ApplicationController::applyAutoEnhance() {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->applyFilter("AutoEnhance");
+        setState("currentFilter", "AutoEnhance");
+        setState("isModified", true);
+
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
+void ApplicationController::applyStyleTransfer(int styleType) {
+    if (m_documentManager->hasDocument()) {
+        QString styleName;
+        switch (styleType) {
+            case 0:
+                styleName = "StyleTransfer_Mosaic";
+                break;
+            case 1:
+                styleName = "StyleTransfer_Candy";
+                break;
+            case 2:
+                styleName = "StyleTransfer_RainPrincess";
+                break;
+            case 3:
+                styleName = "StyleTransfer_Udnie";
+                break;
+            case 4:
+                styleName = "StyleTransfer_Pointillism";
+                break;
+            default:
+                styleName = "StyleTransfer_Mosaic";
+                break;
+        }
+
+        m_documentManager->applyFilter(styleName);
+        setState("currentFilter", styleName);
+        setState("isModified", true);
+
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
 // View operations
 void ApplicationController::zoomIn() {
     m_appState->zoomIn();
