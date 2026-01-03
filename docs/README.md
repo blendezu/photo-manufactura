@@ -30,8 +30,8 @@ Welcome to Photo Manufactura documentation!
 
 | Topic | Documentation |
 |-------|---------------|
-| Pipeline | [ImagePipeline](development/ImagePipeline.md) - Non-destructive editing |
-| Operations | [OperationRegistry](development/OperationRegistry.md) - Filter management |
+| Pipeline | [ImagePipeline](development/ImagePipeline_v3.md) - Non-destructive editing |
+| Operations | [OperationRegistry](development/OperationRegistry_v2.md) - Filter management |
 
 ## ⌨️ Quick Commands
 

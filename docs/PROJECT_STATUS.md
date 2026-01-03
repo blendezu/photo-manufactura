@@ -1,6 +1,6 @@
 # Photo Manufactura - Project Status
 
-**Date:** 2 January 2026  
+**Date:** 3 January 2026  
 **Version:** 0.1.0  
 **Branch:** `feat/gui-beta-version`
 
@@ -527,74 +527,4 @@ After running `🚀 Full Release Build` task, artifacts are created at:
 | Tarball | `Photo_Manufactura_v{VERSION}_Linux.tar.gz` | Linux |
 | Windows ZIP | `Photo_Manufactura_v{VERSION}_Windows.zip` | Windows |
 
----
 
-## Next Steps (Priority Order)
-
-### 1. 🔧 ~~Install ONNX Runtime (Blocker)~~ ✅ COMPLETED
-- Symlink created: `libs/onnxruntime → libs/onnxruntime-osx-arm64-1.16.3`
-
-### 2. 🔗 Complete Controller Integration (High Priority)
-- Connect `ToolPanel` sliders → `ApplicationController` adjustment slots
-- Connect `CanvasWidget` zoom → `ApplicationController` zoom management
-- Connect `SubMenuView` theme → `ApplicationController` theme management
-
-### 3. 🖼️ Restore ImagePipeline Integration
-- Uncomment image_processing code in DocumentManager
-- Restore library links in CMakeLists
-- Test real-time adjustment preview
-
-### 4. 🧪 Test End-to-End
-- ✅ Open image via File menu (WORKING)
-- ✅ Display in canvas with aspect ratio (WORKING)
-- ✅ Save file with directory persistence (WORKING)
-- ✅ Save As with file dialog (WORKING)
-- ⏳ Adjust sliders and see preview (needs ToolPanel connection)
-- ⏳ Zoom operations (needs CanvasWidget connection)
-- ⏳ Theme switching via controller (needs SubMenuView connection)
-
-### 5. ↩️ Add Undo/Redo (Low Priority)
-- Implement Command pattern for adjustments
-- Connect to Edit menu
-
----
-
-## Build Commands
-
-```bash
-# Configure and build full project
-cmake -B build -S .
-cmake --build build
-
-# Run main application
-./build/bin/photo_manufactura
-
-# Build and run standalone UI (for testing)
-cd src/ui
-cmake -B build -S .
-cmake --build build
-./build/bin/ui_main
-```
-
----
-
-## Dependencies
-
-- **Qt 6**: Core, Gui, Widgets, OpenGL, OpenGLWidgets ✅ Installed
-- **OpenCV 4.12.0**: Core, ImgProc, ImgCodecs ✅ Installed
-- **ONNX Runtime 1.23.2**: AI model inference ⚠️ **NOT INSTALLED** (blocker for image_processing)
-- **OpenMP**: Parallel processing ✅ Available
-- **LibRaw**: RAW file decoding ✅ Available
-- **CMake 3.21+**: Build system ✅ Installed
-
----
-
-## Current Build Status
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Model | ✅ Builds | Image processing disabled |
-| Controller | ✅ Builds | Fully functional |
-| UI | ✅ Builds | Standalone build working |
-| Image Processing | ⚠️ Disabled | Requires ONNX Runtime |
-| Full Project | ⚠️ Blocked | Need ONNX Runtime for complete build |
