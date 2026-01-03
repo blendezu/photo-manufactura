@@ -278,8 +278,8 @@ add_dependencies(image_processing trigger_photo_adjustment_gen)
 # ---------------------------------------------------------
 # Test & Installation
 # ---------------------------------------------------------
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
-    add_executable(image_processing_test "${CMAKE_CURRENT_SOURCE_DIR}/image_processing_test.cpp")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/image_processing_test.cpp")
+    add_executable(image_processing_test "${CMAKE_CURRENT_SOURCE_DIR}/test/image_processing_test.cpp")
     target_link_libraries(image_processing_test PRIVATE 
         image_processing 
         photo_adjustment_aot

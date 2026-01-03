@@ -17,6 +17,7 @@ class LabeledSlider : public QWidget {
     void setValue(int value);
     void setRange(int min, int max);
     void reset();
+    void setTooltip(const QString& tooltip);
 
    signals:
     void valueChanged(int value);
@@ -24,6 +25,9 @@ class LabeledSlider : public QWidget {
    private slots:
     void onSliderChanged(int value);
     void onSpinBoxChanged(int value);
+
+   protected:
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
 
    private:
     QLabel* m_label;

@@ -414,7 +414,7 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
         return;
 
     // Draw semi-transparent overlay outside selection
-    painter.fillRect(rect(), QColor(0, 0, 0, 100));
+    painter.fillRect(rect(), QColor(0, 0, 0, 120));
 
     if (!m_cropSelection.isEmpty()) {
         // Clear the selection area (show the image)
@@ -422,14 +422,33 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
         painter.fillRect(m_cropSelection, Qt::transparent);
         painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
-        // Draw selection border
-        painter.setPen(QPen(Qt::white, 2, Qt::DashLine));
+        // Draw selection border with glow effect
+        painter.setPen(QPen(QColor(50, 50, 50, 180), 3));
+        painter.drawRect(m_cropSelection.adjusted(-1, -1, 1, 1));
+        painter.setPen(QPen(Qt::white, 2));
         painter.drawRect(m_cropSelection);
 
-        // Draw corner handles
-        const int handleSize = 8;
+        // Draw rule of thirds grid
+        if (m_showRuleOfThirds && m_cropSelection.width() > 60 && m_cropSelection.height() > 60) {
+            painter.setPen(QPen(QColor(255, 255, 255, 120), 1, Qt::DotLine));
+            int w = m_cropSelection.width();
+            int h = m_cropSelection.height();
+            int x = m_cropSelection.x();
+            int y = m_cropSelection.y();
+
+            // Vertical thirds
+            painter.drawLine(x + w / 3, y, x + w / 3, y + h);
+            painter.drawLine(x + 2 * w / 3, y, x + 2 * w / 3, y + h);
+
+            // Horizontal thirds
+            painter.drawLine(x, y + h / 3, x + w, y + h / 3);
+            painter.drawLine(x, y + 2 * h / 3, x + w, y + 2 * h / 3);
+        }
+
+        // Draw corner handles with improved styling
+        const int handleSize = 10;
         painter.setBrush(Qt::white);
-        painter.setPen(Qt::black);
+        painter.setPen(QPen(QColor(50, 50, 50), 2));
 
         QRect tl(m_cropSelection.topLeft() - QPoint(handleSize / 2, handleSize / 2),
                  QSize(handleSize, handleSize));
@@ -440,17 +459,51 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
         QRect br(m_cropSelection.bottomRight() - QPoint(handleSize / 2, handleSize / 2),
                  QSize(handleSize, handleSize));
 
-        painter.drawRect(tl);
-        painter.drawRect(tr);
-        painter.drawRect(bl);
-        painter.drawRect(br);
+        painter.drawEllipse(tl);
+        painter.drawEllipse(tr);
+        painter.drawEllipse(bl);
+        painter.drawEllipse(br);
 
-        // Draw size info
+        // Draw size info with better background
         QRect imageRect = getCropSelection();
         if (imageRect.isValid()) {
-            QString sizeText = QString("%1 x %2").arg(imageRect.width()).arg(imageRect.height());
+            QString sizeText = QString("%1 × %2 px").arg(imageRect.width()).arg(imageRect.height());
+            QFont font = painter.font();
+            font.setPointSize(10);
+            font.setBold(true);
+            painter.setFont(font);
+
+            QFontMetrics fm(font);
+            QRect textRect = fm.boundingRect(sizeText);
+            textRect.adjust(-6, -3, 6, 3);
+            textRect.moveTo(m_cropSelection.left() + 8, m_cropSelection.top() + 8);
+
+            painter.setBrush(QColor(0, 0, 0, 180));
+            painter.setPen(Qt::NoPen);
+            painter.drawRoundedRect(textRect, 3, 3);
+
             painter.setPen(Qt::white);
-            painter.drawText(m_cropSelection.adjusted(5, 5, 0, 0), sizeText);
+            painter.drawText(textRect, Qt::AlignCenter, sizeText);
         }
+    }
+
+    // Draw instruction text when no selection or at top of screen
+    if (m_cropSelection.isEmpty() || m_cropSelection.top() > 60) {
+        QString instructions = "Drag to select • Enter to crop • Esc to cancel";
+        QFont font = painter.font();
+        font.setPointSize(12);
+        painter.setFont(font);
+
+        QFontMetrics fm(font);
+        QRect textRect = fm.boundingRect(instructions);
+        textRect.adjust(-12, -8, 12, 8);
+        textRect.moveCenter(QPoint(width() / 2, 30));
+
+        painter.setBrush(QColor(0, 0, 0, 200));
+        painter.setPen(Qt::NoPen);
+        painter.drawRoundedRect(textRect, 5, 5);
+
+        painter.setPen(Qt::white);
+        painter.drawText(textRect, Qt::AlignCenter, instructions);
     }
 }

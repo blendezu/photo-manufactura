@@ -1,5 +1,6 @@
 #include "labeledSlider.h"
 
+#include <QMouseEvent>
 #include <QPushButton>
 
 LabeledSlider::LabeledSlider(const QString& label, int min, int max, int defaultValue,
@@ -11,7 +12,7 @@ LabeledSlider::LabeledSlider(const QString& label, int min, int max, int default
 
     // Label
     m_label = new QLabel(label, this);
-    m_label->setStyleSheet("font-weight: bold; color: #3030f5ff; font-size: 13px;");
+    m_label->setStyleSheet("font-weight: 500; color: #bbb; font-size: 12px;");
     m_label->setWordWrap(false);
     m_label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
@@ -37,6 +38,17 @@ LabeledSlider::LabeledSlider(const QString& label, int min, int max, int default
     m_spinBox->setFixedWidth(60);
     m_spinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
     m_spinBox->setAlignment(Qt::AlignCenter);
+    m_spinBox->setStyleSheet(
+        "QSpinBox { "
+        "  background: #2a2a2a; "
+        "  border: 1px solid #444; "
+        "  border-radius: 3px; "
+        "  padding: 2px; "
+        "  color: #ddd; "
+        "} "
+        "QSpinBox:focus { "
+        "  border: 1px solid #0078d4; "
+        "}");
 
     controlLayout->addWidget(m_slider);
     controlLayout->addWidget(m_spinBox);
@@ -87,4 +99,16 @@ void LabeledSlider::onSpinBoxChanged(int value) {
     m_slider->setValue(value);
     m_slider->blockSignals(false);
     emit valueChanged(value);
+}
+
+void LabeledSlider::setTooltip(const QString& tooltip) {
+    m_label->setToolTip(tooltip);
+    m_slider->setToolTip(tooltip + "\n\nDouble-click to reset");
+    m_spinBox->setToolTip(tooltip);
+}
+
+void LabeledSlider::mouseDoubleClickEvent(QMouseEvent* event) {
+    Q_UNUSED(event);
+    reset();
+    QWidget::mouseDoubleClickEvent(event);
 }
