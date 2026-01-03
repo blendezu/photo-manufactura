@@ -75,11 +75,20 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
         return m_aspectRatio;
     }
 
+    // Before/After comparison
+    void setOriginalImage(const QImage& image);
+    void setCompareMode(bool enabled);
+    bool isCompareMode() const {
+        return m_compareMode;
+    }
+    void setCompareSplitPosition(double position);  // 0.0 to 1.0
+
    public Q_SLOTS:
     // Receive zoom level from controller (0.1 to 10.0)
     void setZoomLevel(double level);
-    void applyCrop();   // Emit crop signal with current selection
-    void cancelCrop();  // Exit crop mode without applying
+    void applyCrop();          // Emit crop signal with current selection
+    void cancelCrop();         // Exit crop mode without applying
+    void toggleCompareMode();  // Toggle before/after comparison
 
    Q_SIGNALS:
     void imageClicked(QPoint position);
@@ -93,6 +102,8 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void cropTypeChanged(CropType type);
     // Mouse coordinate tracking for debugging
     void mouseCoordinatesChanged(const QPoint& widgetPos, const QPoint& imagePos);
+    // Compare mode
+    void compareModeChanged(bool enabled);
 
    protected:
     void initializeGL() override;
@@ -127,6 +138,12 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     // Image properties
     QSize m_imageSize;
 
+    // Before/After comparison
+    std::unique_ptr<QOpenGLTexture> m_originalTexture;
+    bool m_compareMode = false;
+    double m_compareSplitPosition = 0.5;  // 0.0 = all original, 1.0 = all processed
+    bool m_draggingSplit = false;
+
     // Crop mode state
     bool m_cropMode = false;
     QRect m_cropSelection;    // Selection in IMAGE coordinates (ready for crop)
@@ -153,6 +170,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QPoint imageToWidgetCoords(const QPoint& imagePos) const;
     QRectF getDisplayedImageBounds() const;
     void drawCropOverlay(QPainter& painter);
+    void drawCompareOverlay(QPainter& painter);
 
     // Crop helper methods
     QRect constrainCropSelection(const QPoint& startWidget, const QPoint& endWidget) const;

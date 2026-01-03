@@ -218,6 +218,14 @@ void CanvasWidget::paintGL() {
     m_texture->release();
     m_shaderProgram->release();
 
+    // Draw compare overlay using QPainter (after OpenGL)
+    if (m_compareMode && m_originalTexture) {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        drawCompareOverlay(painter);
+        painter.end();
+    }
+
     // Draw crop overlay using QPainter (after OpenGL)
     if (m_cropMode) {
         QPainter painter(this);
@@ -258,11 +266,31 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
             return;
         }
     }
+
+    // Space toggles compare mode
+    if (event->key() == Qt::Key_Space && !m_cropMode) {
+        toggleCompareMode();
+        event->accept();
+        return;
+    }
+
     QOpenGLWidget::keyPressEvent(event);
 }
 
 void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
+        // Check if clicking on compare split divider
+        if (m_compareMode) {
+            QRectF imageBounds = getDisplayedImageBounds();
+            int splitX =
+                static_cast<int>(imageBounds.left() + imageBounds.width() * m_compareSplitPosition);
+            if (qAbs(event->pos().x() - splitX) < 20) {
+                m_draggingSplit = true;
+                setCursor(Qt::SplitHCursor);
+                return;
+            }
+        }
+
         if (m_cropMode) {
             // Start crop selection (store widget point, will convert to image coords on release)
             m_selecting = true;
@@ -284,6 +312,26 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
         Q_EMIT mouseCoordinatesChanged(event->pos(), imagePos);
     }
 
+    // Handle compare mode split dragging
+    if (m_draggingSplit && m_compareMode) {
+        QRectF imageBounds = getDisplayedImageBounds();
+        double newPosition = (event->pos().x() - imageBounds.left()) / imageBounds.width();
+        setCompareSplitPosition(newPosition);
+        return;
+    }
+
+    // Update cursor when near split divider
+    if (m_compareMode && !m_cropMode) {
+        QRectF imageBounds = getDisplayedImageBounds();
+        int splitX =
+            static_cast<int>(imageBounds.left() + imageBounds.width() * m_compareSplitPosition);
+        if (qAbs(event->pos().x() - splitX) < 20) {
+            setCursor(Qt::SplitHCursor);
+        } else if (!m_panning) {
+            setCursor(Qt::ArrowCursor);
+        }
+    }
+
     if (m_cropMode && m_selecting) {
         // Just trigger repaint - we'll calculate rectangle in paintGL
         update();
@@ -299,6 +347,13 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
 
 void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
+        // Handle compare split drag release
+        if (m_draggingSplit) {
+            m_draggingSplit = false;
+            setCursor(Qt::ArrowCursor);
+            return;
+        }
+
         if (m_cropMode && m_selecting) {
             m_selecting = false;
             // Use constrained crop selection based on crop type
@@ -805,4 +860,108 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
         painter.setPen(Qt::white);
         painter.drawText(textRect, Qt::AlignCenter, instructions);
     }
+}
+// Before/After comparison methods
+void CanvasWidget::setOriginalImage(const QImage& image) {
+    if (image.isNull())
+        return;
+
+    makeCurrent();
+
+    m_originalTexture.reset();
+
+    QImage rgbaImage = image.convertToFormat(QImage::Format_RGBA8888);
+    m_originalTexture = std::make_unique<QOpenGLTexture>(rgbaImage);
+    m_originalTexture->setMinificationFilter(QOpenGLTexture::Linear);
+    m_originalTexture->setMagnificationFilter(QOpenGLTexture::Linear);
+
+    doneCurrent();
+    update();
+}
+
+void CanvasWidget::setCompareMode(bool enabled) {
+    if (m_compareMode != enabled) {
+        m_compareMode = enabled;
+        Q_EMIT compareModeChanged(enabled);
+        update();
+    }
+}
+
+void CanvasWidget::toggleCompareMode() {
+    setCompareMode(!m_compareMode);
+}
+
+void CanvasWidget::setCompareSplitPosition(double position) {
+    m_compareSplitPosition = qBound(0.0, position, 1.0);
+    update();
+}
+
+void CanvasWidget::drawCompareOverlay(QPainter& painter) {
+    // Get the displayed image bounds
+    QRectF imageBounds = getDisplayedImageBounds();
+    if (imageBounds.isEmpty())
+        return;
+
+    // Calculate split line position
+    int splitX =
+        static_cast<int>(imageBounds.left() + imageBounds.width() * m_compareSplitPosition);
+
+    // Draw semi-transparent overlay on the "After" side with label
+    // The processed image is shown by default, so we show "BEFORE" label on left side
+
+    // Draw split line
+    QPen linePen(QColor(255, 255, 255, 200), 2);
+    painter.setPen(linePen);
+    painter.drawLine(splitX, static_cast<int>(imageBounds.top()), splitX,
+                     static_cast<int>(imageBounds.bottom()));
+
+    // Draw drag handle
+    QRect handleRect(splitX - 15, height() / 2 - 30, 30, 60);
+    painter.setBrush(QColor(99, 102, 241, 220));  // Indigo
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(handleRect, 8, 8);
+
+    // Draw handle grip lines
+    painter.setPen(QPen(Qt::white, 2));
+    for (int i = -1; i <= 1; i++) {
+        int y = height() / 2 + i * 10;
+        painter.drawLine(splitX - 6, y, splitX + 6, y);
+    }
+
+    // Draw "BEFORE" and "AFTER" labels
+    QFont labelFont = painter.font();
+    labelFont.setPointSize(11);
+    labelFont.setBold(true);
+    painter.setFont(labelFont);
+
+    // Before label (left side)
+    QRect beforeRect(static_cast<int>(imageBounds.left()) + 10,
+                     static_cast<int>(imageBounds.top()) + 10, 70, 24);
+    painter.setBrush(QColor(0, 0, 0, 180));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(beforeRect, 4, 4);
+    painter.setPen(Qt::white);
+    painter.drawText(beforeRect, Qt::AlignCenter, "BEFORE");
+
+    // After label (right side)
+    QRect afterRect(static_cast<int>(imageBounds.right()) - 80,
+                    static_cast<int>(imageBounds.top()) + 10, 70, 24);
+    painter.setBrush(QColor(0, 0, 0, 180));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(afterRect, 4, 4);
+    painter.setPen(Qt::white);
+    painter.drawText(afterRect, Qt::AlignCenter, "AFTER");
+
+    // Draw instruction at bottom
+    QString instructions = "Drag divider to compare • Press Space to toggle";
+    QFontMetrics fm(labelFont);
+    QRect textRect = fm.boundingRect(instructions);
+    textRect.adjust(-12, -6, 12, 6);
+    textRect.moveCenter(QPoint(width() / 2, height() - 30));
+
+    painter.setBrush(QColor(0, 0, 0, 180));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(textRect, 5, 5);
+    painter.setPen(Qt::white);
+    painter.drawText(textRect, Qt::AlignCenter, instructions);
 }

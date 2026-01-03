@@ -18,6 +18,7 @@ set(MODEL_SOURCES
     AdjustmentSettings.cpp
     AppState.cpp
     DocumentManager.cpp
+    PresetManager.cpp
 )
 
 set(MODEL_HEADERS
@@ -25,6 +26,7 @@ set(MODEL_HEADERS
     AdjustmentSettings.h
     AppState.h
     DocumentManager.h
+    PresetManager.h
 )
 
 # Create library

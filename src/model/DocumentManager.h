@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QRect>
 #include <QStack>
+#include <QTimer>
 #include <memory>
 
 #include "AdjustmentSettings.h"
@@ -53,6 +54,8 @@ class DocumentManager : public QObject {
 
     // Apply adjustments to generate processed image
     void applyAdjustments();
+    void applyAdjustmentsDebounced();     // Debounced version for slider dragging
+    void setDebouncedMode(bool enabled);  // Enable/disable debouncing
 
     // Geometry operations (destructive - modify the base image)
     void rotateImage(int degrees);
@@ -84,6 +87,11 @@ class DocumentManager : public QObject {
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
     std::unique_ptr<ImagePipeline> m_imagePipeline;
+
+    // Debouncing
+    QTimer* m_debounceTimer;
+    bool m_debouncedMode = false;
+    static const int DEBOUNCE_DELAY_MS = 100;
 
     // Undo/Redo history
     QStack<QImage> m_undoStack;

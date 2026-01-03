@@ -118,6 +118,10 @@ class ApplicationController : public QObject {
     void applyStyleTransfer(
         int styleType);  // 0=Mosaic, 1=Candy, 2=RainPrincess, 3=Udnie, 4=Pointillism
 
+    // Preset operations
+    void applyPreset(const QString& presetName);
+    void saveCurrentAsPreset(const QString& presetName);
+
     // View operations
     void zoomIn();
     void zoomOut();

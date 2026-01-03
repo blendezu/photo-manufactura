@@ -40,6 +40,9 @@ class MainWindow : public QMainWindow {
     void onFileSaved(const QString& filePath);
     void onError(const QString& message);
 
+   protected:
+    void keyPressEvent(QKeyEvent* event) override;
+
    private:
     void setupUi();
     void setupMenuBar();
