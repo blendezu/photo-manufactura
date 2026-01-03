@@ -17,6 +17,9 @@ class FilterGalleryWidget;
 enum class CropType;
 enum class AspectRatioPreset;
 
+// Forward declare style transfer type from ApplicationController
+enum class StyleTransferType;
+
 class ToolPanel : public QWidget {
     Q_OBJECT
    public:
@@ -57,8 +60,7 @@ class ToolPanel : public QWidget {
     void filterAutoEnhanceRequested();
 
     // AI Style Transfer signals
-    void styleTransferRequested(
-        int styleType);  // 0=Mosaic, 1=Candy, 2=RainPrincess, 3=Udnie, 4=Pointillism
+    void styleTransferRequested(StyleTransferType styleType);
 
     // Preset signals
     void presetSelected(const QString& presetName);
@@ -69,6 +71,12 @@ class ToolPanel : public QWidget {
 
     // Compare mode signal
     void compareModeToggled();
+
+    // Zoom mode signal
+    void zoomModeToggled(bool enabled);
+
+   public slots:
+    void setZoomModeChecked(bool checked);
 
    private:
     void setupUI();
@@ -108,6 +116,7 @@ class ToolPanel : public QWidget {
     // Quick actions (modern buttons)
     ModernToolButton* m_autoEnhanceBtn;
     ModernToolButton* m_compareBtn;
+    ModernToolButton* m_zoomBtn;
 
     // Effects/Filters
     FilterGalleryWidget* m_filterGallery;

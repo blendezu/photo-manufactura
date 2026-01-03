@@ -116,9 +116,8 @@ void ApplicationController::openFile() {
                                  QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
                           .toString();
 
-    QString fileName = QFileDialog::getOpenFileName(
-        m_mainWindow, tr("Open Image"), lastDir,
-        tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff *.raw *.cr2 *.nef *.arw)"));
+    QString fileName = QFileDialog::getOpenFileName(m_mainWindow, tr("Open Image"), lastDir,
+                                                    tr(FileFormats::OpenFilter));
 
     if (!fileName.isEmpty()) {
         // Save the directory for next time
@@ -136,6 +135,8 @@ void ApplicationController::openFile() {
                 emit imageLoaded(image, fileName);
             }
             emit fileOpened(fileName);
+        } else {
+            emit errorOccurred(tr("Failed to open file: %1").arg(fileName));
         }
     }
 }
@@ -145,7 +146,7 @@ void ApplicationController::saveFile() {
 
     if (!m_documentManager->hasDocument()) {
         qDebug() << "No document to save";
-        emit errorOccurred("No document to save");
+        emit errorOccurred(tr("No document to save"));
         return;
     }
 
@@ -163,11 +164,17 @@ void ApplicationController::saveFile() {
             qDebug() << "File saved successfully";
         } else {
             qDebug() << "Save failed";
+            emit errorOccurred(tr("Failed to save file: %1").arg(currentFile));
         }
     }
 }
 
 void ApplicationController::saveAsFile() {
+    if (!m_documentManager->hasDocument()) {
+        emit errorOccurred(tr("No document to save"));
+        return;
+    }
+
     // Load last used directory
     QSettings settings("PhotoManufactura", "UI");
     QString lastDir = settings
@@ -175,9 +182,8 @@ void ApplicationController::saveAsFile() {
                                  QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
                           .toString();
 
-    QString fileName =
-        QFileDialog::getSaveFileName(m_mainWindow, tr("Save Image"), lastDir,
-                                     tr("Image Files (*.png *.jpg *.jpeg *.bmp *.tiff)"));
+    QString fileName = QFileDialog::getSaveFileName(m_mainWindow, tr("Save Image"), lastDir,
+                                                    tr(FileFormats::SaveFilter));
 
     if (!fileName.isEmpty()) {
         // Save the directory for next time
@@ -188,6 +194,8 @@ void ApplicationController::saveAsFile() {
             setState("currentFile", fileName);
             setState("isModified", false);
             emit fileSaved(fileName);
+        } else {
+            emit errorOccurred(tr("Failed to save file: %1").arg(fileName));
         }
     }
 }
@@ -408,26 +416,26 @@ void ApplicationController::applyAutoEnhance() {
     applyFilterAndNotify("AutoEnhance");
 }
 
-void ApplicationController::applyStyleTransfer(int styleType) {
+void ApplicationController::applyStyleTransfer(StyleTransferType styleType) {
     if (!m_documentManager->hasDocument()) {
         return;
     }
 
     QString styleName;
     switch (styleType) {
-        case 0:
+        case StyleTransferType::Mosaic:
             styleName = "StyleTransfer_Mosaic";
             break;
-        case 1:
+        case StyleTransferType::Candy:
             styleName = "StyleTransfer_Candy";
             break;
-        case 2:
+        case StyleTransferType::RainPrincess:
             styleName = "StyleTransfer_RainPrincess";
             break;
-        case 3:
+        case StyleTransferType::Udnie:
             styleName = "StyleTransfer_Udnie";
             break;
-        case 4:
+        case StyleTransferType::Pointillism:
             styleName = "StyleTransfer_Pointillism";
             break;
         default:
@@ -570,15 +578,6 @@ void ApplicationController::onImageProcessingComplete() {
 void ApplicationController::onFileOperationComplete() {
     // Handle file operation completion
 }
-
-// Service access methods - to be implemented when services exist
-// ImageProcessingService* ApplicationController::getImageProcessingService() const {
-//     return m_imageProcessingService.get();
-// }
-
-// RawProcessingService* ApplicationController::getRawProcessingService() const {
-//     return m_rawProcessingService.get();
-// }
 
 AdjustmentSettings* ApplicationController::getAdjustments() const {
     return m_documentManager ? m_documentManager->adjustments() : nullptr;

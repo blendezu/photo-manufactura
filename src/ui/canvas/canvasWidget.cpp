@@ -14,7 +14,8 @@ CanvasWidget::CanvasWidget(QWidget* parent)
       m_shaderProgram(nullptr),
       m_zoomFactor(1.0),
       m_panOffset(0, 0),
-      m_panning(false) {
+      m_panning(false),
+      m_zoomMode(ZoomMode::None) {
     setFocusPolicy(Qt::StrongFocus);  // Enable keyboard focus
 }
 
@@ -245,7 +246,13 @@ void CanvasWidget::setZoomLevel(double level) {
 }
 
 void CanvasWidget::wheelEvent(QWheelEvent* event) {
-    // Request zoom change from controller instead of changing directly
+    // Only zoom with mouse wheel when zoom mode is enabled
+    if (m_zoomMode == ZoomMode::None) {
+        event->ignore();
+        return;
+    }
+
+    // Natural scroll behavior: scroll up = zoom in, scroll down = zoom out
     if (event->angleDelta().y() > 0) {
         Q_EMIT zoomInRequested();
     } else {
@@ -289,6 +296,16 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
                 setCursor(Qt::SplitHCursor);
                 return;
             }
+        }
+
+        // Handle zoom mode clicks: Click = zoom in, Alt+Click = zoom out
+        if (m_zoomMode == ZoomMode::Zoom) {
+            if (event->modifiers() & Qt::AltModifier) {
+                Q_EMIT zoomOutRequested();
+            } else {
+                Q_EMIT zoomInRequested();
+            }
+            return;
         }
 
         if (m_cropMode) {
@@ -367,12 +384,41 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     }
 }
 
+// Zoom mode methods
+void CanvasWidget::setZoomMode(ZoomMode mode) {
+    if (m_zoomMode != mode) {
+        m_zoomMode = mode;
+
+        // Update cursor based on mode
+        if (mode == ZoomMode::Zoom) {
+            setCursor(Qt::CrossCursor);  // Zoom cursor
+        } else {
+            setCursor(Qt::ArrowCursor);
+        }
+
+        // Disable crop mode when zoom mode is enabled
+        if (mode != ZoomMode::None && m_cropMode) {
+            setCropMode(false);
+        }
+
+        Q_EMIT zoomModeChanged(mode);
+        update();
+    }
+}
+
 // Crop mode methods
 void CanvasWidget::setCropMode(bool enabled) {
     if (m_cropMode != enabled) {
         m_cropMode = enabled;
         m_selecting = false;
         m_cropSelection = QRect();
+
+        // Disable zoom mode when crop mode is enabled
+        if (enabled && m_zoomMode != ZoomMode::None) {
+            m_zoomMode = ZoomMode::None;
+            Q_EMIT zoomModeChanged(ZoomMode::None);
+        }
+
         setCursor(enabled ? Qt::CrossCursor : Qt::ArrowCursor);
         if (enabled) {
             setFocus();  // Grab keyboard focus for Enter/Escape
