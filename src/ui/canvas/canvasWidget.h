@@ -109,12 +109,11 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void zoomOutRequested();
     void fitToWindowRequested();
     void zoomModeChanged(ZoomMode mode);
+    void zoomLevelChanged(double level);  // Current zoom level
     // Crop signals
     void cropRequested(const QRect& cropArea);
     void cropModeChanged(bool enabled);
     void cropTypeChanged(CropType type);
-    // Mouse coordinate tracking for debugging
-    void mouseCoordinatesChanged(const QPoint& widgetPos, const QPoint& imagePos);
     // Compare mode
     void compareModeChanged(bool enabled);
 
