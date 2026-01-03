@@ -16,6 +16,7 @@ class InfoPanel : public QWidget {
     void updateImageInfo(const QString& filePath, int width, int height, const QString& format);
     void updateHistogram(const QImage& image);
     void clearInfo();
+    void updateFileSize(qint64 sizeBytes);
 
    private:
     void setupUI();
@@ -25,5 +26,8 @@ class InfoPanel : public QWidget {
     QLabel* m_filePathLabel;
     QLabel* m_dimensionsLabel;
     QLabel* m_formatLabel;
+    QLabel* m_fileSizeLabel;
+    QLabel* m_colorSpaceLabel;
+    QLabel* m_megapixelsLabel;
     HistogramWidget* m_histogramWidget;
 };

@@ -71,8 +71,20 @@ images/*.dng
 *.swo
 *~
 .idea/
+.vscode/settings.json
+.vscode/launch.json
 
 # Temporary files
 *.tmp
 *.temp
 *.log
+
+# Package artifacts
+*.AppImage
+*.zip
+
+# CMake
+CMakeFiles/
+cmake_install.cmake
+CMakeCache.txt
+compile_commands.json

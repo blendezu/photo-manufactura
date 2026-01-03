@@ -3,7 +3,7 @@
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Set the path to the executable
 EXECUTABLE="$PROJECT_ROOT/build/bin/photo_manufactura"

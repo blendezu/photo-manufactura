@@ -94,6 +94,7 @@ void MainWindow::onImageLoaded(const QImage& image, const QString& filePath) {
     QFileInfo fileInfo(filePath);
     m_infoPanel->updateImageInfo(fileInfo.fileName(), image.width(), image.height(),
                                  fileInfo.suffix().toUpper());
+    m_infoPanel->updateFileSize(fileInfo.size());
 
     // Update window title
     setWindowTitle(tr("Photo Manufactura - %1").arg(fileInfo.fileName()));

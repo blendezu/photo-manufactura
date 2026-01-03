@@ -36,9 +36,26 @@ void ToolPanel::setupUI() {
     // Title and Reset button
     QHBoxLayout* headerLayout = new QHBoxLayout();
     QLabel* title = new QLabel(tr("<b>Adjustments</b>"), this);
+    title->setStyleSheet("font-size: 14px; color: #ddd;");
 
     QPushButton* resetBtn = new QPushButton(tr("Reset All"), this);
     resetBtn->setMaximumWidth(80);
+    resetBtn->setToolTip(tr("Reset all adjustments to default values"));
+    resetBtn->setStyleSheet(
+        "QPushButton { "
+        "  background: #3a3a3a; "
+        "  border: 1px solid #555; "
+        "  border-radius: 3px; "
+        "  padding: 4px 8px; "
+        "  color: #ddd; "
+        "} "
+        "QPushButton:hover { "
+        "  background: #4a4a4a; "
+        "  border: 1px solid #0078d4; "
+        "} "
+        "QPushButton:pressed { "
+        "  background: #2a2a2a; "
+        "}");
     connect(resetBtn, &QPushButton::clicked, this, &ToolPanel::resetAllAdjustments);
     headerLayout->addWidget(title);
     headerLayout->addStretch();
@@ -67,11 +84,23 @@ CollapsibleWidget* ToolPanel::createBasicSection() {
 
     // Create sliders
     m_exposureSlider = new LabeledSlider("Exposure", -100, 100, 0, this);
+    m_exposureSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
+
     m_contrastSlider = new LabeledSlider("Contrast", -100, 100, 0, this);
+    m_contrastSlider->setTooltip(
+        "Adjust the difference between light and dark\nDouble-click to reset");
+
     m_highlightsSlider = new LabeledSlider("Highlights", -100, 100, 0, this);
+    m_highlightsSlider->setTooltip("Recover or brighten bright areas\nDouble-click to reset");
+
     m_shadowsSlider = new LabeledSlider("Shadows", -100, 100, 0, this);
+    m_shadowsSlider->setTooltip("Brighten or darken shadow areas\nDouble-click to reset");
+
     m_whitesSlider = new LabeledSlider("Whites", -100, 100, 0, this);
+    m_whitesSlider->setTooltip("Adjust white point and bright tones\nDouble-click to reset");
+
     m_blacksSlider = new LabeledSlider("Blacks", -100, 100, 0, this);
+    m_blacksSlider->setTooltip("Adjust black point and dark tones\nDouble-click to reset");
 
     // Connect signals
     // TODO: MOVE TO CONTROLLER: These signals should connect to ApplicationController slots
@@ -110,8 +139,15 @@ CollapsibleWidget* ToolPanel::createColorSection() {
 
     // Create sliders
     m_temperatureSlider = new LabeledSlider("Temperature", -100, 100, 0, this);
+    m_temperatureSlider->setTooltip(
+        "Adjust color temperature\nCooler (blue) ← → Warmer (yellow)\nDouble-click to reset");
+
     m_tintSlider = new LabeledSlider("Tint", -100, 100, 0, this);
+    m_tintSlider->setTooltip(
+        "Adjust green-magenta balance\nGreen ← → Magenta\nDouble-click to reset");
+
     m_saturationSlider = new LabeledSlider("Saturation", -100, 100, 0, this);
+    m_saturationSlider->setTooltip("Adjust color intensity\nDouble-click to reset");
 
     // Connect signals
     connect(m_temperatureSlider, &LabeledSlider::valueChanged, this,
@@ -136,6 +172,7 @@ CollapsibleWidget* ToolPanel::createDetailSection() {
 
     // Create sliders
     m_brightnessSlider = new LabeledSlider("Brightness", -100, 100, 0, this);
+    m_brightnessSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
 
     // Connect signals
     connect(m_brightnessSlider, &LabeledSlider::valueChanged, this, &ToolPanel::brightnessChanged);

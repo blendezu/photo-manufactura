@@ -87,6 +87,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QRect m_cropSelection;  // Selection in widget coordinates
     QPoint m_cropStartPoint;
     bool m_selecting = false;
+    bool m_showRuleOfThirds = true;
 
     // Constants
     static constexpr double MIN_ZOOM = 0.1;
