@@ -264,10 +264,10 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
 void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         if (m_cropMode) {
-            // Start crop selection
+            // Start crop selection (store widget point, will convert to image coords on release)
             m_selecting = true;
             m_cropStartPoint = event->pos();
-            m_cropSelection = QRect(m_cropStartPoint, QSize(0, 0));
+            m_cropSelection = QRect();  // Clear until release
             update();
         } else {
             // Normal panning
@@ -278,9 +278,14 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
 }
 
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
+    // Emit mouse coordinates for info panel
+    if (!m_imageSize.isEmpty()) {
+        QPoint imagePos = widgetToImageCoords(event->pos());
+        Q_EMIT mouseCoordinatesChanged(event->pos(), imagePos);
+    }
+
     if (m_cropMode && m_selecting) {
-        // Update crop selection rectangle
-        m_cropSelection = QRect(m_cropStartPoint, event->pos()).normalized();
+        // Just trigger repaint - we'll calculate rectangle in paintGL
         update();
     } else if (m_panning) {
         QPoint delta = event->pos() - m_lastPanPoint;
@@ -296,7 +301,12 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         if (m_cropMode && m_selecting) {
             m_selecting = false;
-            // Keep selection visible
+            // Convert widget rectangle to image coordinates and store
+            QRect widgetRect = QRect(m_cropStartPoint, event->pos()).normalized();
+            QPoint imgTopLeft = widgetToImageCoords(widgetRect.topLeft());
+            QPoint imgBottomRight = widgetToImageCoords(widgetRect.bottomRight());
+            m_cropSelection = QRect(imgTopLeft, imgBottomRight).normalized();
+            qDebug() << "Crop selection stored in IMAGE coords:" << m_cropSelection;
             update();
         } else {
             m_panning = false;
@@ -324,17 +334,20 @@ QRect CanvasWidget::getCropSelection() const {
         return QRect();
     }
 
-    // Convert widget coordinates to image coordinates
-    QPoint topLeft = widgetToImageCoords(m_cropSelection.topLeft());
-    QPoint bottomRight = widgetToImageCoords(m_cropSelection.bottomRight());
+    // m_cropSelection is already in image coordinates - just clamp to bounds
+    QRect result = m_cropSelection;
 
     // Clamp to image bounds
-    topLeft.setX(qBound(0, topLeft.x(), m_imageSize.width()));
-    topLeft.setY(qBound(0, topLeft.y(), m_imageSize.height()));
-    bottomRight.setX(qBound(0, bottomRight.x(), m_imageSize.width()));
-    bottomRight.setY(qBound(0, bottomRight.y(), m_imageSize.height()));
+    int left = qBound(0, result.left(), m_imageSize.width());
+    int top = qBound(0, result.top(), m_imageSize.height());
+    int right = qBound(0, result.right(), m_imageSize.width());
+    int bottom = qBound(0, result.bottom(), m_imageSize.height());
 
-    return QRect(topLeft, bottomRight).normalized();
+    result = QRect(QPoint(left, top), QPoint(right, bottom)).normalized();
+
+    qDebug() << "getCropSelection - returning image coords:" << result;
+
+    return result;
 }
 
 void CanvasWidget::applyCrop() {
@@ -349,36 +362,71 @@ void CanvasWidget::cancelCrop() {
     setCropMode(false);
 }
 
+QRectF CanvasWidget::getDisplayedImageBounds() const {
+    if (m_imageSize.isEmpty() || width() == 0 || height() == 0) {
+        return QRectF();
+    }
+
+    // Must match EXACTLY how OpenGL renders the texture
+    // OpenGL uses normalized coords (-1 to 1) which map to the full widget
+
+    double widgetAspect = static_cast<double>(width()) / height();
+    double imageAspect = static_cast<double>(m_imageSize.width()) / m_imageSize.height();
+
+    // These represent the size in normalized coordinates (-1 to 1) = 2.0 units
+    double normalizedWidth = 2.0;
+    double normalizedHeight = 2.0;
+
+    // Apply aspect ratio correction (matches model matrix)
+    if (imageAspect > widgetAspect) {
+        // Image is wider - height is scaled down
+        normalizedHeight *= widgetAspect / imageAspect;
+    } else {
+        // Image is taller - width is scaled down
+        normalizedWidth *= imageAspect / widgetAspect;
+    }
+
+    // Apply zoom (matches view matrix scale)
+    normalizedWidth *= m_zoomFactor;
+    normalizedHeight *= m_zoomFactor;
+
+    // Apply pan (matches view matrix translate - in normalized coords)
+    double normalizedCenterX = m_panOffset.x();
+    double normalizedCenterY = m_panOffset.y();
+
+    // Convert from normalized coordinates (-1 to 1) to widget pixel coordinates
+    // Center is at (0, 0) in normalized space = (width/2, height/2) in pixels
+    double pixelWidth = normalizedWidth * width() / 2.0;
+    double pixelHeight = normalizedHeight * height() / 2.0;
+
+    double centerX = width() / 2.0 + normalizedCenterX * width() / 2.0;
+    double centerY = height() / 2.0 - normalizedCenterY * height() / 2.0;  // Y is inverted
+
+    double offsetX = centerX - pixelWidth / 2.0;
+    double offsetY = centerY - pixelHeight / 2.0;
+
+    return QRectF(offsetX, offsetY, pixelWidth, pixelHeight);
+}
+
 QPoint CanvasWidget::widgetToImageCoords(const QPoint& widgetPos) const {
     if (m_imageSize.isEmpty()) {
         return QPoint();
     }
 
-    // Calculate the image display area
-    double widgetAspect = static_cast<double>(width()) / height();
-    double imageAspect = static_cast<double>(m_imageSize.width()) / m_imageSize.height();
-
-    double displayW, displayH;
-    double offsetX, offsetY;
-
-    if (imageAspect > widgetAspect) {
-        // Image is wider - fit to width
-        displayW = width() * m_zoomFactor;
-        displayH = displayW / imageAspect;
-    } else {
-        // Image is taller - fit to height
-        displayH = height() * m_zoomFactor;
-        displayW = displayH * imageAspect;
+    QRectF imageBounds = getDisplayedImageBounds();
+    if (imageBounds.isEmpty()) {
+        return QPoint();
     }
 
-    offsetX = (width() - displayW) / 2.0 + m_panOffset.x() * width() * m_zoomFactor;
-    offsetY = (height() - displayH) / 2.0 - m_panOffset.y() * height() * m_zoomFactor;
+    // Convert widget position to image position (no X-mirroring needed - display handles flip)
+    double imageX = (widgetPos.x() - imageBounds.x()) / imageBounds.width() * m_imageSize.width();
+    double imageY = (widgetPos.y() - imageBounds.y()) / imageBounds.height() * m_imageSize.height();
 
-    // Convert widget position to image position
-    double imageX = (widgetPos.x() - offsetX) / displayW * m_imageSize.width();
-    double imageY = (widgetPos.y() - offsetY) / displayH * m_imageSize.height();
+    qDebug() << "widgetToImageCoords:" << widgetPos
+             << "-> imagePos:" << QPoint(qRound(imageX), qRound(imageY))
+             << "imageBounds:" << imageBounds;
 
-    return QPoint(static_cast<int>(imageX), static_cast<int>(imageY));
+    return QPoint(qRound(imageX), qRound(imageY));
 }
 
 QPoint CanvasWidget::imageToWidgetCoords(const QPoint& imagePos) const {
@@ -386,109 +434,147 @@ QPoint CanvasWidget::imageToWidgetCoords(const QPoint& imagePos) const {
         return QPoint();
     }
 
-    double widgetAspect = static_cast<double>(width()) / height();
-    double imageAspect = static_cast<double>(m_imageSize.width()) / m_imageSize.height();
-
-    double displayW, displayH;
-    double offsetX, offsetY;
-
-    if (imageAspect > widgetAspect) {
-        displayW = width() * m_zoomFactor;
-        displayH = displayW / imageAspect;
-    } else {
-        displayH = height() * m_zoomFactor;
-        displayW = displayH * imageAspect;
+    QRectF imageBounds = getDisplayedImageBounds();
+    if (imageBounds.isEmpty()) {
+        return QPoint();
     }
 
-    offsetX = (width() - displayW) / 2.0 + m_panOffset.x() * width() * m_zoomFactor;
-    offsetY = (height() - displayH) / 2.0 - m_panOffset.y() * height() * m_zoomFactor;
-
-    double widgetX = static_cast<double>(imagePos.x()) / m_imageSize.width() * displayW + offsetX;
-    double widgetY = static_cast<double>(imagePos.y()) / m_imageSize.height() * displayH + offsetY;
-
-    return QPoint(static_cast<int>(widgetX), static_cast<int>(widgetY));
+    // Convert image position to widget position (no X-mirroring needed - display handles flip)
+    double widgetX = static_cast<double>(imagePos.x()) / m_imageSize.width() * imageBounds.width() +
+                     imageBounds.x();
+    double widgetY =
+        static_cast<double>(imagePos.y()) / m_imageSize.height() * imageBounds.height() +
+        imageBounds.y();
+    return QPoint(qRound(widgetX), qRound(widgetY));
 }
 
 void CanvasWidget::drawCropOverlay(QPainter& painter) {
     if (!m_cropMode)
         return;
 
-    // Draw semi-transparent overlay outside selection
-    painter.fillRect(rect(), QColor(0, 0, 0, 120));
+    // Get the displayed image bounds
+    QRectF imageBounds = getDisplayedImageBounds();
 
-    if (!m_cropSelection.isEmpty()) {
-        // Clear the selection area (show the image)
-        painter.setCompositionMode(QPainter::CompositionMode_Clear);
-        painter.fillRect(m_cropSelection, Qt::transparent);
-        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    QRect displaySelection;
 
-        // Draw selection border with glow effect
-        painter.setPen(QPen(QColor(50, 50, 50, 180), 3));
-        painter.drawRect(m_cropSelection.adjusted(-1, -1, 1, 1));
-        painter.setPen(QPen(Qt::white, 2));
-        painter.drawRect(m_cropSelection);
+    // Determine what to display
+    if (m_selecting) {
+        // User is currently dragging - show live widget rectangle
+        QPoint currentPos = mapFromGlobal(QCursor::pos());
+        displaySelection = QRect(m_cropStartPoint, currentPos).normalized();
+    } else if (!m_cropSelection.isEmpty()) {
+        // User has finished selecting - convert stored image coords to widget coords
+        QPoint widgetTopLeft = imageToWidgetCoords(m_cropSelection.topLeft());
+        QPoint widgetBottomRight = imageToWidgetCoords(m_cropSelection.bottomRight());
+        displaySelection = QRect(widgetTopLeft, widgetBottomRight).normalized();
+    } else {
+        // No selection yet - just darken the entire image slightly
+        painter.fillRect(rect(), QColor(0, 0, 0, 80));
 
-        // Draw rule of thirds grid
-        if (m_showRuleOfThirds && m_cropSelection.width() > 60 && m_cropSelection.height() > 60) {
-            painter.setPen(QPen(QColor(255, 255, 255, 120), 1, Qt::DotLine));
-            int w = m_cropSelection.width();
-            int h = m_cropSelection.height();
-            int x = m_cropSelection.x();
-            int y = m_cropSelection.y();
+        // Draw instruction text
+        QString instructions = "Drag to select • Enter to crop • Esc to cancel";
+        QFont font = painter.font();
+        font.setPointSize(12);
+        painter.setFont(font);
 
-            // Vertical thirds
-            painter.drawLine(x + w / 3, y, x + w / 3, y + h);
-            painter.drawLine(x + 2 * w / 3, y, x + 2 * w / 3, y + h);
+        QFontMetrics fm(font);
+        QRect textRect = fm.boundingRect(instructions);
+        textRect.adjust(-12, -8, 12, 8);
+        textRect.moveCenter(QPoint(width() / 2, 30));
 
-            // Horizontal thirds
-            painter.drawLine(x, y + h / 3, x + w, y + h / 3);
-            painter.drawLine(x, y + 2 * h / 3, x + w, y + 2 * h / 3);
-        }
+        painter.setBrush(QColor(0, 0, 0, 200));
+        painter.setPen(Qt::NoPen);
+        painter.drawRoundedRect(textRect, 5, 5);
 
-        // Draw corner handles with improved styling
-        const int handleSize = 10;
-        painter.setBrush(Qt::white);
-        painter.setPen(QPen(QColor(50, 50, 50), 2));
-
-        QRect tl(m_cropSelection.topLeft() - QPoint(handleSize / 2, handleSize / 2),
-                 QSize(handleSize, handleSize));
-        QRect tr(m_cropSelection.topRight() - QPoint(handleSize / 2, handleSize / 2),
-                 QSize(handleSize, handleSize));
-        QRect bl(m_cropSelection.bottomLeft() - QPoint(handleSize / 2, handleSize / 2),
-                 QSize(handleSize, handleSize));
-        QRect br(m_cropSelection.bottomRight() - QPoint(handleSize / 2, handleSize / 2),
-                 QSize(handleSize, handleSize));
-
-        painter.drawEllipse(tl);
-        painter.drawEllipse(tr);
-        painter.drawEllipse(bl);
-        painter.drawEllipse(br);
-
-        // Draw size info with better background
-        QRect imageRect = getCropSelection();
-        if (imageRect.isValid()) {
-            QString sizeText = QString("%1 × %2 px").arg(imageRect.width()).arg(imageRect.height());
-            QFont font = painter.font();
-            font.setPointSize(10);
-            font.setBold(true);
-            painter.setFont(font);
-
-            QFontMetrics fm(font);
-            QRect textRect = fm.boundingRect(sizeText);
-            textRect.adjust(-6, -3, 6, 3);
-            textRect.moveTo(m_cropSelection.left() + 8, m_cropSelection.top() + 8);
-
-            painter.setBrush(QColor(0, 0, 0, 180));
-            painter.setPen(Qt::NoPen);
-            painter.drawRoundedRect(textRect, 3, 3);
-
-            painter.setPen(Qt::white);
-            painter.drawText(textRect, Qt::AlignCenter, sizeText);
-        }
+        painter.setPen(Qt::white);
+        painter.drawText(textRect, Qt::AlignCenter, instructions);
+        return;
     }
 
-    // Draw instruction text when no selection or at top of screen
-    if (m_cropSelection.isEmpty() || m_cropSelection.top() > 60) {
+    // Draw semi-transparent overlay everywhere EXCEPT the selection
+    QRegion overlayRegion(rect());
+    overlayRegion = overlayRegion.subtracted(QRegion(displaySelection));
+    painter.setClipRegion(overlayRegion);
+    painter.fillRect(rect(), QColor(0, 0, 0, 120));
+    painter.setClipping(false);
+
+    // Draw selection border with glow effect
+    painter.setPen(QPen(QColor(50, 50, 50, 180), 3));
+    painter.drawRect(displaySelection.adjusted(-1, -1, 1, 1));
+    painter.setPen(QPen(Qt::white, 2));
+    painter.drawRect(displaySelection);
+
+    // Draw rule of thirds grid
+    if (m_showRuleOfThirds && displaySelection.width() > 60 && displaySelection.height() > 60) {
+        painter.setPen(QPen(QColor(255, 255, 255, 120), 1, Qt::DotLine));
+        int w = displaySelection.width();
+        int h = displaySelection.height();
+        int x = displaySelection.x();
+        int y = displaySelection.y();
+
+        // Vertical thirds
+        painter.drawLine(x + w / 3, y, x + w / 3, y + h);
+        painter.drawLine(x + 2 * w / 3, y, x + 2 * w / 3, y + h);
+
+        // Horizontal thirds
+        painter.drawLine(x, y + h / 3, x + w, y + h / 3);
+        painter.drawLine(x, y + 2 * h / 3, x + w, y + 2 * h / 3);
+    }
+
+    // Draw corner handles with improved styling
+    const int handleSize = 10;
+    painter.setBrush(Qt::white);
+    painter.setPen(QPen(QColor(50, 50, 50), 2));
+
+    QRect tl(displaySelection.topLeft() - QPoint(handleSize / 2, handleSize / 2),
+             QSize(handleSize, handleSize));
+    QRect tr(displaySelection.topRight() - QPoint(handleSize / 2, handleSize / 2),
+             QSize(handleSize, handleSize));
+    QRect bl(displaySelection.bottomLeft() - QPoint(handleSize / 2, handleSize / 2),
+             QSize(handleSize, handleSize));
+    QRect br(displaySelection.bottomRight() - QPoint(handleSize / 2, handleSize / 2),
+             QSize(handleSize, handleSize));
+
+    painter.drawEllipse(tl);
+    painter.drawEllipse(tr);
+    painter.drawEllipse(bl);
+    painter.drawEllipse(br);
+
+    // Draw size info
+    QRect dimensionRect;
+    if (m_selecting) {
+        // During drag, convert current widget rect to image coords for display
+        QPoint imgTL = widgetToImageCoords(displaySelection.topLeft());
+        QPoint imgBR = widgetToImageCoords(displaySelection.bottomRight());
+        dimensionRect = QRect(imgTL, imgBR).normalized();
+    } else {
+        // After selection, use stored image coords directly
+        dimensionRect = m_cropSelection;
+    }
+
+    if (dimensionRect.isValid()) {
+        QString sizeText =
+            QString("%1 × %2 px").arg(dimensionRect.width()).arg(dimensionRect.height());
+        QFont font = painter.font();
+        font.setPointSize(10);
+        font.setBold(true);
+        painter.setFont(font);
+
+        QFontMetrics fm(font);
+        QRect textRect = fm.boundingRect(sizeText);
+        textRect.adjust(-6, -3, 6, 3);
+        textRect.moveTo(displaySelection.left() + 8, displaySelection.top() + 8);
+
+        painter.setBrush(QColor(0, 0, 0, 180));
+        painter.setPen(Qt::NoPen);
+        painter.drawRoundedRect(textRect, 3, 3);
+
+        painter.setPen(Qt::white);
+        painter.drawText(textRect, Qt::AlignCenter, sizeText);
+    }
+
+    // Draw instruction text when selection is high enough
+    if (displaySelection.isEmpty() || displaySelection.top() > 60) {
         QString instructions = "Drag to select • Enter to crop • Esc to cancel";
         QFont font = painter.font();
         font.setPointSize(12);

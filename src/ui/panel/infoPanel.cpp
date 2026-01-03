@@ -85,12 +85,16 @@ void InfoPanel::setupUI() {
     m_colorSpaceLabel = new QLabel(tr("Color Space: N/A"), metadataGroup);
     m_colorSpaceLabel->setStyleSheet(labelStyle);
 
+    m_mouseCoordsLabel = new QLabel(tr("Mouse: N/A"), metadataGroup);
+    m_mouseCoordsLabel->setStyleSheet(labelStyle);
+
     metadataLayout->addWidget(m_filePathLabel);
     metadataLayout->addWidget(m_dimensionsLabel);
     metadataLayout->addWidget(m_megapixelsLabel);
     metadataLayout->addWidget(m_formatLabel);
     metadataLayout->addWidget(m_fileSizeLabel);
     metadataLayout->addWidget(m_colorSpaceLabel);
+    metadataLayout->addWidget(m_mouseCoordsLabel);
     m_mainLayout->addWidget(metadataGroup);
 
     // Add stretch to push everything to the top
@@ -127,6 +131,14 @@ void InfoPanel::updateFileSize(qint64 sizeBytes) {
     m_fileSizeLabel->setText(tr("File Size: %1").arg(sizeText));
 }
 
+void InfoPanel::updateMouseCoords(const QPoint& widgetPos, const QPoint& imagePos) {
+    m_mouseCoordsLabel->setText(tr("Mouse: Widget(%1,%2) → Image(%3,%4)")
+                                    .arg(widgetPos.x())
+                                    .arg(widgetPos.y())
+                                    .arg(imagePos.x())
+                                    .arg(imagePos.y()));
+}
+
 void InfoPanel::clearInfo() {
     m_filePathLabel->setText(tr("File: None"));
     m_dimensionsLabel->setText(tr("Dimensions: N/A"));
@@ -134,5 +146,6 @@ void InfoPanel::clearInfo() {
     m_formatLabel->setText(tr("Format: N/A"));
     m_fileSizeLabel->setText(tr("File Size: N/A"));
     m_colorSpaceLabel->setText(tr("Color Space: N/A"));
+    m_mouseCoordsLabel->setText(tr("Mouse: N/A"));
     m_histogramWidget->clear();
 }

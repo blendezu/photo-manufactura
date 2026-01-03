@@ -48,6 +48,8 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     // Crop signals
     void cropRequested(const QRect& cropArea);
     void cropModeChanged(bool enabled);
+    // Mouse coordinate tracking for debugging
+    void mouseCoordinatesChanged(const QPoint& widgetPos, const QPoint& imagePos);
 
    protected:
     void initializeGL() override;
@@ -84,8 +86,8 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 
     // Crop mode state
     bool m_cropMode = false;
-    QRect m_cropSelection;  // Selection in widget coordinates
-    QPoint m_cropStartPoint;
+    QRect m_cropSelection;    // Selection in IMAGE coordinates (ready for crop)
+    QPoint m_cropStartPoint;  // In widget coordinates for interaction
     bool m_selecting = false;
     bool m_showRuleOfThirds = true;
 
@@ -100,5 +102,6 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void updateMatrices();
     QPoint widgetToImageCoords(const QPoint& widgetPos) const;
     QPoint imageToWidgetCoords(const QPoint& imagePos) const;
+    QRectF getDisplayedImageBounds() const;
     void drawCropOverlay(QPainter& painter);
 };
