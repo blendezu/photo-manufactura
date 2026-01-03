@@ -462,9 +462,13 @@ public slots:
     void applyAutoEnhance();
     void applyStyleTransfer(StyleTransferType styleType);
     
+    // Apply corrections permanently
+    void applyCorrections();
+    
     // Preset operations
     void applyPreset(const QString& presetName);
     void saveCurrentAsPreset(const QString& presetName);
+    void showSavePresetDialog();
     
     // View operations
     void zoomIn();
@@ -483,6 +487,10 @@ signals:
     void errorOccurred(const QString& message);
     void themeChanged(const QString& theme);
     void zoomChanged(double level);
+    void presetsChanged(const QStringList& userPresets);
+    void adjustmentsChanged(int brightness, int contrast, int saturation, int exposure,
+                           int highlights, int shadows, int whites, int blacks,
+                           int temperature, int tint);
 };
 ```
 
@@ -520,7 +528,6 @@ class InfoPanel : public QWidget {
 public:
     void setImageInfo(const QImage& image, const QString& filePath);
     void updateHistogram(const QImage& image);
-    void updateMouseCoords(const QPoint& widgetPos, const QPoint& imagePos);
     void updateZoomLevel(double level);
     
 private:
@@ -531,8 +538,7 @@ private:
     QLabel* m_formatLabel;
     
     // Live tracking
-    QLabel* m_coordsLabel;      // "X: 123, Y: 456"
-    QLabel* m_zoomLabel;        // "100%"
+    QLabel* m_zoomLabel;        // "Zoom: 100%"
     
     // Histogram
     HistogramWidget* m_histogram;
@@ -597,8 +603,8 @@ signals:
     // Compare signals
     void compareModeChanged(bool enabled);
     
-    // Mouse tracking
-    void mouseCoordinatesChanged(const QPoint& widgetPos, const QPoint& imagePos);
+    // Zoom tracking
+    void zoomLevelChanged(double level);
 };
 ```
 
@@ -636,6 +642,13 @@ void main() {
 
 ```cpp
 class ToolPanel : public QWidget {
+public slots:
+    void setZoomModeChecked(bool checked);
+    void refreshPresets(const QStringList& userPresets);
+    void updateSliders(int brightness, int contrast, int saturation, int exposure,
+                      int highlights, int shadows, int whites, int blacks,
+                      int temperature, int tint);
+
 signals:
     // Adjustment signals (10 sliders, range -100 to +100)
     void brightnessChanged(int value);
@@ -672,6 +685,13 @@ signals:
     
     // Preset signals
     void presetSelected(const QString& presetName);
+    void savePresetButtonClicked();
+
+    // Quick Action signals
+    void applyRequested();
+    void resetAllRequested();
+    void compareModeToggled(bool enabled);
+    void zoomModeToggled(bool enabled);
     void savePresetRequested(const QString& presetName);
     
     // Quick actions
