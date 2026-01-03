@@ -6,10 +6,11 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-class LabeledSlider;
-class CollapsibleWidget;
-class ToolPaletteWidget;
+class ModernSlider;
+class ModernCollapsible;
 class ModernToolButton;
+class ModernButton;
+class IconButton;
 class FilterGalleryWidget;
 
 // Forward declare crop types from canvasWidget
@@ -64,36 +65,31 @@ class ToolPanel : public QWidget {
 
    private:
     void setupUI();
-    CollapsibleWidget* createBasicSection();
-    CollapsibleWidget* createColorSection();
-    CollapsibleWidget* createDetailSection();
-    CollapsibleWidget* createToolSection();
-    CollapsibleWidget* createEffectsSection();
-    CollapsibleWidget* createAIStyleSection();
+    ModernCollapsible* createBasicSection();
+    ModernCollapsible* createColorSection();
+    ModernCollapsible* createDetailSection();
+    ModernCollapsible* createToolSection();
+    ModernCollapsible* createEffectsSection();
+    ModernCollapsible* createAIStyleSection();
     QWidget* createQuickActionsBar();
 
     QScrollArea* m_scrollArea;
     QWidget* m_contentWidget;
     QVBoxLayout* m_mainLayout;
 
-    // Basic adjustments
-    LabeledSlider* m_brightnessSlider;
-    LabeledSlider* m_contrastSlider;
-    LabeledSlider* m_exposureSlider;
-    LabeledSlider* m_highlightsSlider;
-    LabeledSlider* m_shadowsSlider;
-    LabeledSlider* m_whitesSlider;
-    LabeledSlider* m_blacksSlider;
+    // Basic adjustments (using modern sliders)
+    ModernSlider* m_brightnessSlider;
+    ModernSlider* m_contrastSlider;
+    ModernSlider* m_exposureSlider;
+    ModernSlider* m_highlightsSlider;
+    ModernSlider* m_shadowsSlider;
+    ModernSlider* m_whitesSlider;
+    ModernSlider* m_blacksSlider;
 
     // Color adjustments
-    LabeledSlider* m_temperatureSlider;
-    LabeledSlider* m_tintSlider;
-    LabeledSlider* m_saturationSlider;
-
-    // Tool options
-    ToolPaletteWidget* m_cropToolPalette;
-    ToolPaletteWidget* m_rotateToolPalette;
-    ToolPaletteWidget* m_flipToolPalette;
+    ModernSlider* m_temperatureSlider;
+    ModernSlider* m_tintSlider;
+    ModernSlider* m_saturationSlider;
 
     // Crop options
     QComboBox* m_cropModeCombo;
