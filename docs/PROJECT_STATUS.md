@@ -40,6 +40,7 @@
 | `AdjustmentSettings.h/cpp` | ✅ Complete | All 10 adjustment sliders with signals |
 | `AppState.h/cpp` | ✅ Complete | Theme, zoom, panel visibility state |
 | `DocumentManager.h/cpp` | ✅ Complete | Document lifecycle (open/save/close) |
+| `PresetManager.h/cpp` | ✅ Complete | Save/load adjustment presets (JSON) |
 | `CMakeLists.txt` | ✅ Complete | Build configuration |
 
 ### ✅ Controller Layer (`src/controller/`)
@@ -118,9 +119,36 @@
 | Controller ↔ UI (File Ops) | ✅ Complete | Open/Save/Save As with QSettings persistence working |
 | Controller ↔ UI (Display) | ✅ Complete | imageLoaded signal wired, canvas displays correctly |
 | UI Sliders ↔ Controller | ✅ Complete | ToolPanel connected, adjustments apply in real-time |
-| Canvas Zoom ↔ Controller | ⏳ Pending | Zoom operations need controller integration |
+| Canvas Zoom ↔ Controller | ✅ Complete | Single Zoom toggle mode (Click=in, Alt+Click=out, scroll=natural) |
 | Theme ↔ Controller | ⏳ Pending | SubMenuView needs controller connection |
 | ImagePipeline ↔ DocumentManager | ✅ Complete | Full integration restored, real-time processing enabled |
+
+---
+
+## Recent Updates (January 3, 2026)
+
+### ✅ Completed: Zoom Toggle Mode Implementation
+
+**Single Zoom Button UX:**
+- Simplified from two buttons (Zoom+/Zoom-) to single "Zoom" toggle button
+- Replaced `ZoomMode` enum from `{None, ZoomIn, ZoomOut}` to `{None, Zoom}`
+- Single button in ToolPanel with checkable state for visual feedback
+
+**Zoom Behavior (when Zoom mode is enabled):**
+- **Click** = zoom in
+- **Alt+Click** = zoom out  
+- **Scroll up** = zoom in
+- **Scroll down** = zoom out
+
+**Files Updated:**
+- `src/ui/canvas/canvasWidget.h/cpp` - Simplified ZoomMode enum and mouse handling
+- `src/ui/panel/toolPanel.h/cpp` - Single Zoom button with toggle signal
+- `src/ui/bar/subMenuView.h/cpp` - Single "Zoom Tool" action with Z shortcut
+- `src/controller/ApplicationWiring.cpp` - Updated wiring for single zoom signal
+
+**Wiring:**
+- Bidirectional sync between ToolPanel ↔ View Menu ↔ Canvas
+- Zoom mode disabled automatically when entering Crop mode (and vice versa)
 
 ---
 
@@ -279,7 +307,7 @@
 | File Menu → Controller | ✅ Complete | `ApplicationWiring::wireFileMenu()` |
 | ToolPanel → Controller | ✅ Complete | `ApplicationWiring::wireToolPanel()` (10 sliders) |
 | ToolPanel → Image Processing | ✅ Complete | Via AdjustmentSettings → DocumentManager::applyAdjustments() |
-| Canvas → Controller | ✅ Complete | `ApplicationWiring::wireCanvas()` (zoom) |
+| Canvas → Controller | ✅ Complete | `ApplicationWiring::wireCanvas()` (zoom toggle mode) |
 | Controller → Canvas | ✅ Complete | `ApplicationWiring::wireControllerToCanvas()` |
 | Document → Canvas | ✅ Complete | `ApplicationWiring::wireDocumentToCanvas()` |
 | Theme Switching | ⏳ Pending | SubMenuView needs signal implementation |
@@ -365,8 +393,11 @@
 - [ ] Wire theme signals through ApplicationWiring
 - [ ] Remove direct ThemeManager calls from UI
 
-#### 4. 📐 **Canvas Zoom Controller Integration**
-- [ ] Wire zoom operations through controller
+#### 4. 📐 **Canvas Zoom Controller Integration** ✅
+- [x] Wire zoom operations through controller
+- [x] Single Zoom toggle button in ToolPanel (Click=zoom in, Alt+Click=zoom out, Scroll=natural)
+- [x] View menu "Zoom Tool" action with Z shortcut
+- [x] Bidirectional sync between ToolPanel, View menu, and Canvas
 - [ ] Add zoom state persistence
 
 #### 5. 🧹 **Code Cleanup**
@@ -405,7 +436,7 @@
 - [ ] Open image → verify display
 - [ ] Adjust brightness → verify visible effect
 - [ ] Adjust all 10 sliders → verify each works
-- [ ] Zoom in/out/fit → verify smooth operation
+- [x] Zoom toggle mode → Click=zoom in, Alt+Click=zoom out, scroll=natural direction
 - [ ] Save file → verify adjustments persisted
 - [ ] Save As → verify new file created
 - [ ] Theme toggle → verify UI updates

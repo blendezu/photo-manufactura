@@ -418,9 +418,15 @@ private:
 
 #### 3.3.2 CanvasWidget (OpenGL)
 
-**Responsibility:** Hardware-accelerated image rendering
+**Responsibility:** Hardware-accelerated image rendering with toggleable zoom mode
 
 ```cpp
+// Zoom mode types
+enum class ZoomMode {
+    None,  // Normal panning mode
+    Zoom   // Click to zoom in, Alt+Click to zoom out
+};
+
 class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 private:
     std::unique_ptr<QOpenGLTexture> m_texture;
@@ -428,11 +434,20 @@ private:
     QMatrix4x4 m_mvpMatrix;
     double m_zoomFactor;
     QPointF m_panOffset;
+    ZoomMode m_zoomMode;
     
 public:
     void setImage(const QImage& image);
-    void zoomIn();
-    void zoomOut();
+    void setZoomMode(ZoomMode mode);  // Toggle zoom mode
+    // Zoom behavior when mode is Zoom:
+    // - Click = zoom in
+    // - Alt+Click = zoom out
+    // - Scroll up = zoom in, scroll down = zoom out
+
+signals:
+    void zoomInRequested();
+    void zoomOutRequested();
+    void zoomModeChanged(ZoomMode mode);
 };
 ```
 
