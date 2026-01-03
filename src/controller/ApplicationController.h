@@ -159,6 +159,7 @@ class ApplicationController : public QObject {
 
     // Theme operations
     void setTheme(const QString& themeName);
+    void toggleTheme();
     void toggleHistogram();
     void toggleToolPanel();
     void toggleAdjustmentPanel();

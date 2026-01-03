@@ -511,6 +511,12 @@ void ApplicationController::setTheme(const QString& themeName) {
     emit themeChanged(themeName);
 }
 
+void ApplicationController::toggleTheme() {
+    QString currentTheme = m_appState->theme();
+    QString newTheme = (currentTheme == "dark") ? "light" : "dark";
+    setTheme(newTheme);
+}
+
 void ApplicationController::toggleHistogram() {
     m_appState->toggleHistogram();
 }

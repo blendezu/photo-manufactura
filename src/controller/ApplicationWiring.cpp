@@ -168,6 +168,8 @@ void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationControlle
                              [controller]() { controller->setTheme("dark"); });
     m_connections << connect(viewMenu, &SubMenuView::lightThemeRequested, controller,
                              [controller]() { controller->setTheme("light"); });
+    m_connections << connect(viewMenu, &SubMenuView::themeToggleRequested, controller,
+                             &ApplicationController::toggleTheme);
 }
 
 void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* controller) {

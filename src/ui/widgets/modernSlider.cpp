@@ -2,6 +2,7 @@
 
 #include <QEnterEvent>
 #include <QMouseEvent>
+#include <QResizeEvent>
 
 ModernSlider::ModernSlider(const QString& label, int min, int max, int defaultValue,
                            QWidget* parent)
@@ -261,6 +262,20 @@ void ModernSlider::leaveEvent(QEvent* event) {
         }
     )");
     QWidget::leaveEvent(event);
+}
+
+void ModernSlider::resizeEvent(QResizeEvent* event) {
+    QWidget::resizeEvent(event);
+    // Hide spinbox when slider is too narrow (< 200px)
+    // Show spinbox when wider (>= 220px) with hysteresis to prevent flickering
+    const int hideThreshold = 200;
+    const int showThreshold = 220;
+    
+    if (event->size().width() < hideThreshold && m_spinBox->isVisible()) {
+        m_spinBox->hide();
+    } else if (event->size().width() >= showThreshold && !m_spinBox->isVisible()) {
+        m_spinBox->show();
+    }
 }
 
 // ============================================================================
