@@ -11,6 +11,18 @@ class SubMenuView : public QMenu {
     explicit SubMenuView(QWidget* parent = nullptr);
     ~SubMenuView();
 
+   signals:
+    // Signals for controller to handle
+    void zoomInRequested();
+    void zoomOutRequested();
+    void resetZoomRequested();
+    void fitToWindowRequested();
+    void toggleHistogramRequested();
+    void toggleToolPanelRequested();
+    void toggleAdjustmentPanelRequested();
+    void darkThemeRequested();
+    void lightThemeRequested();
+
    private slots:
     void onDarkThemeTriggered();
     void onLightThemeTriggered();
@@ -27,4 +39,11 @@ class SubMenuView : public QMenu {
     QAction* m_enableThemeSwitchingAction;
     QAction* m_toggleToolPanelAction;
     QAction* m_toggleInfoPanelAction;
+
+    // Zoom actions
+    QAction* m_zoomInAction;
+    QAction* m_zoomOutAction;
+    QAction* m_resetZoomAction;
+    QAction* m_fitToWindowAction;
+    QAction* m_toggleHistogramAction;
 };

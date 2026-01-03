@@ -7,6 +7,31 @@
 SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     this->setTitle("View");
 
+    // Zoom submenu
+    QMenu* zoomMenu = new QMenu("Zoom", this);
+
+    m_zoomInAction = new QAction("Zoom In", this);
+    m_zoomInAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Plus));
+    connect(m_zoomInAction, &QAction::triggered, this, &SubMenuView::zoomInRequested);
+
+    m_zoomOutAction = new QAction("Zoom Out", this);
+    m_zoomOutAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus));
+    connect(m_zoomOutAction, &QAction::triggered, this, &SubMenuView::zoomOutRequested);
+
+    m_resetZoomAction = new QAction("Actual Size (100%)", this);
+    m_resetZoomAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
+    connect(m_resetZoomAction, &QAction::triggered, this, &SubMenuView::resetZoomRequested);
+
+    m_fitToWindowAction = new QAction("Fit to Window", this);
+    m_fitToWindowAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_9));
+    connect(m_fitToWindowAction, &QAction::triggered, this, &SubMenuView::fitToWindowRequested);
+
+    zoomMenu->addAction(m_zoomInAction);
+    zoomMenu->addAction(m_zoomOutAction);
+    zoomMenu->addSeparator();
+    zoomMenu->addAction(m_resetZoomAction);
+    zoomMenu->addAction(m_fitToWindowAction);
+
     // Theme submenu
     QMenu* themeMenu = new QMenu("Theme", this);
 
@@ -48,17 +73,27 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     m_toggleToolPanelAction = new QAction("Show Tool Panel", this);
     m_toggleToolPanelAction->setCheckable(true);
     m_toggleToolPanelAction->setChecked(true);
-    m_toggleToolPanelAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_L));
+    m_toggleToolPanelAction->setShortcut(QKeySequence(Qt::Key_Tab));
 
-    m_toggleInfoPanelAction = new QAction("Show Info Panel", this);
+    m_toggleHistogramAction = new QAction("Show Histogram", this);
+    m_toggleHistogramAction->setCheckable(true);
+    m_toggleHistogramAction->setChecked(true);
+    m_toggleHistogramAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_H));
+    connect(m_toggleHistogramAction, &QAction::triggered, this,
+            &SubMenuView::toggleHistogramRequested);
+
+    m_toggleInfoPanelAction = new QAction("Show Adjustment Panel", this);
     m_toggleInfoPanelAction->setCheckable(true);
     m_toggleInfoPanelAction->setChecked(true);
-    m_toggleInfoPanelAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+    m_toggleInfoPanelAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_I));
 
     // Add to menu
+    this->addMenu(zoomMenu);
+    this->addSeparator();
     this->addMenu(themeMenu);
     this->addSeparator();
     this->addAction(m_toggleToolPanelAction);
+    this->addAction(m_toggleHistogramAction);
     this->addAction(m_toggleInfoPanelAction);
 
     // Connect signals
@@ -95,21 +130,15 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
 SubMenuView::~SubMenuView() {}
 
 void SubMenuView::onDarkThemeTriggered() {
-    // TODO: MOVE TO CONTROLLER: Theme management should be handled by ApplicationController
-    // The controller should handle:
-    //   1. Persisting theme preference to settings
-    //   2. Managing theme state via setState("theme", value)
-    //   3. Coordinating theme application across all UI components
-    // The UI should emit a themeChangeRequested(Theme::Dark) signal
-
+    // Emit signal for controller to handle, also apply directly for immediate feedback
     ThemeManager::instance().applyTheme(ThemeManager::Theme::Dark);
+    emit darkThemeRequested();
 }
 
 void SubMenuView::onLightThemeTriggered() {
-    // TODO: MOVE TO CONTROLLER: Theme management should be handled by ApplicationController
-    // See onDarkThemeTriggered() comments for details
-
+    // Emit signal for controller to handle, also apply directly for immediate feedback
     ThemeManager::instance().applyTheme(ThemeManager::Theme::Light);
+    emit lightThemeRequested();
 }
 
 void SubMenuView::onToggleThemeTriggered() {
@@ -131,21 +160,11 @@ void SubMenuView::onThemeSwitchingEnabledChanged(bool enabled) {
 }
 
 void SubMenuView::onToggleToolPanelTriggered() {
-    // TODO: MOVE TO CONTROLLER: Panel visibility state should be managed by ApplicationController
-    // The controller should handle:
-    //   1. Managing panel visibility state via setState("toolPanelVisible", value)
-    //   2. Persisting panel preferences to settings
-    //   3. Coordinating with MainWindow to show/hide dock widgets
-    // The UI should emit a toggleToolPanelRequested() signal
-
-    // Will be connected to main window's dock widget visibility
-    // For now, just a placeholder
+    // Emit signal for controller to coordinate with MainWindow dock widgets
+    emit toggleToolPanelRequested();
 }
 
 void SubMenuView::onToggleInfoPanelTriggered() {
-    // TODO: MOVE TO CONTROLLER: Panel visibility state should be managed by ApplicationController
-    // See onToggleToolPanelTriggered() comments for details
-
-    // Will be connected to main window's dock widget visibility
-    // For now, just a placeholder
+    // Emit signal for controller to coordinate with MainWindow dock widgets
+    emit toggleAdjustmentPanelRequested();
 }
