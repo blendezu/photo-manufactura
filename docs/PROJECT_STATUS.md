@@ -2,7 +2,7 @@
 
 **Date:** 3 January 2026  
 **Version:** 0.1.0  
-**Branch:** `feat/gui-beta-version`
+**Branch:** `feat/app-beta-version`
 
 ---
 
