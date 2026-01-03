@@ -80,6 +80,7 @@ class ApplicationController : public QObject {
 
    public slots:
     // File operations
+    void newDocument();
     void openFile();
     void saveFile();
     void saveAsFile();
@@ -155,6 +156,9 @@ class ApplicationController : public QObject {
     void connectUISignals();
     void connectModelSignals();
     void initializeServices();
+
+    // Helper method to apply filter and update UI
+    void applyFilterAndNotify(const QString& filterName, bool isRemoveFilter = false);
 
     // UI components (stored as QWidget* for loose coupling)
     QWidget* m_mainWindow;

@@ -108,7 +108,7 @@ void ApplicationWiring::wireFileMenu(SubMenuFile* fileMenu, ApplicationControlle
     qDebug() << "Wiring File Menu...";
 
     m_connections << connect(fileMenu, &SubMenuFile::newDocumentRequested, controller,
-                             &ApplicationController::closeFile);  // TODO: Add newDocument slot
+                             &ApplicationController::newDocument);
 
     m_connections << connect(fileMenu, &SubMenuFile::openFileRequested, controller,
                              &ApplicationController::openFile);
@@ -136,18 +136,29 @@ void ApplicationWiring::wireEditMenu(SubMenuEdit* editMenu, ApplicationControlle
 void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller) {
     qDebug() << "Wiring View Menu...";
 
-    // TODO: Add these connections when SubMenuView signals are implemented
-    // m_connections << connect(viewMenu, &SubMenuView::zoomInRequested,
-    //                          controller, &ApplicationController::zoomIn);
-    // m_connections << connect(viewMenu, &SubMenuView::zoomOutRequested,
-    //                          controller, &ApplicationController::zoomOut);
-    // m_connections << connect(viewMenu, &SubMenuView::fitToWindowRequested,
-    //                          controller, &ApplicationController::fitToWindow);
-    // m_connections << connect(viewMenu, &SubMenuView::toggleHistogramRequested,
-    //                          controller, &ApplicationController::toggleHistogram);
+    // Zoom controls
+    m_connections << connect(viewMenu, &SubMenuView::zoomInRequested, controller,
+                             &ApplicationController::zoomIn);
+    m_connections << connect(viewMenu, &SubMenuView::zoomOutRequested, controller,
+                             &ApplicationController::zoomOut);
+    m_connections << connect(viewMenu, &SubMenuView::resetZoomRequested, controller,
+                             &ApplicationController::resetZoom);
+    m_connections << connect(viewMenu, &SubMenuView::fitToWindowRequested, controller,
+                             &ApplicationController::fitToWindow);
 
-    Q_UNUSED(viewMenu);
-    Q_UNUSED(controller);
+    // Panel visibility toggles
+    m_connections << connect(viewMenu, &SubMenuView::toggleHistogramRequested, controller,
+                             &ApplicationController::toggleHistogram);
+    m_connections << connect(viewMenu, &SubMenuView::toggleToolPanelRequested, controller,
+                             &ApplicationController::toggleToolPanel);
+    m_connections << connect(viewMenu, &SubMenuView::toggleAdjustmentPanelRequested, controller,
+                             &ApplicationController::toggleAdjustmentPanel);
+
+    // Theme changes (controller can update state/settings)
+    m_connections << connect(viewMenu, &SubMenuView::darkThemeRequested, controller,
+                             [controller]() { controller->setTheme("dark"); });
+    m_connections << connect(viewMenu, &SubMenuView::lightThemeRequested, controller,
+                             [controller]() { controller->setTheme("light"); });
 }
 
 void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* controller) {
