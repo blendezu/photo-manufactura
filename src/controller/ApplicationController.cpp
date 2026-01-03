@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QSettings>
 #include <QStandardPaths>
@@ -477,6 +478,20 @@ void ApplicationController::applyPreset(const QString& presetName) {
         m_documentManager->applyAdjustments();
         setState("currentPreset", presetName);
         setState("isModified", true);
+        
+        // Notify UI to update sliders with preset values
+        emit adjustmentsChanged(
+            settings->brightness(),
+            settings->contrast(),
+            settings->saturation(),
+            settings->exposure(),
+            settings->highlights(),
+            settings->shadows(),
+            settings->whites(),
+            settings->blacks(),
+            settings->temperature(),
+            settings->tint()
+        );
     } else {
         qDebug() << "Failed to load preset:" << presetName;
     }
@@ -495,6 +510,43 @@ void ApplicationController::saveCurrentAsPreset(const QString& presetName) {
         qDebug() << "Preset saved:" << presetName;
     } else {
         qDebug() << "Failed to save preset:" << presetName;
+    }
+}
+
+void ApplicationController::applyCorrections() {
+    if (!m_documentManager->hasDocument()) {
+        emit errorOccurred(tr("No image open to apply corrections"));
+        return;
+    }
+
+    // Apply all current adjustments permanently to the image
+    if (m_documentManager->applyAdjustmentsPermanently()) {
+        qDebug() << "Corrections applied permanently";
+        setState("isModified", true);
+        emit imageProcessed();
+    } else {
+        emit errorOccurred(tr("Failed to apply corrections"));
+    }
+}
+
+void ApplicationController::showSavePresetDialog() {
+    if (!m_documentManager->hasDocument()) {
+        emit errorOccurred(tr("No image open to save preset"));
+        return;
+    }
+
+    bool ok;
+    QString presetName = QInputDialog::getText(
+        m_mainWindow, tr("Save Preset"),
+        tr("Enter preset name:"), QLineEdit::Normal,
+        tr("My Preset"), &ok);
+
+    if (ok && !presetName.trimmed().isEmpty()) {
+        saveCurrentAsPreset(presetName.trimmed());
+        
+        // Notify UI to refresh presets list
+        PresetManager presetManager;
+        emit presetsChanged(presetManager.userPresets());
     }
 }
 
