@@ -231,7 +231,12 @@ void CanvasWidget::paintGL() {
     if (m_cropMode) {
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
-        drawCropOverlay(painter);
+
+        if (m_cropType == CropType::FourPoint) {
+            drawFourPointOverlay(painter);
+        } else {
+            drawCropOverlay(painter);
+        }
         painter.end();
     }
 }
@@ -310,6 +315,17 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
         }
 
         if (m_cropMode) {
+            // Four-point mode: check if clicking on a corner handle
+            if (m_cropType == CropType::FourPoint) {
+                int corner = hitTestCorner(event->pos());
+                if (corner >= 0) {
+                    m_draggedCorner = corner;
+                    setCursor(Qt::SizeAllCursor);
+                    update();
+                    return;
+                }
+            }
+
             // Start crop selection (store widget point, will convert to image coords on release)
             m_selecting = true;
             m_cropStartPoint = event->pos();
@@ -347,6 +363,14 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     if (m_cropMode && m_selecting) {
         // Just trigger repaint - we'll calculate rectangle in paintGL
         update();
+    } else if (m_cropMode && m_draggedCorner >= 0) {
+        // Four-point mode: dragging a corner
+        QPointF newRatio = widgetToFourPointRatio(event->pos());
+        // Clamp to valid range
+        newRatio.setX(qBound(0.0, newRatio.x(), 1.0));
+        newRatio.setY(qBound(0.0, newRatio.y(), 1.0));
+        m_fourPointQuad[m_draggedCorner] = newRatio;
+        update();
     } else if (m_panning) {
         QPoint delta = event->pos() - m_lastPanPoint;
         m_panOffset +=
@@ -363,6 +387,17 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
         if (m_draggingSplit) {
             m_draggingSplit = false;
             setCursor(Qt::ArrowCursor);
+            return;
+        }
+
+        // Handle four-point corner drag release
+        if (m_cropMode && m_draggedCorner >= 0) {
+            m_draggedCorner = -1;
+            setCursor(Qt::CrossCursor);
+            qDebug() << "Four-point quad updated:"
+                     << "TL=" << m_fourPointQuad.topLeft << "TR=" << m_fourPointQuad.topRight
+                     << "BR=" << m_fourPointQuad.bottomRight << "BL=" << m_fourPointQuad.bottomLeft;
+            update();
             return;
         }
 
@@ -407,11 +442,17 @@ void CanvasWidget::setCropMode(bool enabled) {
         m_cropMode = enabled;
         m_selecting = false;
         m_cropSelection = QRect();
+        m_draggedCorner = -1;  // Reset four-point drag state
 
         // Disable zoom mode when crop mode is enabled
         if (enabled && m_zoomMode != ZoomMode::None) {
             m_zoomMode = ZoomMode::None;
             Q_EMIT zoomModeChanged(ZoomMode::None);
+        }
+
+        // Initialize four-point quad when entering four-point mode
+        if (enabled && m_cropType == CropType::FourPoint) {
+            m_fourPointQuad.reset();  // Start with full image rectangle
         }
 
         setCursor(enabled ? Qt::CrossCursor : Qt::ArrowCursor);
@@ -427,12 +468,15 @@ void CanvasWidget::setCropType(CropType type) {
     if (m_cropType != type) {
         m_cropType = type;
         m_cropSelection = QRect();  // Reset selection when type changes
+        m_draggedCorner = -1;       // Reset four-point drag state
 
         // Update aspect ratio based on type
         if (type == CropType::Free) {
             m_aspectRatio = 0.0;
         } else if (type == CropType::FixedSize && m_fixedCropSize.isValid()) {
             m_aspectRatio = static_cast<double>(m_fixedCropSize.width()) / m_fixedCropSize.height();
+        } else if (type == CropType::FourPoint) {
+            m_fourPointQuad.reset();  // Reset to full image rectangle
         }
 
         Q_EMIT cropTypeChanged(type);
@@ -504,6 +548,8 @@ double CanvasWidget::getPresetAspectRatio(AspectRatioPreset preset) const {
 
 QString CanvasWidget::getCropModeLabel() const {
     switch (m_cropType) {
+        case CropType::FourPoint:
+            return "4-Point Perspective";
         case CropType::FixedSize:
             return QString("Fixed: %1×%2 px")
                 .arg(m_fixedCropSize.width())
@@ -634,9 +680,18 @@ QRect CanvasWidget::getCropSelection() const {
 }
 
 void CanvasWidget::applyCrop() {
-    QRect cropArea = getCropSelection();
-    if (cropArea.isValid() && !cropArea.isEmpty()) {
-        Q_EMIT cropRequested(cropArea);
+    if (m_cropType == CropType::FourPoint) {
+        // Emit four-point perspective crop signal
+        Q_EMIT perspectiveCropRequested(m_fourPointQuad);
+        qDebug() << "Four-point crop applied:"
+                 << "TL=" << m_fourPointQuad.topLeft << "TR=" << m_fourPointQuad.topRight
+                 << "BR=" << m_fourPointQuad.bottomRight << "BL=" << m_fourPointQuad.bottomLeft;
+    } else {
+        // Regular rectangular crop
+        QRect cropArea = getCropSelection();
+        if (cropArea.isValid() && !cropArea.isEmpty()) {
+            Q_EMIT cropRequested(cropArea);
+        }
     }
     setCropMode(false);
 }
@@ -1003,6 +1058,181 @@ void CanvasWidget::drawCompareOverlay(QPainter& painter) {
     painter.setBrush(QColor(0, 0, 0, 180));
     painter.setPen(Qt::NoPen);
     painter.drawRoundedRect(textRect, 5, 5);
+    painter.setPen(Qt::white);
+    painter.drawText(textRect, Qt::AlignCenter, instructions);
+}
+
+// ============================================================================
+// Four-Point Perspective Crop Methods
+// ============================================================================
+
+void CanvasWidget::setFourPointQuad(const FourPointQuad& quad) {
+    m_fourPointQuad = quad;
+    update();
+}
+
+void CanvasWidget::resetFourPointQuad() {
+    m_fourPointQuad.reset();
+    update();
+}
+
+QPoint CanvasWidget::fourPointCornerToWidget(int cornerIndex) const {
+    if (cornerIndex < 0 || cornerIndex > 3 || m_imageSize.isEmpty()) {
+        return QPoint();
+    }
+
+    QPointF ratio = m_fourPointQuad[cornerIndex];
+    QPoint imagePos(static_cast<int>(ratio.x() * m_imageSize.width()),
+                    static_cast<int>(ratio.y() * m_imageSize.height()));
+
+    return imageToWidgetCoords(imagePos);
+}
+
+QPointF CanvasWidget::widgetToFourPointRatio(const QPoint& widgetPos) const {
+    if (m_imageSize.isEmpty()) {
+        return QPointF(0.5, 0.5);
+    }
+
+    QPoint imagePos = widgetToImageCoords(widgetPos);
+
+    return QPointF(static_cast<double>(imagePos.x()) / m_imageSize.width(),
+                   static_cast<double>(imagePos.y()) / m_imageSize.height());
+}
+
+int CanvasWidget::hitTestCorner(const QPoint& widgetPos) const {
+    for (int i = 0; i < 4; ++i) {
+        QPoint cornerWidget = fourPointCornerToWidget(i);
+        int dx = widgetPos.x() - cornerWidget.x();
+        int dy = widgetPos.y() - cornerWidget.y();
+        int distSq = dx * dx + dy * dy;
+
+        if (distSq <= CORNER_HIT_RADIUS * CORNER_HIT_RADIUS) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void CanvasWidget::drawFourPointOverlay(QPainter& painter) {
+    if (!m_cropMode || m_cropType != CropType::FourPoint) {
+        return;
+    }
+
+    QRectF imageBounds = getDisplayedImageBounds();
+    if (imageBounds.isEmpty()) {
+        return;
+    }
+
+    // Get widget coordinates for all 4 corners
+    QPoint corners[4];
+    for (int i = 0; i < 4; ++i) {
+        corners[i] = fourPointCornerToWidget(i);
+    }
+
+    // Draw semi-transparent overlay everywhere EXCEPT inside the quad
+    QPolygon quadPoly;
+    quadPoly << corners[0] << corners[1] << corners[2] << corners[3];
+
+    QRegion overlayRegion(rect());
+    overlayRegion = overlayRegion.subtracted(QRegion(quadPoly));
+    painter.setClipRegion(overlayRegion);
+    painter.fillRect(rect(), QColor(0, 0, 0, 120));
+    painter.setClipping(false);
+
+    // Draw the quadrilateral outline with glow
+    painter.setPen(QPen(QColor(50, 50, 50, 180), 4));
+    painter.drawPolygon(quadPoly);
+    painter.setPen(QPen(Qt::white, 2));
+    painter.drawPolygon(quadPoly);
+
+    // Draw grid lines inside the quad (perspective grid)
+    painter.setPen(QPen(QColor(255, 255, 255, 80), 1, Qt::DotLine));
+
+    // Draw 2 horizontal lines (thirds)
+    for (int i = 1; i <= 2; ++i) {
+        double t = i / 3.0;
+        QPointF leftPt = corners[0] + t * (corners[3] - corners[0]);
+        QPointF rightPt = corners[1] + t * (corners[2] - corners[1]);
+        painter.drawLine(leftPt.toPoint(), rightPt.toPoint());
+    }
+
+    // Draw 2 vertical lines (thirds)
+    for (int i = 1; i <= 2; ++i) {
+        double t = i / 3.0;
+        QPointF topPt = corners[0] + t * (corners[1] - corners[0]);
+        QPointF bottomPt = corners[3] + t * (corners[2] - corners[3]);
+        painter.drawLine(topPt.toPoint(), bottomPt.toPoint());
+    }
+
+    // Draw corner handles
+    const int handleSize = 14;
+    const QString cornerLabels[4] = {"TL", "TR", "BR", "BL"};
+
+    for (int i = 0; i < 4; ++i) {
+        QRect handleRect(corners[i].x() - handleSize / 2, corners[i].y() - handleSize / 2,
+                         handleSize, handleSize);
+
+        // Highlight the dragged corner
+        if (i == m_draggedCorner) {
+            painter.setBrush(QColor(99, 102, 241));  // Indigo
+            painter.setPen(QPen(Qt::white, 3));
+        } else {
+            painter.setBrush(Qt::white);
+            painter.setPen(QPen(QColor(50, 50, 50), 2));
+        }
+
+        painter.drawEllipse(handleRect);
+    }
+
+    // Draw corner labels near each handle
+    QFont labelFont = painter.font();
+    labelFont.setPointSize(9);
+    labelFont.setBold(true);
+    painter.setFont(labelFont);
+
+    for (int i = 0; i < 4; ++i) {
+        // Position label offset from corner
+        int offsetX = (i == 0 || i == 3) ? -25 : 12;
+        int offsetY = (i == 0 || i == 1) ? -8 : 20;
+
+        QRect labelRect(corners[i].x() + offsetX, corners[i].y() + offsetY, 20, 16);
+        painter.setPen(Qt::white);
+        painter.drawText(labelRect, Qt::AlignCenter, cornerLabels[i]);
+    }
+
+    // Draw coordinate display for each corner
+    labelFont.setPointSize(8);
+    labelFont.setBold(false);
+    painter.setFont(labelFont);
+    painter.setPen(QColor(200, 200, 200));
+
+    for (int i = 0; i < 4; ++i) {
+        QPointF ratio = m_fourPointQuad[i];
+        QString coordText = QString("%1, %2").arg(ratio.x(), 0, 'f', 2).arg(ratio.y(), 0, 'f', 2);
+
+        int offsetX = (i == 0 || i == 3) ? -55 : 12;
+        int offsetY = (i == 0 || i == 1) ? 8 : -25;
+
+        QRect coordRect(corners[i].x() + offsetX, corners[i].y() + offsetY, 50, 14);
+        painter.drawText(coordRect, Qt::AlignCenter, coordText);
+    }
+
+    // Draw instruction text
+    QString modeLabel = "4-Point Perspective";
+    QString instructions =
+        QString("Mode: %1 • Drag corners • Enter to apply • Esc to cancel").arg(modeLabel);
+
+    labelFont.setPointSize(12);
+    painter.setFont(labelFont);
+    QFontMetrics fm(labelFont);
+    QRect textRect = fm.boundingRect(instructions);
+    textRect.adjust(-12, -8, 12, 8);
+    textRect.moveCenter(QPoint(width() / 2, 30));
+
+    painter.setBrush(QColor(0, 0, 0, 200));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(textRect, 5, 5);
+
     painter.setPen(Qt::white);
     painter.drawText(textRect, Qt::AlignCenter, instructions);
 }

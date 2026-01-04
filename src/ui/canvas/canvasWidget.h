@@ -11,6 +11,7 @@
 #include <QOpenGLWidget>
 #include <QRect>
 #include <QWheelEvent>
+#include <array>
 #include <memory>
 
 // Zoom mode types
@@ -21,9 +22,10 @@ enum class ZoomMode {
 
 // Crop mode types
 enum class CropType {
-    Free,        // Manual free-form crop
-    FixedSize,   // Fixed pixel dimensions
-    AspectRatio  // Fixed aspect ratio
+    Free,         // Manual free-form crop
+    FixedSize,    // Fixed pixel dimensions
+    AspectRatio,  // Fixed aspect ratio
+    FourPoint     // Four-point perspective crop
 };
 
 // Common aspect ratio presets
@@ -39,6 +41,9 @@ enum class AspectRatioPreset {
     Portrait_9_16,
     Custom
 };
+
+// Include shared FourPointQuad definition from model layer
+#include "../../model/FourPointQuad.h"
 
 class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
@@ -87,6 +92,13 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
         return m_aspectRatio;
     }
 
+    // Four-point perspective crop
+    void setFourPointQuad(const FourPointQuad& quad);
+    FourPointQuad getFourPointQuad() const {
+        return m_fourPointQuad;
+    }
+    void resetFourPointQuad();  // Reset to rectangle covering full image
+
     // Before/After comparison
     void setOriginalImage(const QImage& image);
     void setCompareMode(bool enabled);
@@ -112,6 +124,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void zoomLevelChanged(double level);  // Current zoom level
     // Crop signals
     void cropRequested(const QRect& cropArea);
+    void perspectiveCropRequested(const FourPointQuad& quad);  // Four-point crop
     void cropModeChanged(bool enabled);
     void cropTypeChanged(CropType type);
     // Compare mode
@@ -170,6 +183,11 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     AspectRatioPreset m_aspectPreset = AspectRatioPreset::Free;
     double m_aspectRatio = 0.0;  // 0 = free, otherwise width/height ratio
 
+    // Four-point perspective crop state
+    FourPointQuad m_fourPointQuad;                // Corner points as ratios (0.0-1.0)
+    int m_draggedCorner = -1;                     // -1 = none, 0-3 = corner index
+    static constexpr int CORNER_HIT_RADIUS = 15;  // Pixel radius for corner hit detection
+
     // Constants
     static constexpr double MIN_ZOOM = 0.1;
     static constexpr double MAX_ZOOM = 10.0;
@@ -189,4 +207,10 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QRect constrainCropSelection(const QPoint& startWidget, const QPoint& endWidget) const;
     double getPresetAspectRatio(AspectRatioPreset preset) const;
     QString getCropModeLabel() const;
+
+    // Four-point helper methods
+    void drawFourPointOverlay(QPainter& painter);
+    int hitTestCorner(const QPoint& widgetPos) const;  // Returns corner index or -1
+    QPoint fourPointCornerToWidget(int cornerIndex) const;
+    QPointF widgetToFourPointRatio(const QPoint& widgetPos) const;
 };

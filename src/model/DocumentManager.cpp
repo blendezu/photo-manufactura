@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <QImage>
 
+#include "FourPointQuad.h"  // Four-point perspective crop data structure
+
 // ImagePipeline and operations from image_processing component
 // Note: include paths are relative to image_processing's PUBLIC include directories
 // These headers include Halide.h internally, but QT_NO_KEYWORDS is defined
@@ -11,13 +13,15 @@
 #include "color/saturation_adjust.h"
 #include "color/tint_magenta.h"
 #include "color/white_balance.h"
+#include "denoise/denoise.h"  // Denoise operation
 #include "effects/gray_image.h"
 #include "effects/vintage1.h"
 #include "geometry/crop.h"
 #include "geometry/flip.h"
-#include "image_resize.h"  // Resize operation (from utils/)
+#include "geometry/perspective_crop.h"  // Four-point perspective crop
 #include "geometry/rotate.h"
 #include "image_controller.h"  // ImageController + ImageState
+#include "image_resize.h"      // Resize operation (from utils/)
 #include "light/auto_light.h"
 #include "light/black_adjust.h"
 #include "light/brightness_adjust.h"
@@ -27,7 +31,6 @@
 #include "light/shadow_adjust.h"
 #include "light/white_adjust.h"
 #include "style_transfer/style_transfer.h"
-#include "denoise/denoise.h"  // Denoise operation
 
 namespace {
 // Helper: Convert QImage to cv::Mat
@@ -249,7 +252,8 @@ void DocumentManager::applyAdjustments() {
     // Map AdjustmentSettings (-100 to +100 int) to ImageState (float)
     m_currentImageState->brightness = static_cast<float>(m_adjustments->brightness());
     m_currentImageState->contrast = static_cast<float>(m_adjustments->contrast());
-    m_currentImageState->exposure = static_cast<float>(m_adjustments->exposure()) / 20.0f;  // Map to -5.0 to +5.0
+    m_currentImageState->exposure =
+        static_cast<float>(m_adjustments->exposure()) / 20.0f;  // Map to -5.0 to +5.0
     m_currentImageState->highlight = static_cast<float>(m_adjustments->highlights());
     m_currentImageState->shadow = static_cast<float>(m_adjustments->shadows());
     m_currentImageState->white = static_cast<float>(m_adjustments->whites());
@@ -290,13 +294,13 @@ void DocumentManager::applyAdjustments() {
     if (!result.empty()) {
         QImage processedQImage = cvMatToQImage(result);
         m_currentDocument->setProcessedImage(processedQImage);
-        qDebug() << "Image processed via ImageController" << (m_currentFilter.isEmpty() ? "" : "+ filter: " + m_currentFilter);
+        qDebug() << "Image processed via ImageController"
+                 << (m_currentFilter.isEmpty() ? "" : "+ filter: " + m_currentFilter);
     } else {
         qDebug() << "ImageController processing returned empty result, keeping original";
         m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
     }
 }
-
 
 void DocumentManager::applyAdjustmentsDebounced() {
     // Restart the timer - processing will happen when timer fires
@@ -343,7 +347,7 @@ bool DocumentManager::applyAdjustmentsPermanently() {
 void DocumentManager::setGpuMode(bool enabled) {
     m_imageController->getPipeline().setFusionMode(enabled);
     qDebug() << "Processing mode set to:" << (enabled ? "GPU (Fusion)" : "CPU (Sequential)");
-    
+
     // Reprocess current image with new mode if we have a document
     if (hasDocument()) {
         applyAdjustments();
@@ -481,6 +485,63 @@ void DocumentManager::cropImage(const QRect& cropArea) {
     }
 }
 
+void DocumentManager::perspectiveCropImage(const FourPointQuad& quad) {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to crop");
+        return;
+    }
+
+    // Save state for undo before making changes
+    saveStateToHistory();
+
+    // Get the current image
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+
+    // Convert FourPointQuad (Qt) to PerspectiveCrop::QuadPoints (OpenCV)
+    PerspectiveCrop::QuadPoints quadPoints;
+    quadPoints.topLeft =
+        cv::Point2f(static_cast<float>(quad.topLeft.x()), static_cast<float>(quad.topLeft.y()));
+    quadPoints.topRight =
+        cv::Point2f(static_cast<float>(quad.topRight.x()), static_cast<float>(quad.topRight.y()));
+    quadPoints.bottomRight = cv::Point2f(static_cast<float>(quad.bottomRight.x()),
+                                         static_cast<float>(quad.bottomRight.y()));
+    quadPoints.bottomLeft = cv::Point2f(static_cast<float>(quad.bottomLeft.x()),
+                                        static_cast<float>(quad.bottomLeft.y()));
+
+    // Apply perspective crop
+    try {
+        PerspectiveCrop perspectiveOp(quadPoints);
+        cv::Mat result = perspectiveOp.apply(cvImage);
+
+        if (!result.empty()) {
+            QImage resultQImage = cvMatToQImage(result);
+
+            // Update both original and processed - this is a destructive operation
+            m_currentDocument->setOriginalImage(resultQImage);
+            m_currentDocument->setProcessedImage(resultQImage);
+
+            // Update the pipeline with the new base image
+            m_imageController->setImage(result);
+
+            m_currentDocument->setModified(true);
+            Q_EMIT imageTransformed();
+            qDebug() << "Perspective crop applied with quad:"
+                     << "TL(" << quad.topLeft.x() << "," << quad.topLeft.y() << ")"
+                     << "TR(" << quad.topRight.x() << "," << quad.topRight.y() << ")"
+                     << "BR(" << quad.bottomRight.x() << "," << quad.bottomRight.y() << ")"
+                     << "BL(" << quad.bottomLeft.x() << "," << quad.bottomLeft.y() << ")";
+        } else {
+            if (!m_undoStack.isEmpty())
+                m_undoStack.pop();
+            Q_EMIT errorOccurred("Failed to apply perspective crop");
+        }
+    } catch (const std::exception& e) {
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
+        Q_EMIT errorOccurred(QString("Perspective crop error: %1").arg(e.what()));
+    }
+}
+
 void DocumentManager::resizeImage(int width, int height) {
     if (!hasDocument()) {
         Q_EMIT errorOccurred("No document to resize");
@@ -588,15 +649,15 @@ void DocumentManager::applyFilter(const QString& filterName) {
             QImage resultImage = cvMatToQImage(resultMat);
             m_currentDocument->setProcessedImage(resultImage);
             m_currentDocument->setModified(true);
-            
+
             // Track persistent filters (Grayscale, Vintage) so they persist during adjustments
             if (filterName == "Grayscale" || filterName == "Vintage") {
                 m_currentFilter = filterName;
             }
-            
+
             // Notify UI about filter change (e.g., to disable color controls for Grayscale)
             Q_EMIT filterChanged(filterName);
-            
+
             Q_EMIT imageTransformed();
             qDebug() << "Filter applied successfully:" << filterName;
         } else {
@@ -623,7 +684,7 @@ void DocumentManager::removeFilter() {
 
     // Clear the current filter tracking
     m_currentFilter.clear();
-    
+
     // Notify UI that filter was removed (re-enable controls)
     Q_EMIT filterChanged("");
 

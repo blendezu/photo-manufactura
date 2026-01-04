@@ -191,6 +191,10 @@ void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* 
     // Crop: canvas emits cropRequested with the selected area
     m_connections << connect(canvas, &CanvasWidget::cropRequested, controller,
                              &ApplicationController::cropImage);
+
+    // Four-point perspective crop
+    m_connections << connect(canvas, &CanvasWidget::perspectiveCropRequested, controller,
+                             &ApplicationController::perspectiveCropImage);
 }
 
 void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationController* controller) {
@@ -251,8 +255,6 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     // Resize - receive confirmed width/height from tool panel (logic handled there)
     m_connections << connect(toolPanel, &ToolPanel::resizeConfirmed, controller,
                              &ApplicationController::resizeImage);
-
-
 
     // Reset all adjustments
     m_connections << connect(toolPanel, &ToolPanel::resetAllRequested, controller,
@@ -317,10 +319,9 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
                              &ToolPanel::updateSliders);
 
     // Update image info in tool panel when image loads
-    m_connections << connect(controller, &ApplicationController::imageLoaded, toolPanel,
-                             [toolPanel](const QImage& img, const QString&) {
-                                 toolPanel->updateImageInfo(img);
-                             });
+    m_connections << connect(
+        controller, &ApplicationController::imageLoaded, toolPanel,
+        [toolPanel](const QImage& img, const QString&) { toolPanel->updateImageInfo(img); });
 
     // Enable/disable color controls based on active filter
     // Grayscale filter should disable color sliders as they have no effect
@@ -328,7 +329,8 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     if (docManager) {
         m_connections << connect(docManager, &DocumentManager::filterChanged, toolPanel,
                                  [toolPanel](const QString& filterName) {
-                                     // Disable color controls for grayscale (color adjustments have no effect)
+                                     // Disable color controls for grayscale (color adjustments have
+                                     // no effect)
                                      bool enableColorControls = (filterName != "Grayscale");
                                      toolPanel->setColorControlsEnabled(enableColorControls);
                                  });
