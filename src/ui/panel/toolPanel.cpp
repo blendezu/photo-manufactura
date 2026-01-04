@@ -92,12 +92,7 @@ QWidget* ToolPanel::createQuickActionsBar() {
     layout->setContentsMargins(8, 8, 8, 8);
     layout->setSpacing(6);
 
-    // Auto Enhance button
-    m_autoEnhanceBtn = new ModernToolButton("Auto", ":/assets/icons/auto_enhance.png", bar);
-    m_autoEnhanceBtn->setBadgeText("AI");
-    m_autoEnhanceBtn->setToolTip("Auto-enhance image with AI");
-    connect(m_autoEnhanceBtn, &ModernToolButton::clicked, this,
-            &ToolPanel::filterAutoEnhanceRequested);
+    // Auto Enhance button removed from here, moved to Light section
 
     // Apply button (applies corrections to permanent image)
     ModernToolButton* applyBtn = new ModernToolButton("Apply", ":/assets/icons/apply.png", bar);
@@ -127,7 +122,7 @@ QWidget* ToolPanel::createQuickActionsBar() {
     resetBtn->setToolTip("Reset all adjustments");
     connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetAllAdjustments);
 
-    layout->addWidget(m_autoEnhanceBtn);
+
     layout->addWidget(applyBtn);
     layout->addWidget(m_compareBtn);
     layout->addWidget(m_zoomBtn);
@@ -226,6 +221,40 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     layout->setSpacing(2);
     layout->setContentsMargins(8, 8, 8, 12);
 
+    layout->setSpacing(2);
+    layout->setContentsMargins(8, 8, 8, 12);
+
+    // Auto Enhance Button
+    QPushButton* autoBtn = new QPushButton("✨ Auto Light", this);
+    autoBtn->setToolTip("Automatically adjust exposure and contrast");
+    autoBtn->setCursor(Qt::PointingHandCursor);
+    autoBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #505050;
+            border-radius: 4px;
+            padding: 6px;
+            font-weight: bold;
+            text-align: center;
+        }
+        QPushButton:hover {
+            background-color: #4a4a4a;
+            border-color: #606060;
+        }
+        QPushButton:pressed {
+            background-color: #2a2a2a;
+        }
+    )");
+    connect(autoBtn, &QPushButton::clicked, this, &ToolPanel::autoLightRequested);
+    layout->addWidget(autoBtn);
+
+    // Separator
+    QFrame* line = new QFrame(this);
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet("color: #444; margin: 4px 0;");
+    layout->addWidget(line);
+
     // Create modern sliders
     m_exposureSlider = new ModernSlider("Exposure", -100, 100, 0, this);
     m_exposureSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
@@ -312,19 +341,21 @@ ModernCollapsible* ToolPanel::createDetailSection() {
 
     // Denoise slider
     m_denoiseSlider = new ModernSlider("Denoise", 0, 100, 0, this);
-    m_denoiseSlider->setTooltip("Reduce image noise\\nHigher values = stronger denoising\\nDouble-click to reset");
-
-    // Connect signal
+    m_denoiseSlider->setTooltip("Reduce image noise\nHigher values = stronger denoising\nDouble-click to reset");
     connect(m_denoiseSlider, &ModernSlider::valueChanged, this, &ToolPanel::denoiseChanged);
-
-    // Add to layout
     layout->addWidget(m_denoiseSlider);
 
-    // Placeholder for future sliders
-    QLabel* comingSoon = new QLabel(
-        "<span style='color: #555; font-size: 10px;'>Clarity & Sharpening coming soon</span>", this);
-    comingSoon->setWordWrap(true);
-    layout->addWidget(comingSoon);
+    // Clarity slider
+    m_claritySlider = new ModernSlider("Clarity", -100, 100, 0, this);
+    m_claritySlider->setTooltip("Enhance midtone contrast\nDouble-click to reset");
+    connect(m_claritySlider, &ModernSlider::valueChanged, this, &ToolPanel::clarityChanged);
+    layout->addWidget(m_claritySlider);
+
+    // Sharpening slider
+    m_sharpeningSlider = new ModernSlider("Sharpening", 0, 100, 0, this);
+    m_sharpeningSlider->setTooltip("Sharpen image details\nDouble-click to reset");
+    connect(m_sharpeningSlider, &ModernSlider::valueChanged, this, &ToolPanel::sharpeningChanged);
+    layout->addWidget(m_sharpeningSlider);
 
     detailSection->setContentLayout(layout);
     detailSection->setExpanded(false);  // Start collapsed
@@ -429,6 +460,8 @@ void ToolPanel::resetAllAdjustments() {
     m_saturationSlider->reset();
     m_brightnessSlider->reset();
     m_denoiseSlider->reset();
+    m_claritySlider->reset();
+    m_sharpeningSlider->reset();
 
     // Notify controller to reset processing parameters
     Q_EMIT resetAllRequested();
@@ -727,7 +760,7 @@ void ToolPanel::refreshPresets(const QStringList& userPresets) {
 
 void ToolPanel::updateSliders(int brightness, int contrast, int saturation, int exposure,
                               int highlights, int shadows, int whites, int blacks,
-                              int temperature, int tint) {
+                              int temperature, int tint, int denoise, int clarity, int sharpening) {
     // Update all sliders without triggering valueChanged signals
     m_brightnessSlider->setValue(brightness);
     m_contrastSlider->setValue(contrast);
@@ -739,6 +772,9 @@ void ToolPanel::updateSliders(int brightness, int contrast, int saturation, int 
     m_blacksSlider->setValue(blacks);
     m_temperatureSlider->setValue(temperature);
     m_tintSlider->setValue(tint);
+    m_denoiseSlider->setValue(denoise);
+    m_claritySlider->setValue(clarity);
+    m_sharpeningSlider->setValue(sharpening);
 }
 
 void ToolPanel::setColorControlsEnabled(bool enabled) {

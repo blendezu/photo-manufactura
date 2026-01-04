@@ -5,7 +5,7 @@ AdjustmentSettings::AdjustmentSettings(QObject* parent) : QObject(parent) {}
 bool AdjustmentSettings::hasAdjustments() const {
     return m_exposure != 0 || m_contrast != 0 || m_brightness != 0 || m_highlights != 0 ||
            m_shadows != 0 || m_whites != 0 || m_blacks != 0 || m_temperature != 0 || m_tint != 0 ||
-           m_saturation != 0 || m_denoise != 0;
+           m_saturation != 0 || m_denoise != 0 || m_clarity != 0 || m_sharpening != 0;
 }
 
 void AdjustmentSettings::setExposure(int value) {
@@ -96,6 +96,22 @@ void AdjustmentSettings::setDenoise(int value) {
     }
 }
 
+void AdjustmentSettings::setClarity(int value) {
+    if (m_clarity != value) {
+        m_clarity = value;
+        Q_EMIT clarityChanged(value);
+        Q_EMIT anySettingChanged();
+    }
+}
+
+void AdjustmentSettings::setSharpening(int value) {
+    if (m_sharpening != value) {
+        m_sharpening = value;
+        Q_EMIT sharpeningChanged(value);
+        Q_EMIT anySettingChanged();
+    }
+}
+
 void AdjustmentSettings::resetAll() {
     m_exposure = 0;
     m_contrast = 0;
@@ -108,6 +124,8 @@ void AdjustmentSettings::resetAll() {
     m_tint = 0;
     m_saturation = 0;
     m_denoise = 0;
+    m_clarity = 0;
+    m_sharpening = 0;
     Q_EMIT settingsReset();
     Q_EMIT anySettingChanged();
 }

@@ -359,6 +359,20 @@ void ApplicationController::adjustDenoise(int value) {
     }
 }
 
+void ApplicationController::adjustClarity(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setClarity(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::adjustSharpening(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setSharpening(value);
+        setState("isModified", true);
+    }
+}
+
 void ApplicationController::rotateImage(int degrees) {
     if (m_documentManager->hasDocument()) {
         m_documentManager->rotateImage(degrees);
@@ -472,7 +486,38 @@ void ApplicationController::applyFilterVintage() {
 }
 
 void ApplicationController::applyAutoEnhance() {
-    applyFilterAndNotify("AutoEnhance");
+    if (!m_documentManager->hasDocument()) {
+        return;
+    }
+
+    // Estimate optimal settings
+    AutoLightSettings settings = m_documentManager->estimateAutoLight();
+
+    // Update settings in document (this will trigger processing)
+    AdjustmentSettings* adjustments = m_documentManager->adjustments();
+    if (adjustments) {
+        // Only apply if values are significant
+        if (std::abs(settings.exposure) > 0.01f) {
+            // Map exposure range (-5.0 to 5.0) to slider range (-100 to 100)
+            int exposureVal = static_cast<int>(settings.exposure * 20.0f);
+            adjustments->setExposure(exposureVal);
+        }
+        
+        if (std::abs(settings.contrast) > 1.0f) {
+            adjustments->setContrast(static_cast<int>(settings.contrast));
+        }
+
+        setState("isModified", true);
+        
+        // Notify UI to update sliders
+        emit adjustmentsChanged(adjustments->brightness(), adjustments->contrast(),
+                                adjustments->saturation(), adjustments->exposure(),
+                                adjustments->highlights(), adjustments->shadows(), adjustments->whites(),
+                                adjustments->blacks(), adjustments->temperature(), adjustments->tint(),
+                                adjustments->denoise(), adjustments->clarity(), adjustments->sharpening());
+                                
+         qDebug() << "Auto Enhance applied: Exposure" << settings.exposure << "Contrast" << settings.contrast;
+    }
 }
 
 void ApplicationController::applyStyleTransfer(StyleTransferType styleType) {
@@ -526,7 +571,10 @@ void ApplicationController::applyPreset(const QString& presetName) {
         emit adjustmentsChanged(settings->brightness(), settings->contrast(),
                                 settings->saturation(), settings->exposure(),
                                 settings->highlights(), settings->shadows(), settings->whites(),
-                                settings->blacks(), settings->temperature(), settings->tint());
+                                settings->blacks(), settings->temperature(), settings->tint(),
+                                settings->denoise(), settings->clarity(), settings->sharpening());
+        
+        // Detail sliders updated
     } else {
         qDebug() << "Failed to load preset:" << presetName;
     }
