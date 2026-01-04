@@ -299,6 +299,7 @@ ModernCollapsible* ToolPanel::createColorSection() {
     layout->addWidget(m_saturationSlider);
 
     colorSection->setContentLayout(layout);
+    m_colorSection = colorSection;  // Store reference for enabling/disabling
     return colorSection;
 }
 
@@ -669,4 +670,18 @@ void ToolPanel::updateSliders(int brightness, int contrast, int saturation, int 
     m_blacksSlider->setValue(blacks);
     m_temperatureSlider->setValue(temperature);
     m_tintSlider->setValue(tint);
+}
+
+void ToolPanel::setColorControlsEnabled(bool enabled) {
+    // Enable/disable individual color sliders
+    m_temperatureSlider->setEnabled(enabled);
+    m_tintSlider->setEnabled(enabled);
+    m_saturationSlider->setEnabled(enabled);
+    
+    // Visual feedback: dim the section when disabled
+    if (m_colorSection) {
+        m_colorSection->setStyleSheet(enabled ? "" : "opacity: 0.5;");
+    }
+    
+    qDebug() << "Color controls" << (enabled ? "enabled" : "disabled (grayscale/effect active)");
 }

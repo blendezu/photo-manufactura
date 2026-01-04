@@ -87,6 +87,7 @@ class ToolPanel : public QWidget {
     void updateSliders(int brightness, int contrast, int saturation, int exposure,
                       int highlights, int shadows, int whites, int blacks,
                       int temperature, int tint);  // Update sliders from preset
+    void setColorControlsEnabled(bool enabled);  // Enable/disable color sliders based on active effect
 
    private:
     void setupUI();
@@ -131,6 +132,9 @@ class ToolPanel : public QWidget {
     // Effects/Filters
     FilterGalleryWidget* m_filterGallery;
     FilterGalleryWidget* m_styleGallery;
+
+    // Collapsible sections (for enabling/disabling)
+    ModernCollapsible* m_colorSection;
 
     // Presets
     QComboBox* m_presetCombo;

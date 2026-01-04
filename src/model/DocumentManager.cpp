@@ -541,6 +541,9 @@ void DocumentManager::applyFilter(const QString& filterName) {
                 m_currentFilter = filterName;
             }
             
+            // Notify UI about filter change (e.g., to disable color controls for Grayscale)
+            Q_EMIT filterChanged(filterName);
+            
             Q_EMIT imageTransformed();
             qDebug() << "Filter applied successfully:" << filterName;
         } else {
@@ -567,6 +570,9 @@ void DocumentManager::removeFilter() {
 
     // Clear the current filter tracking
     m_currentFilter.clear();
+    
+    // Notify UI that filter was removed (re-enable controls)
+    Q_EMIT filterChanged("");
 
     // Reset to original image
     QImage originalImage = m_currentDocument->originalImage();
