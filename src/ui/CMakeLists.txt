@@ -90,6 +90,8 @@ set(WIDGET_SOURCES
     # Utility widgets
     widgets/histogramWidget.h
     widgets/histogramWidget.cpp
+    widgets/ResizeDialog.h
+    widgets/ResizeDialog.cpp
 )
 
 set(CANVAS_SOURCES

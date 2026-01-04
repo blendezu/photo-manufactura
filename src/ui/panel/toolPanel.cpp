@@ -9,6 +9,7 @@
 #include "../widgets/modernCollapsible.h"
 #include "../widgets/modernSlider.h"
 #include "../widgets/modernToolButton.h"
+#include "../widgets/ResizeDialog.h"
 
 ToolPanel::ToolPanel(QWidget* parent) : QWidget(parent) {
     setupUI();
@@ -309,12 +310,21 @@ ModernCollapsible* ToolPanel::createDetailSection() {
     layout->setSpacing(2);
     layout->setContentsMargins(8, 8, 8, 12);
 
-    // Detail section is now empty (brightness moved to Light)
-    // Future: Add sharpening, clarity, noise reduction sliders here
-    QLabel* placeholder = new QLabel(
-        "<span style='color: #666; font-size: 11px;'>Coming soon: Sharpening, Clarity, Noise Reduction</span>", this);
-    placeholder->setWordWrap(true);
-    layout->addWidget(placeholder);
+    // Denoise slider
+    m_denoiseSlider = new ModernSlider("Denoise", 0, 100, 0, this);
+    m_denoiseSlider->setTooltip("Reduce image noise\\nHigher values = stronger denoising\\nDouble-click to reset");
+
+    // Connect signal
+    connect(m_denoiseSlider, &ModernSlider::valueChanged, this, &ToolPanel::denoiseChanged);
+
+    // Add to layout
+    layout->addWidget(m_denoiseSlider);
+
+    // Placeholder for future sliders
+    QLabel* comingSoon = new QLabel(
+        "<span style='color: #555; font-size: 10px;'>Clarity & Sharpening coming soon</span>", this);
+    comingSoon->setWordWrap(true);
+    layout->addWidget(comingSoon);
 
     detailSection->setContentLayout(layout);
     detailSection->setExpanded(false);  // Start collapsed
@@ -418,6 +428,7 @@ void ToolPanel::resetAllAdjustments() {
     m_tintSlider->reset();
     m_saturationSlider->reset();
     m_brightnessSlider->reset();
+    m_denoiseSlider->reset();
 
     // Notify controller to reset processing parameters
     Q_EMIT resetAllRequested();
@@ -453,6 +464,47 @@ ModernCollapsible* ToolPanel::createToolSection() {
     rotateLayout->addStretch();
     layout->addLayout(rotateLayout);
 
+    // Custom angle rotation
+    QHBoxLayout* angleLayout = new QHBoxLayout();
+    angleLayout->setSpacing(8);
+
+    QLabel* angleLabel = new QLabel("Angle:", this);
+    angleLabel->setStyleSheet("color: #999; font-size: 11px;");
+
+    m_rotateAngleSpin = new QSpinBox(this);
+    m_rotateAngleSpin->setRange(-180, 180);
+    m_rotateAngleSpin->setValue(0);
+    m_rotateAngleSpin->setSuffix("°");
+    m_rotateAngleSpin->setStyleSheet(R"(
+        QSpinBox {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: #d0d0d0;
+            font-size: 12px;
+            min-width: 60px;
+        }
+        QSpinBox:hover { border-color: #4a4a4a; }
+        QSpinBox:focus { border-color: #6366f1; }
+    )");
+
+    IconButton* applyAngleBtn = new IconButton("", "Apply Rotation", this);
+    applyAngleBtn->setIconEmoji("✓");
+    connect(applyAngleBtn, &QPushButton::clicked, this, [this]() {
+        int angle = m_rotateAngleSpin->value();
+        if (angle != 0) {
+            Q_EMIT rotateAngleChanged(angle);
+            m_rotateAngleSpin->setValue(0);  // Reset after applying
+        }
+    });
+
+    angleLayout->addWidget(angleLabel);
+    angleLayout->addWidget(m_rotateAngleSpin);
+    angleLayout->addWidget(applyAngleBtn);
+    angleLayout->addStretch();
+    layout->addLayout(angleLayout);
+
     // Flip tools
     QLabel* flipLabel = new QLabel("FLIP", this);
     flipLabel->setStyleSheet(
@@ -476,6 +528,23 @@ ModernCollapsible* ToolPanel::createToolSection() {
     flipLayout->addWidget(flipVBtn);
     flipLayout->addStretch();
     layout->addLayout(flipLayout);
+
+    // Resize section
+    QLabel* resizeLabel = new QLabel("RESIZE", this);
+    resizeLabel->setStyleSheet(
+        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
+    layout->addWidget(resizeLabel);
+
+    IconButton* resizeBtn = new IconButton("", "Resize Image", this);
+    resizeBtn->setIconEmoji("📐");
+    resizeBtn->setToolTip("Open resize dialog to change image dimensions");
+    connect(resizeBtn, &QPushButton::clicked, this, &ToolPanel::showResizeDialog);
+
+    QHBoxLayout* resizeBtnLayout = new QHBoxLayout();
+    resizeBtnLayout->addWidget(resizeBtn);
+    resizeBtnLayout->addStretch();
+    layout->addLayout(resizeBtnLayout);
+
 
     // Crop section
     QLabel* cropLabel = new QLabel("CROP", this);
@@ -678,10 +747,33 @@ void ToolPanel::setColorControlsEnabled(bool enabled) {
     m_tintSlider->setEnabled(enabled);
     m_saturationSlider->setEnabled(enabled);
     
-    // Visual feedback: dim the section when disabled
+    // Dim the color section if disabled
     if (m_colorSection) {
-        m_colorSection->setStyleSheet(enabled ? "" : "opacity: 0.5;");
+        if (enabled) {
+            m_colorSection->setStyleSheet("");
+        } else {
+            m_colorSection->setStyleSheet("QWidget { opacity: 0.5; }");
+        }
     }
     
     qDebug() << "Color controls" << (enabled ? "enabled" : "disabled (grayscale/effect active)");
+}
+
+void ToolPanel::updateImageInfo(const QImage& image) {
+    if (!image.isNull()) {
+        m_currentImageSize = image.size();
+    }
+}
+
+void ToolPanel::showResizeDialog() {
+    if (m_currentImageSize.isValid()) {
+        ResizeDialog dialog(m_currentImageSize.width(), m_currentImageSize.height(), this);
+        if (dialog.exec() == QDialog::Accepted) {
+            int newWidth = dialog.newWidth();
+            int newHeight = dialog.newHeight();
+            if (newWidth != m_currentImageSize.width() || newHeight != m_currentImageSize.height()) {
+                Q_EMIT resizeConfirmed(newWidth, newHeight);
+            }
+        }
+    }
 }

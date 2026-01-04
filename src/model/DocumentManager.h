@@ -67,6 +67,7 @@ class DocumentManager : public QObject {
     void rotateImage(int degrees);
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
+    void resizeImage(int width, int height);  // Resize image to new dimensions
 
     // Filter operations
     void applyFilter(const QString& filterName);

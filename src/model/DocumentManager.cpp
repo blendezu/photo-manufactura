@@ -15,6 +15,7 @@
 #include "effects/vintage1.h"
 #include "geometry/crop.h"
 #include "geometry/flip.h"
+#include "image_resize.h"  // Resize operation (from utils/)
 #include "geometry/rotate.h"
 #include "image_controller.h"  // ImageController + ImageState
 #include "light/auto_light.h"
@@ -26,6 +27,7 @@
 #include "light/shadow_adjust.h"
 #include "light/white_adjust.h"
 #include "style_transfer/style_transfer.h"
+#include "denoise/denoise.h"  // Denoise operation
 
 namespace {
 // Helper: Convert QImage to cv::Mat
@@ -275,6 +277,16 @@ void DocumentManager::applyAdjustments() {
         }
     }
 
+    // Apply denoise if value > 0 (applied after filters for noise-free final output)
+    if (!result.empty() && m_adjustments->denoise() > 0) {
+        try {
+            Denoise denoiseOp(m_adjustments->denoise());
+            result = denoiseOp.apply(result);
+        } catch (const std::exception& e) {
+            qDebug() << "Denoise error:" << e.what();
+        }
+    }
+
     if (!result.empty()) {
         QImage processedQImage = cvMatToQImage(result);
         m_currentDocument->setProcessedImage(processedQImage);
@@ -466,6 +478,47 @@ void DocumentManager::cropImage(const QRect& cropArea) {
         if (!m_undoStack.isEmpty())
             m_undoStack.pop();
         Q_EMIT errorOccurred("Failed to crop image");
+    }
+}
+
+void DocumentManager::resizeImage(int width, int height) {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to resize");
+        return;
+    }
+
+    // Save state for undo
+    saveStateToHistory();
+
+    // Get current image
+    QImage currentImage = m_currentDocument->originalImage();
+    cv::Mat srcMat = qImageToCvMat(currentImage);
+
+    try {
+        // Use ResizeImage operation from image_processing
+        ResizeImage resizeOp(static_cast<uint>(height), static_cast<uint>(width));
+        cv::Mat resized = resizeOp.apply(srcMat);
+
+        if (!resized.empty()) {
+            QImage resizedImage = cvMatToQImage(resized);
+            m_currentDocument->setOriginalImage(resizedImage);
+            m_currentDocument->setProcessedImage(resizedImage);
+
+            // Update pipeline with resized image
+            m_imageController->setImage(resized);
+
+            m_currentDocument->setModified(true);
+            Q_EMIT imageTransformed();
+            qDebug() << "Image resized to" << width << "x" << height;
+        } else {
+            if (!m_undoStack.isEmpty())
+                m_undoStack.pop();
+            Q_EMIT errorOccurred("Resize operation failed");
+        }
+    } catch (const std::exception& e) {
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
+        Q_EMIT errorOccurred(QString("Resize error: %1").arg(e.what()));
     }
 }
 
