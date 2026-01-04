@@ -6,6 +6,30 @@
 
 ---
 
+## Current Feature Status (Beta Checklist)
+
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| 1 | Image Controller | ✅ Done | `ApplicationController` orchestrates all image operations |
+| 2 | Toggle CPU/GPU Button | ✅ Done | Via `GPU_FUSION` toggle in ImagePipeline |
+| 3 | Auto Lighting | ⏳ Pending | Backend exists (`AutoLight`), needs UI trigger in Light panel |
+| 4 | Crop Tool (Rectangle) | ✅ Done | Standard rectangle crop in `CanvasWidget` |
+| 5 | Crop Tool (Four-Point Perspective) | ✅ Done | Perspective crop with ratio-based corners |
+| 6 | Filter (Grayscale Lock) | ⏳ Pending | Need to disable color sliders when grayscale active |
+| 7 | Resize | ✅ Done | `ImageResize` utility in image_processing |
+| 8 | Transformation (Rotate) | ✅ Done | Rotate 90°/180°/270° in DocumentManager |
+| 9 | Brightness in Light | ✅ Done | Responsive slider in ToolPanel Light section |
+| 10 | Responsive Sliders | ✅ Done | `ModernSlider` hides spinbox when narrow |
+| 11 | Beta Version | ✅ Done | v0.1.0, builds and launches successfully |
+| 12 | GPU_FUSION | ✅ Done | Halide AOT pipeline with GPU scheduling |
+| 13 | Denoise | ✅ Done | AOT-generated Halide kernel |
+| 14 | Detail (Clarity/Sharpening) | ⏳ Pending | Backend ready, needs UI sliders |
+| 15 | Raw Bild | ✅ Done | LibRaw integration for RAW file support |
+
+**Summary:** 12/15 features complete, 3 pending UI integration
+
+---
+
 ## Architecture Overview
 
 ```
@@ -95,6 +119,14 @@
 | `TintMagenta` | ✅ | Green-Magenta tint |
 | `VibranceAdjust` | ✅ | Selective saturation |
 
+#### Geometry Operations (`operations/geometry/`)
+| Operation | Status | Algorithm |
+|-----------|--------|-----------|
+| `Crop` | ✅ | Standard rectangle crop |
+| `PerspectiveCrop` | ✅ | Four-point perspective warp (OpenCV `warpPerspective`) |
+| `Rotate` | ✅ | 90°/180°/270° rotation |
+| `Flip` | ✅ | Horizontal/Vertical flip |
+
 #### Utils (`utils/`)
 | Utility | Status | Description |
 |---------|--------|-------------|
@@ -121,6 +153,51 @@
 | Canvas Zoom ↔ Controller | ✅ Complete | Single Zoom toggle mode (Click=in, Alt+Click=out, scroll=natural) |
 | Theme ↔ Controller | ⏳ Pending | SubMenuView needs controller connection |
 | ImagePipeline ↔ DocumentManager | ✅ Complete | Full integration restored, real-time processing enabled |
+
+---
+
+## Recent Updates (January 4, 2026)
+
+### ✅ Completed: Four-Point Perspective Crop Implementation
+
+**New Feature:**
+- Implemented four-point perspective crop allowing users to select arbitrary quadrilateral regions
+- Uses ratio-based coordinates (0.0-1.0) for resolution independence
+- Supports three output size modes: Auto, FixedSize, AspectRatio
+
+**New Files Created:**
+- `src/image_processing/operations/geometry/perspective_crop.h` - Operation class with `QuadPoints` struct
+- `src/image_processing/operations/geometry/perspective_crop.cpp` - Implementation using OpenCV `getPerspectiveTransform` + `warpPerspective`
+- `src/model/FourPointQuad.h` - Shared Qt-compatible struct for UI/Model communication (avoids circular dependencies)
+
+**Files Modified:**
+- `src/ui/canvas/canvasWidget.h/cpp`:
+  - Added `CropType::FourPoint` enum value
+  - Added `m_fourPointQuad` member and `m_draggedCorner` for interaction state
+  - Added `drawFourPointOverlay()` for visual feedback
+  - Added `hitTestCorner()`, `fourPointCornerToWidget()`, `widgetToFourPointRatio()` helpers
+  - Modified mouse handlers for corner dragging with visual feedback
+
+- `src/model/DocumentManager.h/cpp`:
+  - Added `perspectiveCropImage(const FourPointQuad&)` method
+  - Converts FourPointQuad to PerspectiveCrop::QuadPoints and applies transform
+
+- `src/controller/ApplicationController.h/cpp`:
+  - Added `perspectiveCropImage()` slot
+  - Includes FourPointQuad.h for type definition
+
+- `src/controller/ApplicationWiring.cpp`:
+  - Added signal/slot connection: `perspectiveCropRequested` → `perspectiveCropImage`
+
+**Technical Details:**
+- Quad points stored as ratios (topLeft, topRight, bottomRight, bottomLeft)
+- Convexity validation prevents invalid (self-intersecting) quads
+- Output size calculated to preserve area while maintaining aspect ratio
+- Bilinear interpolation for smooth perspective correction
+
+**Build Status:**
+- ✅ Application builds successfully
+- ✅ Application launches (macOS .app bundle)
 
 ---
 
@@ -524,6 +601,11 @@
 8. Verified 26 signal connections working
 9. Implemented single Zoom toggle mode (Jan 3, 2026)
 10. Updated all documentation to match implementation
+11. Implemented four-point perspective crop (Jan 4, 2026)
+    - New `PerspectiveCrop` operation with OpenCV warpPerspective
+    - New `FourPointQuad` shared struct for UI/Model
+    - Canvas overlay with draggable corner handles
+    - Full MVC wiring through ApplicationController
 
 ### In Progress 🔄
 1. Theme controller integration (partial)
@@ -537,6 +619,27 @@
 - ✅ Presets System - PresetManager with JSON save/load
 - ✅ Zoom Controller Integration - Single toggle mode
 - ✅ Documentation Updates - All docs synchronized (Jan 3, 2026)
+- ✅ Four-Point Perspective Crop - Ratio-based corners with OpenCV warpPerspective (Jan 4, 2026)
+
+---
+
+## Remaining Tasks (Beta Polish)
+
+### 🔴 **Priority 1 - UI Integration**
+
+| Task | Description | Effort |
+|------|-------------|--------|
+| Auto Lighting UI | Add button/trigger in Light panel to invoke existing `AutoLight` operation | Small |
+| Grayscale Lock | Disable Temperature/Tint/Saturation sliders when Grayscale filter is active | Small |
+| Detail Sliders | Add Clarity & Sharpening sliders to Detail section, wire to AOT parameters | Medium |
+
+### 🟡 **Priority 2 - Polish**
+
+| Task | Description | Effort |
+|------|-------------|--------|
+| Theme Controller | Wire SubMenuView theme signals through ApplicationWiring | Small |
+| Zoom State Persistence | Save/restore zoom level per document | Small |
+| Four-Point Crop UI Toggle | Add button in ToolPanel to switch between Rectangle/FourPoint crop modes | Small |
 
 ---
 

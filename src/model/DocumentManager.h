@@ -1,12 +1,14 @@
 #pragma once
 
 #include <QObject>
+#include <QPointF>
 #include <QRect>
 #include <QStack>
 #include <QTimer>
 #include <memory>
 
 #include "AdjustmentSettings.h"
+#include "FourPointQuad.h"  // Four-point perspective crop
 #include "ImageDocument.h"
 
 // Forward declaration - actual include in cpp to avoid header dependency issues
@@ -67,7 +69,8 @@ class DocumentManager : public QObject {
     void rotateImage(int degrees);
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
-    void resizeImage(int width, int height);  // Resize image to new dimensions
+    void perspectiveCropImage(const FourPointQuad& quad);  // Four-point perspective crop
+    void resizeImage(int width, int height);               // Resize image to new dimensions
 
     // Filter operations
     void applyFilter(const QString& filterName);

@@ -1,6 +1,5 @@
 #include "ApplicationController.h"
 
-
 #include <QApplication>
 #include <QDebug>
 #include <QFileDialog>
@@ -13,6 +12,9 @@
 
 #include "ICommand.h"
 #include "PresetManager.h"
+
+// Include for FourPointQuad struct
+#include "../model/FourPointQuad.h"
 
 ApplicationController::ApplicationController(QObject* parent)
     : QObject(parent),
@@ -396,6 +398,19 @@ void ApplicationController::cropImage(const QRect& cropArea) {
     }
 }
 
+void ApplicationController::perspectiveCropImage(const FourPointQuad& quad) {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->perspectiveCropImage(quad);
+        setState("isModified", true);
+
+        // Update canvas with transformed image
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
 void ApplicationController::resizeImage(int width, int height) {
     if (m_documentManager->hasDocument()) {
         m_documentManager->resizeImage(width, height);
@@ -415,8 +430,6 @@ QSize ApplicationController::currentImageSize() const {
     }
     return QSize();
 }
-
-
 
 void ApplicationController::resetAdjustments() {
     if (auto* adjustments = m_documentManager->adjustments()) {
@@ -508,20 +521,12 @@ void ApplicationController::applyPreset(const QString& presetName) {
         m_documentManager->applyAdjustments();
         setState("currentPreset", presetName);
         setState("isModified", true);
-        
+
         // Notify UI to update sliders with preset values
-        emit adjustmentsChanged(
-            settings->brightness(),
-            settings->contrast(),
-            settings->saturation(),
-            settings->exposure(),
-            settings->highlights(),
-            settings->shadows(),
-            settings->whites(),
-            settings->blacks(),
-            settings->temperature(),
-            settings->tint()
-        );
+        emit adjustmentsChanged(settings->brightness(), settings->contrast(),
+                                settings->saturation(), settings->exposure(),
+                                settings->highlights(), settings->shadows(), settings->whites(),
+                                settings->blacks(), settings->temperature(), settings->tint());
     } else {
         qDebug() << "Failed to load preset:" << presetName;
     }
@@ -566,14 +571,13 @@ void ApplicationController::showSavePresetDialog() {
     }
 
     bool ok;
-    QString presetName = QInputDialog::getText(
-        m_mainWindow, tr("Save Preset"),
-        tr("Enter preset name:"), QLineEdit::Normal,
-        tr("My Preset"), &ok);
+    QString presetName =
+        QInputDialog::getText(m_mainWindow, tr("Save Preset"), tr("Enter preset name:"),
+                              QLineEdit::Normal, tr("My Preset"), &ok);
 
     if (ok && !presetName.trimmed().isEmpty()) {
         saveCurrentAsPreset(presetName.trimmed());
-        
+
         // Notify UI to refresh presets list
         PresetManager presetManager;
         emit presetsChanged(presetManager.userPresets());

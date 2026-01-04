@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPointF>
 #include <QRect>
 #include <QString>
 #include <QVariantMap>
@@ -15,6 +16,7 @@
 class ICommand;
 class QWidget;
 class ImageProcessingService;  // Service layer for image processing
+struct FourPointQuad;          // Forward declaration for perspective crop
 
 /**
  * @brief Style transfer types for AI-based image styling
@@ -139,8 +141,9 @@ class ApplicationController : public QObject {
     void rotateImage(int degrees);
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
-    void resizeImage(int width, int height);  // Resize image
-    QSize currentImageSize() const;  // Get current image dimensions
+    void perspectiveCropImage(const FourPointQuad& quad);  // Four-point perspective crop
+    void resizeImage(int width, int height);               // Resize image
+    QSize currentImageSize() const;                        // Get current image dimensions
     void resetAdjustments();
 
     // Filter/Effect operations
@@ -187,8 +190,8 @@ class ApplicationController : public QObject {
     void zoomChanged(double level);
     void presetsChanged(const QStringList& userPresets);
     void adjustmentsChanged(int brightness, int contrast, int saturation, int exposure,
-                           int highlights, int shadows, int whites, int blacks,
-                           int temperature, int tint);
+                            int highlights, int shadows, int whites, int blacks, int temperature,
+                            int tint);
 
    private slots:
     void onImageProcessingComplete();
