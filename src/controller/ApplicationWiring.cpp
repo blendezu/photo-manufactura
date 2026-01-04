@@ -302,6 +302,18 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(controller, &ApplicationController::adjustmentsChanged, toolPanel,
                              &ToolPanel::updateSliders);
 
+    // Enable/disable color controls based on active filter
+    // Grayscale filter should disable color sliders as they have no effect
+    DocumentManager* docManager = controller->getDocumentManager();
+    if (docManager) {
+        m_connections << connect(docManager, &DocumentManager::filterChanged, toolPanel,
+                                 [toolPanel](const QString& filterName) {
+                                     // Disable color controls for grayscale (color adjustments have no effect)
+                                     bool enableColorControls = (filterName != "Grayscale");
+                                     toolPanel->setColorControlsEnabled(enableColorControls);
+                                 });
+    }
+
     // Crop tool - activates crop mode on canvas
     // The actual crop is handled via canvas signals
     // This is wired in wireCanvas

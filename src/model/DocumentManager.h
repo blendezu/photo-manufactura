@@ -85,6 +85,7 @@ class DocumentManager : public QObject {
     void imageTransformed();                     // Emitted after rotate/flip/crop
     void errorOccurred(const QString& message);  // Error reporting
     void undoRedoStateChanged(bool canUndo, bool canRedo);
+    void filterChanged(const QString& filterName);  // Emitted when filter is applied/removed
 
    private:
     void saveStateToHistory();
