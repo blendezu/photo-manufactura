@@ -140,14 +140,14 @@ int main() {
 
                 // 1. RGB Block
 
-                pipeline.addOperation(
-                    std::make_shared<StyleTransfer>(StyleType::Candy));  // 1. Exposure
+                // pipeline.addOperation(
+                //     std::make_shared<StyleTransfer>(StyleType::Candy));  // 1. Exposure
                 // pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
                 // pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
                 // pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
 
                 // // 2. HSL Block
-                // pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
+                pipeline.addOperation(std::make_shared<AdjustBrightness>(100));  // 4. Brightness
                 // pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
                 // pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
                 // pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White

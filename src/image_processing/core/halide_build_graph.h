@@ -73,8 +73,15 @@ class HalideBuildGraph {
      * @brief Applies Brightness to Luminance channel.
      * Formula: clamp(L * factor, 0.0, 1.0)
      */
-    static Halide::Expr apply_brightness_L(Halide::Expr L, Halide::Expr factor) {
-        return Halide::clamp(L * factor, 0.0f, 1.0f);
+    static Halide::Expr apply_brightness_L(Halide::Expr L, Halide::Expr factor, Halide::Expr minL,
+                                           Halide::Expr maxL) {
+        Halide::Expr range = maxL - minL + 0.0001f;
+        Halide::Expr l_norm = (L - minL) / range;
+        // Midtone curve: 4 * x * (1-x)
+        Halide::Expr weight = 4.0f * l_norm * (1.0f - l_norm);
+        weight = Halide::max(0.0f, weight);
+        Halide::Expr delta = weight * factor;
+        return Halide::clamp(L + delta, 0.0f, 1.0f);
     }
 
     /**

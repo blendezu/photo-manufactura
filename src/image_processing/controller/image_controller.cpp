@@ -130,7 +130,7 @@ cv::Mat ImageController::process() {
 
     // Brightness
     float brightness_factor =
-        1.0f + (m_currentState.brightness / AdjustBrightness::BRIGHTNESS_SCALING_FACTOR);
+        m_currentState.brightness / AdjustBrightness::BRIGHTNESS_SCALING_FACTOR;
 
     // Highlight
     float highlight_f = m_currentState.highlight / AdjustHighlight::HIGHLIGHT_SCALING_FACTOR;
@@ -194,11 +194,11 @@ cv::Mat ImageController::process() {
     // 6. Call AOT Function
     int err = photo_adjustment(
         (struct halide_buffer_t*)(inputPlanar.raw_buffer()), (float)exposure_factor,
-        (float)contrast, (float)brightness_factor, (float)highlight_f, (float)highlight_under,
-        (float)highlight_upper, (float)shadow_f, (float)shadow_under, (float)shadow_upper,
-        (float)white_f, (float)white_under, (float)white_upper, (float)black_f, (float)black_lower,
-        (float)black_upper, (float)sat_factor, (float)vibrance_f, (float)t_mag, (float)wb_red,
-        (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f, 0.0f,
+        (float)contrast, (float)brightness_factor, (float)minL, (float)maxL, (float)highlight_f,
+        (float)highlight_under, (float)highlight_upper, (float)shadow_f, (float)shadow_under,
+        (float)shadow_upper, (float)white_f, (float)white_under, (float)white_upper, (float)black_f,
+        (float)black_lower, (float)black_upper, (float)sat_factor, (float)vibrance_f, (float)t_mag,
+        (float)wb_red, (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f, 0.0f,
         (struct halide_buffer_t*)(outputPlanar.raw_buffer()));
 
     if (err != 0) {

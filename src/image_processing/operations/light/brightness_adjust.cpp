@@ -7,27 +7,51 @@
 #include <vector>
 
 #include "../../core/halide_build_graph.h"
+#include "../../utils/image_utils.h"
 #include "color_space.h"
 #include "halide_color_space.h"
 
 // --- Calculate parameters for buildGraph on CPU ---
 void AdjustBrightness::prepareParameters(const cv::Mat& srcImg) {
-    // 1. Determine the maxRange Value based on the Bit Depth
+    if (srcImg.empty())
+        return;
+
+    // 1. Calculate Min/Max Luminance
+    float minL = 0.0f;
+    float maxL = 1.0f;
+
+    // Use thumbnail for speed
+    cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
+
+    if (srcImg.channels() == 3) {
+        cv::Mat hslThumbnail = ColorSpace::convertBGR2HSL(thumbnail);
+        auto minMax = ImageUtils::calculateMinMax(hslThumbnail, 2);
+        minL = std::get<0>(minMax);
+        maxL = std::get<1>(minMax);
+    } else {
+        auto minMax = ImageUtils::calculateMinMax(thumbnail, 0);
+        minL = std::get<0>(minMax);
+        maxL = std::get<1>(minMax);
+    }
+
+    // 2. Set Max Range based on Depth
     if (srcImg.depth() == CV_16U) {
         p_maxRange.set(65535.0f);
         p_depthScale.set(256.0f);
-    }
-
-    else {
+    } else {
         p_maxRange.set(255.0f);
         p_depthScale.set(1.0f);
     }
 
-    // 2. Calculate the changeFactor
-    float changeFactor = 1.0f + m_brightness / BRIGHTNESS_SCALING_FACTOR;
+    // 3. Calculate Factors
+    // Factor ranges roughly -1.0 to 1.0
+    float changeFactor = static_cast<float>(m_brightness) / BRIGHTNESS_SCALING_FACTOR;
     p_changeFactor.set(changeFactor);
 
-    // 3. Assign the brightness changeValue
+    p_minL.set(minL);
+    p_maxL.set(maxL);
+
+    // Note: p_brightness is legacy name, reused here if needed but changeFactor is primary
     p_brightness.set((float)m_brightness);
 }
 
@@ -36,18 +60,19 @@ Halide::Func AdjustBrightness::buildGraph(Halide::Func srcImg, Halide::Var x, Ha
                                           Halide::Var c) {
     // --- Path A. Gray Image ---
     if (srcImg.dimensions() == 2) {
-        // 1. Get the current Value
-        Halide::Expr currVal = srcImg(x, y);
+        // 1. Get current Value (normalized to 0..1 by caller usually? No, srcImg is raw)
+        // Assume srcImg is roughly in p_maxRange scale.
 
-        // 2. Calculate the new Value
-        Halide::Expr newVal = currVal + p_brightness * p_depthScale;
+        Halide::Expr invMaxRange = 1.0f / p_maxRange;
+        Halide::Expr currVal = srcImg(x, y) * invMaxRange;
 
-        // 3. Clamp the new value
-        newVal = Halide::clamp(newVal, 0.0f, p_maxRange);
+        // 2. Calculate newly brightness adjusted value
+        Halide::Expr newVal =
+            HalideBuildGraph::apply_brightness_L(currVal, p_changeFactor, p_minL, p_maxL);
 
-        // 4. Assign the new Value to the Destination Image
+        // 3. Assign and denormalize
         Halide::Func dstImg("brightness_adjust_gray_image");
-        dstImg(x, y) = newVal;
+        dstImg(x, y) = newVal * p_maxRange;
         return dstImg;
     }
 
@@ -70,7 +95,7 @@ Halide::Func AdjustBrightness::buildGraph(Halide::Func srcImg, Halide::Var x, Ha
     Halide::Expr currL = hslImg[2];
 
     // 5. Calculate new Luminance Value and clamp it
-    Halide::Expr newL = HalideBuildGraph::apply_brightness_L(currL, p_changeFactor);
+    Halide::Expr newL = HalideBuildGraph::apply_brightness_L(currL, p_changeFactor, p_minL, p_maxL);
 
     // 6. Convert back to BGR
     std::vector<Halide::Expr> bgrImg = HalideColorSpace::HSL2BGR(H, S, newL);
@@ -95,14 +120,23 @@ cv::Mat AdjustBrightness::apply(const cv::Mat& srcImg) {
 
     // --- A. Color Image ---
     if (srcImg.type() == CV_8UC3 || srcImg.type() == CV_16UC3) {
-        // 1. Convert BGR to HSL
+        // 1. Calculate Min/Max (Similar to prepareParameters)
+        cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
+        cv::Mat hslThumbnail = ColorSpace::convertBGR2HSL(thumbnail);
+        auto minMax = ImageUtils::calculateMinMax(hslThumbnail, 2);
+        float minL = std::get<0>(minMax);
+        float maxL = std::get<1>(minMax);
+        float invRange = 1.0f / (maxL - minL + 0.0001f);
+
+        // 2. Convert BGR to HSL
         cv::Mat hslImg = ColorSpace::convertBGR2HSL(srcImg);
 
-        // 2. Calculate the multiplier
-        const float changeFactor = 1.0f + m_brightness / BRIGHTNESS_SCALING_FACTOR;
+        // 3. Calculate the factor
+        // Factor is roughly -1 to 1 based on slider
+        const float changeFactor = static_cast<float>(m_brightness) / BRIGHTNESS_SCALING_FACTOR;
 
         // clang-format off
-        // 2. Parallelizing across lines direct the hslImg instead a temporary image to save Memory
+        // 4. Parallelizing across lines direct the hslImg instead a temporary image to save Memory
         #pragma omp parallel for
         // clang-format on
 
@@ -119,10 +153,17 @@ cv::Mat AdjustBrightness::apply(const cv::Mat& srcImg) {
                 float currL = ptr[i];
 
                 // 2.3.2 Calculate the new Luminance
-                float newVal = currL * changeFactor;
+                // Midtone Curve Logic
+                // Normalize L relative to image range
+                float l_norm = (currL - minL) * invRange;
 
-                // 2.3.3 Clamp the Value
-                newVal = std::clamp(newVal, 0.0f, 1.0f);
+                // Curve: 4 * x * (1 - x)
+                float weight = 4.0f * l_norm * (1.0f - l_norm);
+                if (weight < 0.0f)
+                    weight = 0.0f;  // Handle out of bounds if simple normalization
+
+                float delta = weight * changeFactor;
+                float newVal = std::clamp(currL + delta, 0.0f, 1.0f);
 
                 // 2.3.4 Assign the new Luminance to the hsl Image
                 ptr[i] = newVal;
@@ -134,14 +175,20 @@ cv::Mat AdjustBrightness::apply(const cv::Mat& srcImg) {
         return ColorSpace::convertHSL2BGR(hslImg, depth);
     }
 
-    // --- Path B. 8-bit Gray Image ---
-    else if (srcImg.type() == CV_8UC1) {
-        return grayImgTemplate<uchar>(srcImg, m_brightness);
-    }
+    // --- Path B. 8-bit or 16-bit Gray Image ---
+    else if (srcImg.type() == CV_8UC1 || srcImg.type() == CV_16UC1) {
+        // Calc min/max for gray
+        cv::Mat thumbnail = ImageUtils::createThumbnail(srcImg);
+        auto minMax = ImageUtils::calculateMinMax(thumbnail, 0);
+        float minL = std::get<0>(minMax);
+        float maxL = std::get<1>(minMax);
 
-    // --- Path C. 16-bit Gray Image ---
-    else if (srcImg.type() == CV_16UC1) {
-        return grayImgTemplate<ushort>(srcImg, m_brightness);
+        float changeFactor = static_cast<float>(m_brightness) / BRIGHTNESS_SCALING_FACTOR;
+
+        if (srcImg.type() == CV_8UC1)
+            return grayImgTemplate<uchar>(srcImg, changeFactor, minL, maxL);
+        else
+            return grayImgTemplate<ushort>(srcImg, changeFactor, minL, maxL);
     }
 
     // --- Path D. Unsupported Image Type
