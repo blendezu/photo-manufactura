@@ -9,8 +9,9 @@
 #include "AdjustmentSettings.h"
 #include "ImageDocument.h"
 
-// Forward declaration for ImagePipeline
-class ImagePipeline;
+// Forward declaration - actual include in cpp to avoid header dependency issues
+class ImageController;
+struct ImageState;
 
 /**
  * @brief Manages document lifecycle and coordinates model components
@@ -58,6 +59,10 @@ class DocumentManager : public QObject {
     void setDebouncedMode(bool enabled);  // Enable/disable debouncing
     bool applyAdjustmentsPermanently();   // Bake adjustments into base image
 
+    // Processing mode (CPU vs GPU)
+    void setGpuMode(bool enabled);  // Toggle between CPU and GPU processing
+    bool isGpuMode() const;         // Returns true if using GPU (fusion) mode
+
     // Geometry operations (destructive - modify the base image)
     void rotateImage(int degrees);
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
@@ -87,7 +92,8 @@ class DocumentManager : public QObject {
 
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
-    std::unique_ptr<ImagePipeline> m_imagePipeline;
+    std::unique_ptr<ImageController> m_imageController;
+    std::unique_ptr<ImageState> m_currentImageState;  // Tracks current processing state
 
     // Debouncing
     QTimer* m_debounceTimer;
@@ -98,4 +104,7 @@ class DocumentManager : public QObject {
     QStack<QImage> m_undoStack;
     QStack<QImage> m_redoStack;
     static const int MAX_HISTORY_SIZE = 20;
+
+    // Active filter tracking (persists across adjustment changes)
+    QString m_currentFilter;  // Empty means no filter applied
 };

@@ -245,6 +245,9 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     m_blacksSlider = new ModernSlider("Blacks", -100, 100, 0, this);
     m_blacksSlider->setTooltip("Adjust black point and dark tones\nDouble-click to reset");
 
+    m_brightnessSlider = new ModernSlider("Brightness", -100, 100, 0, this);
+    m_brightnessSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
+
     // Connect signals
     connect(m_exposureSlider, &ModernSlider::valueChanged, this, &ToolPanel::exposureChanged);
     connect(m_contrastSlider, &ModernSlider::valueChanged, this, &ToolPanel::contrastChanged);
@@ -252,6 +255,7 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     connect(m_shadowsSlider, &ModernSlider::valueChanged, this, &ToolPanel::shadowsChanged);
     connect(m_whitesSlider, &ModernSlider::valueChanged, this, &ToolPanel::whitesChanged);
     connect(m_blacksSlider, &ModernSlider::valueChanged, this, &ToolPanel::blacksChanged);
+    connect(m_brightnessSlider, &ModernSlider::valueChanged, this, &ToolPanel::brightnessChanged);
 
     // Add to layout
     layout->addWidget(m_exposureSlider);
@@ -260,6 +264,7 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     layout->addWidget(m_shadowsSlider);
     layout->addWidget(m_whitesSlider);
     layout->addWidget(m_blacksSlider);
+    layout->addWidget(m_brightnessSlider);
 
     basicSection->setContentLayout(layout);
     return basicSection;
@@ -303,15 +308,12 @@ ModernCollapsible* ToolPanel::createDetailSection() {
     layout->setSpacing(2);
     layout->setContentsMargins(8, 8, 8, 12);
 
-    // Create modern slider
-    m_brightnessSlider = new ModernSlider("Brightness", -100, 100, 0, this);
-    m_brightnessSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
-
-    // Connect signals
-    connect(m_brightnessSlider, &ModernSlider::valueChanged, this, &ToolPanel::brightnessChanged);
-
-    // Add to layout
-    layout->addWidget(m_brightnessSlider);
+    // Detail section is now empty (brightness moved to Light)
+    // Future: Add sharpening, clarity, noise reduction sliders here
+    QLabel* placeholder = new QLabel(
+        "<span style='color: #666; font-size: 11px;'>Coming soon: Sharpening, Clarity, Noise Reduction</span>", this);
+    placeholder->setWordWrap(true);
+    layout->addWidget(placeholder);
 
     detailSection->setContentLayout(layout);
     detailSection->setExpanded(false);  // Start collapsed

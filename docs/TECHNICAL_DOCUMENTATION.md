@@ -1,7 +1,7 @@
-# Photo Manufactura - Technical Documentation
+ # Photo Manufactura - Technical Documentation
 
 **Version:** 0.1.0  
-**Date:** 3 January 2026  
+**Date:** 4 January 2026  
 **Branch:** `feat/app-beta-version`
 
 ---
@@ -521,7 +521,7 @@ private:
 
 #### 3.3.2 InfoPanel
 
-**Responsibility:** Image metadata, mouse coordinates, and histogram display
+**Responsibility:** Image metadata, zoom level, and histogram display
 
 ```cpp
 class InfoPanel : public QWidget {

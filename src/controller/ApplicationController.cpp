@@ -596,6 +596,11 @@ void ApplicationController::toggleAdjustmentPanel() {
     m_appState->toggleAdjustmentPanel();
 }
 
+void ApplicationController::setGpuMode(bool enabled) {
+    m_documentManager->setGpuMode(enabled);
+    qDebug() << "GPU mode set to:" << enabled;
+}
+
 // Private methods
 void ApplicationController::setupCommands() {
     // TODO: Register all commands

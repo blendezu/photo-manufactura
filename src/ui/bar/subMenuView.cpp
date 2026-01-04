@@ -88,6 +88,14 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     m_toggleInfoPanelAction->setChecked(true);
     m_toggleInfoPanelAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_I));
 
+    // GPU/CPU processing mode toggle
+    m_gpuModeAction = new QAction("Use GPU Acceleration", this);
+    m_gpuModeAction->setCheckable(true);
+    m_gpuModeAction->setChecked(true);  // GPU enabled by default
+    m_gpuModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_G));
+    m_gpuModeAction->setToolTip("Toggle between GPU (fast) and CPU (compatible) processing");
+    connect(m_gpuModeAction, &QAction::toggled, this, &SubMenuView::gpuModeToggled);
+
     // Add to menu
     this->addMenu(zoomMenu);
     this->addSeparator();
@@ -96,6 +104,8 @@ SubMenuView::SubMenuView(QWidget* parent) : QMenu(parent) {
     this->addAction(m_toggleToolPanelAction);
     this->addAction(m_toggleHistogramAction);
     this->addAction(m_toggleInfoPanelAction);
+    this->addSeparator();
+    this->addAction(m_gpuModeAction);
 
     // Connect signals
     connect(m_darkThemeAction, &QAction::triggered, this, &SubMenuView::onDarkThemeTriggered);
@@ -176,4 +186,11 @@ void SubMenuView::onToggleToolPanelTriggered() {
 void SubMenuView::onToggleInfoPanelTriggered() {
     // Emit signal for controller to coordinate with MainWindow dock widgets
     emit toggleAdjustmentPanelRequested();
+}
+
+void SubMenuView::setGpuModeChecked(bool checked) {
+    // Block signals to avoid recursive updates
+    m_gpuModeAction->blockSignals(true);
+    m_gpuModeAction->setChecked(checked);
+    m_gpuModeAction->blockSignals(false);
 }

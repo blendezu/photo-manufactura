@@ -168,6 +168,9 @@ class ApplicationController : public QObject {
     void toggleToolPanel();
     void toggleAdjustmentPanel();
 
+    // Processing mode
+    void setGpuMode(bool enabled);  // Toggle CPU/GPU processing
+
    signals:
     // State change notifications
     void stateChanged(const QString& key, const QVariant& value);

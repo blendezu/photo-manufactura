@@ -16,7 +16,7 @@
 #include "geometry/crop.h"
 #include "geometry/flip.h"
 #include "geometry/rotate.h"
-#include "image_pipeline.h"
+#include "image_controller.h"  // ImageController + ImageState
 #include "light/auto_light.h"
 #include "light/black_adjust.h"
 #include "light/brightness_adjust.h"
@@ -71,7 +71,8 @@ DocumentManager::DocumentManager(QObject* parent)
     : QObject(parent),
       m_currentDocument(std::make_unique<ImageDocument>(this)),
       m_adjustments(std::make_unique<AdjustmentSettings>(this)),
-      m_imagePipeline(std::make_unique<ImagePipeline>()),
+      m_imageController(std::make_unique<ImageController>()),
+      m_currentImageState(std::make_unique<ImageState>()),
       m_debounceTimer(new QTimer(this)),
       m_debouncedMode(false) {
     // Setup debounce timer
@@ -134,7 +135,7 @@ bool DocumentManager::openDocument(const QString& filePath) {
     // Clear any previous state
     m_adjustments->resetAll();
     m_currentDocument->clear();
-    m_imagePipeline->clearOperations();
+    *m_currentImageState = ImageState{};  // Reset image state
     m_undoStack.clear();
     m_redoStack.clear();
 
@@ -145,9 +146,9 @@ bool DocumentManager::openDocument(const QString& filePath) {
     m_currentDocument->setProcessedImage(image);  // Start with unmodified
     m_currentDocument->setModified(false);
 
-    // Set the image in the pipeline for processing
+    // Set the image in the controller for processing
     cv::Mat cvImage = qImageToCvMat(image);
-    m_imagePipeline->setImg(cvImage);
+    m_imageController->setImage(cvImage);
     qDebug() << "Image loaded:" << image.width() << "x" << image.height();
 
     Q_EMIT documentOpened(filePath);
@@ -206,7 +207,7 @@ bool DocumentManager::saveDocumentAs(const QString& filePath) {
 void DocumentManager::closeDocument() {
     m_adjustments->resetAll();
     m_currentDocument->clear();
-    m_imagePipeline->clearOperations();
+    *m_currentImageState = ImageState{};  // Reset image state
     m_undoStack.clear();
     m_redoStack.clear();
 
@@ -235,71 +236,55 @@ void DocumentManager::applyAdjustments() {
         return;
     }
 
-    if (!m_imagePipeline->hasImg()) {
-        qDebug() << "No image in pipeline, reloading from document";
+    // Ensure image is loaded in controller
+    if (m_imageController->getPipeline().getImg().empty()) {
+        qDebug() << "No image in controller, reloading from document";
         cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
-        m_imagePipeline->setImg(cvImage);
+        m_imageController->setImage(cvImage);
     }
 
-    // Clear existing operations and rebuild based on current adjustment settings
-    m_imagePipeline->clearOperations();
+    // Build ImageState from AdjustmentSettings
+    // Map AdjustmentSettings (-100 to +100 int) to ImageState (float)
+    m_currentImageState->brightness = static_cast<float>(m_adjustments->brightness());
+    m_currentImageState->contrast = static_cast<float>(m_adjustments->contrast());
+    m_currentImageState->exposure = static_cast<float>(m_adjustments->exposure()) / 20.0f;  // Map to -5.0 to +5.0
+    m_currentImageState->highlight = static_cast<float>(m_adjustments->highlights());
+    m_currentImageState->shadow = static_cast<float>(m_adjustments->shadows());
+    m_currentImageState->white = static_cast<float>(m_adjustments->whites());
+    m_currentImageState->black = static_cast<float>(m_adjustments->blacks());
+    m_currentImageState->temp = static_cast<float>(m_adjustments->temperature());
+    m_currentImageState->tint = static_cast<float>(m_adjustments->tint());
+    m_currentImageState->saturation = static_cast<float>(m_adjustments->saturation());
 
-    // Build a combined operation for real-time preview using liveOperation
-    // For now, we add individual operations for each non-zero adjustment
+    // Update controller with new state and process
+    m_imageController->update(*m_currentImageState);
+    cv::Mat result = m_imageController->process();
 
-    // Light operations
-    if (m_adjustments->brightness() != 0) {
-        m_imagePipeline->addOperation(
-            std::make_shared<AdjustBrightness>(m_adjustments->brightness()));
+    // Apply current filter on top of adjustments if one is active
+    if (!result.empty() && !m_currentFilter.isEmpty()) {
+        try {
+            if (m_currentFilter == "Grayscale") {
+                GrayImage grayFilter;
+                result = grayFilter.apply(result);
+            } else if (m_currentFilter == "Vintage") {
+                Vintage1 vintageFilter;
+                result = vintageFilter.apply(result);
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Filter application error:" << e.what();
+        }
     }
-
-    if (m_adjustments->contrast() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustContrast>(m_adjustments->contrast()));
-    }
-
-    if (m_adjustments->highlights() != 0) {
-        m_imagePipeline->addOperation(
-            std::make_shared<AdjustHighlight>(m_adjustments->highlights()));
-    }
-
-    if (m_adjustments->shadows() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustShadow>(m_adjustments->shadows()));
-    }
-
-    if (m_adjustments->whites() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustWhite>(m_adjustments->whites()));
-    }
-
-    if (m_adjustments->blacks() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<AdjustBlack>(m_adjustments->blacks()));
-    }
-
-    // Color operations
-    if (m_adjustments->temperature() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<WhiteBalance>(m_adjustments->temperature()));
-    }
-
-    if (m_adjustments->tint() != 0) {
-        m_imagePipeline->addOperation(std::make_shared<TintMagenta>(m_adjustments->tint()));
-    }
-
-    if (m_adjustments->saturation() != 0) {
-        m_imagePipeline->addOperation(
-            std::make_shared<AdjustSaturation>(m_adjustments->saturation()));
-    }
-
-    // Process the pipeline
-    cv::Mat result = m_imagePipeline->process();
 
     if (!result.empty()) {
         QImage processedQImage = cvMatToQImage(result);
         m_currentDocument->setProcessedImage(processedQImage);
-        qDebug() << "Image processed with" << m_imagePipeline->getOperationCount() << "operations";
+        qDebug() << "Image processed via ImageController" << (m_currentFilter.isEmpty() ? "" : "+ filter: " + m_currentFilter);
     } else {
-        qDebug() << "Pipeline processing returned empty result, keeping original";
+        qDebug() << "ImageController processing returned empty result, keeping original";
         m_currentDocument->setProcessedImage(m_currentDocument->originalImage());
     }
 }
+
 
 void DocumentManager::applyAdjustmentsDebounced() {
     // Restart the timer - processing will happen when timer fires
@@ -343,6 +328,20 @@ bool DocumentManager::applyAdjustmentsPermanently() {
     return true;
 }
 
+void DocumentManager::setGpuMode(bool enabled) {
+    m_imageController->getPipeline().setFusionMode(enabled);
+    qDebug() << "Processing mode set to:" << (enabled ? "GPU (Fusion)" : "CPU (Sequential)");
+    
+    // Reprocess current image with new mode if we have a document
+    if (hasDocument()) {
+        applyAdjustments();
+    }
+}
+
+bool DocumentManager::isGpuMode() const {
+    return m_imageController->getPipeline().isFusionMode();
+}
+
 void DocumentManager::rotateImage(int degrees) {
     if (!hasDocument()) {
         Q_EMIT errorOccurred("No document to rotate");
@@ -367,7 +366,7 @@ void DocumentManager::rotateImage(int degrees) {
         m_currentDocument->setProcessedImage(rotatedQImage);
 
         // Update the pipeline with the new base image
-        m_imagePipeline->setImg(rotated);
+        m_imageController->setImage(rotated);
 
         m_currentDocument->setModified(true);
         Q_EMIT imageTransformed();
@@ -404,7 +403,7 @@ void DocumentManager::flipImage(int direction) {
         m_currentDocument->setProcessedImage(flippedQImage);
 
         // Update the pipeline with the new base image
-        m_imagePipeline->setImg(flipped);
+        m_imageController->setImage(flipped);
 
         m_currentDocument->setModified(true);
         Q_EMIT imageTransformed();
@@ -457,7 +456,7 @@ void DocumentManager::cropImage(const QRect& cropArea) {
         m_currentDocument->setProcessedImage(croppedQImage);
 
         // Update the pipeline with the new base image
-        m_imagePipeline->setImg(cropped);
+        m_imageController->setImage(cropped);
 
         m_currentDocument->setModified(true);
         Q_EMIT imageTransformed();
@@ -536,6 +535,12 @@ void DocumentManager::applyFilter(const QString& filterName) {
             QImage resultImage = cvMatToQImage(resultMat);
             m_currentDocument->setProcessedImage(resultImage);
             m_currentDocument->setModified(true);
+            
+            // Track persistent filters (Grayscale, Vintage) so they persist during adjustments
+            if (filterName == "Grayscale" || filterName == "Vintage") {
+                m_currentFilter = filterName;
+            }
+            
             Q_EMIT imageTransformed();
             qDebug() << "Filter applied successfully:" << filterName;
         } else {
@@ -560,13 +565,16 @@ void DocumentManager::removeFilter() {
         return;
     }
 
+    // Clear the current filter tracking
+    m_currentFilter.clear();
+
     // Reset to original image
     QImage originalImage = m_currentDocument->originalImage();
     m_currentDocument->setProcessedImage(originalImage);
 
     // Reset pipeline
     cv::Mat cvImage = qImageToCvMat(originalImage);
-    m_imagePipeline->setImg(cvImage);
+    m_imageController->setImage(cvImage);
 
     // Reset all adjustments
     if (m_adjustments) {
@@ -623,7 +631,7 @@ void DocumentManager::undo() {
 
     // Update the pipeline with the restored image
     cv::Mat cvImage = qImageToCvMat(previousState);
-    m_imagePipeline->setImg(cvImage);
+    m_imageController->setImage(cvImage);
 
     m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
@@ -647,7 +655,7 @@ void DocumentManager::redo() {
 
     // Update the pipeline with the restored image
     cv::Mat cvImage = qImageToCvMat(nextState);
-    m_imagePipeline->setImg(cvImage);
+    m_imageController->setImage(cvImage);
 
     m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
