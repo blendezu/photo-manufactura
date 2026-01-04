@@ -75,9 +75,22 @@ class ImageController {
         return m_pipeline;
     }
 
+    // Set the Preview Mode
+    void setPreviewMode(bool enabled);
+
+    // Check if Preview Mode is enabled
+    bool isPreviewMode() const {
+        return m_isPreviewMode;
+    }
+
    private:
     ImagePipeline m_pipeline;
     ImageState m_currentState;
+
+    // Image Storage
+    cv::Mat m_fullResImage;  // The original full resolution image
+    cv::Mat m_previewImage;  // A downscaled version for fast preview
+    bool m_isPreviewMode = true;
 
     // Stats Cache (to avoid recalculating on every process() call)
     float m_cachedMinL = 0.0f;

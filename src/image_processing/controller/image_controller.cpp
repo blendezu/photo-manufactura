@@ -38,8 +38,45 @@ ImageController::ImageController() {
 ImageController::~ImageController() {}
 
 void ImageController::setImage(const cv::Mat& img) {
-    m_pipeline.setImg(img);
+    m_fullResImage = img;
+
+    // Generate Preview Image
+    // Strategy: Resize to max 1920px (longer edge) if larger
+    const int MAX_PREVIEW_SIZE = 1920;
+    if (img.cols > MAX_PREVIEW_SIZE || img.rows > MAX_PREVIEW_SIZE) {
+        float ratio = 1.0f;
+        if (img.cols > img.rows) {
+            ratio = (float)MAX_PREVIEW_SIZE / img.cols;
+        } else {
+            ratio = (float)MAX_PREVIEW_SIZE / img.rows;
+        }
+        cv::resize(img, m_previewImage, cv::Size(), ratio, ratio, cv::INTER_AREA);
+    } else {
+        m_previewImage = img.clone();
+    }
+
+    // Default to Preview Mode
+    m_isPreviewMode = true;
+    m_pipeline.setImg(m_previewImage);
+
     m_statsValid = false;  // Invalidate cache on new image
+}
+
+void ImageController::setPreviewMode(bool enabled) {
+    if (m_isPreviewMode == enabled) {
+        return;
+    }
+
+    m_isPreviewMode = enabled;
+
+    if (m_isPreviewMode) {
+        m_pipeline.setImg(m_previewImage);
+    } else {
+        m_pipeline.setImg(m_fullResImage);
+    }
+
+    // Invalidate stats because switching resolution might slightly change min/max L
+    m_statsValid = false;
 }
 
 void ImageController::update(const ImageState& state) {
