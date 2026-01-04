@@ -10,7 +10,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 # Füge hier beide Pfade hinzu (ONNX und Halide)
-set(CMAKE_INSTALL_RPATH "${CMAKE_SOURCE_DIR}/libs/Halide/lib")
+set(CMAKE_INSTALL_RPATH "")
 
 # ==========================================
 # FIX 1: Build-Type wird nun über CMakePresets gesteuert
@@ -88,27 +88,37 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn)
 
 
 # =========================================================
-# LOKALE HALIDE LIB (Struktur: libs/Halide)
+# SYSTEM HALIDE (Homebrew)
 # =========================================================
-set(HALIDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/Halide")
-set(HALIDE_INCLUDE_DIR "${HALIDE_ROOT}/include")
+# Halide via Homebrew ist normalerweise in /opt/homebrew installiert.
+# Wir nutzen find_package, da moderne Halide Versionen Config-Dateien mitliefern.
+# Falls nicht, suchen wir manuell.
 
-# 1. Header Pfad prüfen
-if(NOT EXISTS "${HALIDE_INCLUDE_DIR}/Halide.h")
-    message(FATAL_ERROR "❌ Halide Headers nicht gefunden in: ${HALIDE_INCLUDE_DIR}")
-endif()
+find_package(Halide CONFIG)
 
-# 2. Library finden
-find_library(HALIDE_LIB 
-    NAMES Halide 
-    PATHS "${HALIDE_ROOT}/lib"
-    NO_DEFAULT_PATH
-)
-
-if(HALIDE_LIB)
-    message(STATUS "✅ Using Local Halide Lib: ${HALIDE_LIB}")
+if(Halide_FOUND)
+    message(STATUS "✅ Found Halide via CMake Config: ${Halide_DIR}")
+    # Halide::Halide ist das Target, das wir linken sollten
+    set(HALIDE_LIB Halide::Halide)
+    # Include Directories sind im Target enthalten, aber für Generatoren brauchen wir evtl. den Pfad
+    get_target_property(HALIDE_INCLUDE_DIR Halide::Halide INTERFACE_INCLUDE_DIRECTORIES)
 else()
-    message(FATAL_ERROR "❌ Local Halide Lib not found in ${HALIDE_ROOT}/lib")
+    # Fallback: Manuelle Suche (z.B. für /opt/homebrew)
+    find_library(HALIDE_LIB 
+        NAMES Halide 
+        PATHS "/opt/homebrew/lib" "/usr/local/lib"
+    )
+    find_path(HALIDE_INCLUDE_DIR 
+        NAMES Halide.h 
+        PATHS "/opt/homebrew/include" "/usr/local/include"
+    )
+
+    if(HALIDE_LIB AND HALIDE_INCLUDE_DIR)
+        message(STATUS "✅ Found System Halide Lib: ${HALIDE_LIB}")
+        message(STATUS "✅ Found System Halide Include: ${HALIDE_INCLUDE_DIR}")
+    else()
+        message(FATAL_ERROR "❌ Halide not found! Please install with 'brew install halide'")
+    endif()
 endif()
 
 
@@ -233,7 +243,7 @@ add_custom_command(
             "-g" "photo_adjustment"
             "-o" "${CMAKE_CURRENT_BINARY_DIR}"
             "-f" "photo_adjustment"
-            "-p" "${HALIDE_ROOT}/lib/libautoschedule_adams2019.so"
+            "-p" "/opt/homebrew/lib/libautoschedule_adams2019.so"
             target=host-metal
             autoscheduler=Adams2019
     DEPENDS generate_photo_adjustment
