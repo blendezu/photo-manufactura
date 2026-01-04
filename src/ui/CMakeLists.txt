@@ -46,6 +46,9 @@ find_package(Qt6 REQUIRED COMPONENTS
     OpenGLWidgets
 )
 
+# Find OpenCV (required for transitive dependencies from model/controller)
+find_package(OpenCV REQUIRED COMPONENTS core)
+
 # ============================================================
 # UI Library Target
 # ============================================================
@@ -132,6 +135,7 @@ target_include_directories(ui PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/resources/theme>
     $<INSTALL_INTERFACE:include>
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 # ------------------------------------------------------------

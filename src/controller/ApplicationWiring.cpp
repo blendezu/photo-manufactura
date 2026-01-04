@@ -234,6 +234,10 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     // Detail connections
     m_connections << connect(toolPanel, &ToolPanel::denoiseChanged, controller,
                              &ApplicationController::adjustDenoise);
+    m_connections << connect(toolPanel, &ToolPanel::clarityChanged, controller,
+                             &ApplicationController::adjustClarity);
+    m_connections << connect(toolPanel, &ToolPanel::sharpeningChanged, controller,
+                             &ApplicationController::adjustSharpening);
 
     // Geometry tool connections
     m_connections << connect(toolPanel, &ToolPanel::rotateLeftRequested, controller,
@@ -270,7 +274,7 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::filterVintageRequested, controller,
                              &ApplicationController::applyFilterVintage);
 
-    m_connections << connect(toolPanel, &ToolPanel::filterAutoEnhanceRequested, controller,
+    m_connections << connect(toolPanel, &ToolPanel::autoLightRequested, controller,
                              &ApplicationController::applyAutoEnhance);
 
     // AI Style Transfer connections

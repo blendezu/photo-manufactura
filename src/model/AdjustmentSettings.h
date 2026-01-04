@@ -22,6 +22,8 @@ class AdjustmentSettings : public QObject {
     Q_PROPERTY(int tint READ tint WRITE setTint NOTIFY tintChanged)
     Q_PROPERTY(int saturation READ saturation WRITE setSaturation NOTIFY saturationChanged)
     Q_PROPERTY(int denoise READ denoise WRITE setDenoise NOTIFY denoiseChanged)
+    Q_PROPERTY(int clarity READ clarity WRITE setClarity NOTIFY clarityChanged)
+    Q_PROPERTY(int sharpening READ sharpening WRITE setSharpening NOTIFY sharpeningChanged)
 
    public:
     explicit AdjustmentSettings(QObject* parent = nullptr);
@@ -65,6 +67,12 @@ class AdjustmentSettings : public QObject {
     int denoise() const {
         return m_denoise;
     }
+    int clarity() const {
+        return m_clarity;
+    }
+    int sharpening() const {
+        return m_sharpening;
+    }
 
     // Check if any adjustment is non-default
     bool hasAdjustments() const;
@@ -86,6 +94,8 @@ class AdjustmentSettings : public QObject {
 
     // Detail adjustments
     void setDenoise(int value);
+    void setClarity(int value);
+    void setSharpening(int value);
 
     // Reset all to defaults
     void resetAll();
@@ -102,6 +112,8 @@ Q_SIGNALS:
     void tintChanged(int value);
     void saturationChanged(int value);
     void denoiseChanged(int value);
+    void clarityChanged(int value);
+    void sharpeningChanged(int value);
     void settingsReset();
     void anySettingChanged();
 
@@ -122,4 +134,6 @@ Q_SIGNALS:
 
     // Detail adjustments (range: 0 to +100, default: 0)
     int m_denoise = 0;
+    int m_clarity = 0;
+    int m_sharpening = 0;
 };

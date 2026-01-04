@@ -43,6 +43,8 @@ class ToolPanel : public QWidget {
 
     // Detail signals
     void denoiseChanged(int value);
+    void clarityChanged(int value);
+    void sharpeningChanged(int value);
 
     // Geometry signals
     void rotateLeftRequested();
@@ -63,7 +65,7 @@ class ToolPanel : public QWidget {
     void filterOriginalRequested();
     void filterGrayscaleRequested();
     void filterVintageRequested();
-    void filterAutoEnhanceRequested();
+    void autoLightRequested();
 
     // AI Style Transfer signals
     void styleTransferRequested(StyleTransferType styleType);
@@ -91,8 +93,8 @@ class ToolPanel : public QWidget {
     void setZoomModeChecked(bool checked);
     void refreshPresets(const QStringList& userPresets);  // Refresh combo with user presets
     void updateSliders(int brightness, int contrast, int saturation, int exposure,
-                      int highlights, int shadows, int whites, int blacks,
-                      int temperature, int tint);  // Update sliders from preset
+                       int highlights, int shadows, int whites, int blacks,
+                       int temperature, int tint, int denoise, int clarity, int sharpening);  // Update sliders from preset
     void setColorControlsEnabled(bool enabled);  // Enable/disable color sliders based on active effect
     void updateImageInfo(const QImage& image);   // Receive current image info
     void showResizeDialog();
@@ -129,6 +131,8 @@ class ToolPanel : public QWidget {
 
     // Detail adjustments
     ModernSlider* m_denoiseSlider;
+    ModernSlider* m_claritySlider;
+    ModernSlider* m_sharpeningSlider;
 
     // Crop options
     QComboBox* m_cropModeCombo;

@@ -138,6 +138,8 @@ class ApplicationController : public QObject {
     void adjustTint(int value);
     void adjustSaturation(int value);
     void adjustDenoise(int value);  // Detail adjustment
+    void adjustClarity(int value);
+    void adjustSharpening(int value);
     void rotateImage(int degrees);
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
@@ -191,7 +193,7 @@ class ApplicationController : public QObject {
     void presetsChanged(const QStringList& userPresets);
     void adjustmentsChanged(int brightness, int contrast, int saturation, int exposure,
                             int highlights, int shadows, int whites, int blacks, int temperature,
-                            int tint);
+                            int tint, int denoise, int clarity, int sharpening);
 
    private slots:
     void onImageProcessingComplete();

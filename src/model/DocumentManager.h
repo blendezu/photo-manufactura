@@ -11,7 +11,10 @@
 #include "FourPointQuad.h"  // Four-point perspective crop
 #include "ImageDocument.h"
 
-// Forward declaration - actual include in cpp to avoid header dependency issues
+#include "AdjustmentSettings.h"
+#include "FourPointQuad.h"  // Four-point perspective crop
+#include "ImageDocument.h"
+#include "../image_processing/operations/light/auto_light.h"  // For AutoLightSettings struct
 class ImageController;
 struct ImageState;
 
@@ -60,6 +63,9 @@ class DocumentManager : public QObject {
     void applyAdjustmentsDebounced();     // Debounced version for slider dragging
     void setDebouncedMode(bool enabled);  // Enable/disable debouncing
     bool applyAdjustmentsPermanently();   // Bake adjustments into base image
+    
+    // Auto-Light estimation (returns settings without applying them)
+    AutoLightSettings estimateAutoLight();
 
     // Processing mode (CPU vs GPU)
     void setGpuMode(bool enabled);  // Toggle between CPU and GPU processing

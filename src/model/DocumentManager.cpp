@@ -261,6 +261,8 @@ void DocumentManager::applyAdjustments() {
     m_currentImageState->temp = static_cast<float>(m_adjustments->temperature());
     m_currentImageState->tint = static_cast<float>(m_adjustments->tint());
     m_currentImageState->saturation = static_cast<float>(m_adjustments->saturation());
+    m_currentImageState->clarity = static_cast<float>(m_adjustments->clarity());
+    m_currentImageState->sharpen = static_cast<float>(m_adjustments->sharpening());
 
     // Update controller with new state and process
     m_imageController->update(*m_currentImageState);
@@ -342,6 +344,24 @@ bool DocumentManager::applyAdjustmentsPermanently() {
     qDebug() << "Adjustments applied permanently - image is now the base";
     Q_EMIT documentStateChanged();
     return true;
+}
+
+AutoLightSettings DocumentManager::estimateAutoLight() {
+    if (!hasDocument()) {
+        return AutoLightSettings{};
+    }
+
+    // Get current original image
+    QImage originalImage = m_currentDocument->originalImage();
+    cv::Mat srcMat = qImageToCvMat(originalImage);
+
+    try {
+        // Analyze image for optimal settings
+        return AutoLight::analyze(srcMat);
+    } catch (const std::exception& e) {
+        qDebug() << "AutoLight analysis error:" << e.what();
+        return AutoLightSettings{};
+    }
 }
 
 void DocumentManager::setGpuMode(bool enabled) {
