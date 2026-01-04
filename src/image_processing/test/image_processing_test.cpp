@@ -42,9 +42,9 @@
 int main() {
     try {
         // Bild laden
-        // cv::Mat testImage = cv::imread("images/Baum_dark.jpg");
+        cv::Mat testImage = cv::imread("images/Baum.jpg");
 
-        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
+        // cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
         cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
 
@@ -139,23 +139,26 @@ int main() {
                 // Halide-Filter)
 
                 // 1. RGB Block
-                pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
-                pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
-                pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
 
-                // 2. HSL Block
-                pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
-                pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
-                pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
-                pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White
-                pipeline.addOperation(std::make_shared<AdjustBlack>(20));       // 8. Black
-                pipeline.addOperation(std::make_shared<AdjustContrast>(20));    // 9. Contrast
-                pipeline.addOperation(std::make_shared<AdjustSaturation>(20));  // 10. Saturation
-                pipeline.addOperation(std::make_shared<AdjustVibrance>(20));    // 11. Vibrance
+                pipeline.addOperation(
+                    std::make_shared<StyleTransfer>(StyleType::Candy));  // 1. Exposure
+                // pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
+                // pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
+                // pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
 
-                // 3. Spatial Block
-                pipeline.addOperation(std::make_shared<Sharpen>(20));  // 12. Sharpen
-                pipeline.addOperation(std::make_shared<Clarity>(20));  // 13. Clarity
+                // // 2. HSL Block
+                // pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
+                // pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
+                // pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
+                // pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White
+                // pipeline.addOperation(std::make_shared<AdjustBlack>(20));       // 8. Black
+                // pipeline.addOperation(std::make_shared<AdjustContrast>(20));    // 9. Contrast
+                // pipeline.addOperation(std::make_shared<AdjustSaturation>(20));  // 10. Saturation
+                // pipeline.addOperation(std::make_shared<AdjustVibrance>(20));    // 11. Vibrance
+
+                // // 3. Spatial Block
+                // pipeline.addOperation(std::make_shared<Sharpen>(20));  // 12. Sharpen
+                // pipeline.addOperation(std::make_shared<Clarity>(20));  // 13. Clarity
 
                 // Geometry Operations (must match AOT test for fair comparison)
                 // cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);

@@ -10,7 +10,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 # Füge hier beide Pfade hinzu (ONNX und Halide)
-set(CMAKE_INSTALL_RPATH "${CMAKE_SOURCE_DIR}/libs/Halide/lib;${CMAKE_SOURCE_DIR}/libs/onnxruntime/lib")
+set(CMAKE_INSTALL_RPATH "${CMAKE_SOURCE_DIR}/libs/Halide/lib")
 
 # ==========================================
 # FIX 1: Build-Type wird nun über CMakePresets gesteuert
@@ -85,27 +85,7 @@ find_package(OpenMP REQUIRED)
 # --- OpenCV ---
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn) 
 
-# =========================================================
-# LOKALE ONNX RUNTIME (Struktur: libs/onnxruntime)
-# =========================================================
-set(OR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/onnxruntime")
-set(ONNXRUNTIME_INCLUDE_DIR "${OR_ROOT}/include")
 
-if(NOT EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime_cxx_api.h")
-    message(FATAL_ERROR "❌ ONNX Runtime Headers nicht gefunden in: ${ONNXRUNTIME_INCLUDE_DIR}")
-endif()
-
-find_library(ONNXRUNTIME_LIB 
-    NAMES onnxruntime
-    PATHS "${OR_ROOT}/lib"
-    NO_DEFAULT_PATH
-)
-
-if(ONNXRUNTIME_LIB)
-    message(STATUS "✅ Using Local ONNX Runtime Lib: ${ONNXRUNTIME_LIB}")
-else()
-    message(FATAL_ERROR "❌ Local ONNX Runtime Lib not found in ${OR_ROOT}/lib")
-endif()
 
 # =========================================================
 # LOKALE HALIDE LIB (Struktur: libs/Halide)
@@ -183,7 +163,7 @@ target_include_directories(image_processing PUBLIC
 
 target_include_directories(image_processing SYSTEM PUBLIC
     # --- Externe Libraries Includes ---
-    ${ONNXRUNTIME_INCLUDE_DIR}
+
 )
 
 if(OpenMP_ROOT)
@@ -198,7 +178,7 @@ target_compile_features(image_processing PUBLIC cxx_std_20)
 target_link_libraries(image_processing 
     PUBLIC 
         ${OpenCV_LIBS}
-        ${ONNXRUNTIME_LIB}
+
         ${HALIDE_LIB}
         raw_processing
         # System Libraries für Halide JIT auf macOS (Wichtig!)
@@ -232,11 +212,11 @@ endif()
 
 # 1. Build the Generator Executable
 add_executable(generate_photo_adjustment "${CMAKE_CURRENT_SOURCE_DIR}/generator/photo_adjustment_generator.cpp")
-target_link_libraries(generate_photo_adjustment PRIVATE ${HALIDE_LIB} ${ONNXRUNTIME_LIB} ${OpenCV_LIBS})
+target_link_libraries(generate_photo_adjustment PRIVATE ${HALIDE_LIB} ${OpenCV_LIBS})
 target_include_directories(generate_photo_adjustment PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/utils"
     ${HALIDE_INCLUDE_DIR}
-    ${ONNXRUNTIME_INCLUDE_DIR}
+
 )
 # Helper utils for Generator (reusing existing utils files)
 target_sources(generate_photo_adjustment PRIVATE
@@ -330,6 +310,6 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
 else()
     message(STATUS "PERFORMANCE: ❌  SLOW MODE DETECTED (Debug active)")
 endif()
-message(STATUS "ONNX Runtime: ✅  Local Lib (${ONNXRUNTIME_LIB})")
+
 message(STATUS "Halide:       ✅  Local Lib (${HALIDE_LIB})")
 message(STATUS "---------------------------------------------------")

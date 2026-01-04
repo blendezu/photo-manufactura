@@ -56,7 +56,7 @@ docs/generated/
 .clangd/
 
 # External libraries (use Conan/CMake FetchContent instead)
-libs/
+libs/Halide
 
 # Large test assets (consider Git LFS)
 images/*.nef
