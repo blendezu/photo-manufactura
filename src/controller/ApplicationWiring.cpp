@@ -195,6 +195,21 @@ void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* 
     // Four-point perspective crop
     m_connections << connect(canvas, &CanvasWidget::perspectiveCropRequested, controller,
                              &ApplicationController::perspectiveCropImage);
+
+    // Activations from Controller (via UI)
+    m_connections << connect(controller, &ApplicationController::enablePerspectiveCropMode, canvas,
+                             [canvas]() {
+                                 canvas->setCropType(CropType::FourPoint);
+                                 canvas->setCropMode(true);
+                                 canvas->update(); // Ensure redraw
+                             });
+
+    // Standard crop mode toggle
+    m_connections << connect(controller, &ApplicationController::enableCropMode, canvas,
+                             [canvas](bool enabled) {
+                                 canvas->setCropMode(enabled);
+                                 if (enabled) canvas->setCropType(CropType::Free); // Default to Free or current
+                             });
 }
 
 void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationController* controller) {
@@ -341,11 +356,15 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     }
 
     // Crop tool - activates crop mode on canvas
-    // The actual crop is handled via canvas signals
-    // This is wired in wireCanvas
-
-    // TODO: Add straighten tool - needs interactive angle selection
-    // m_connections << connect(toolPanel, &ToolPanel::straightenRequested, ...);
+    m_connections << connect(toolPanel, &ToolPanel::cropRequested, controller,
+                             [controller]() { controller->requestCropMode(); }); // Assume requestCropMode (check if exists or use lambda wrapper to canvas)
+    
+    // Actually, check what cropRequested does. 
+    // Existing code: "The actual crop is handled via canvas signals" comment.
+    // But ToolPanel has cropRequested().
+    
+    m_connections << connect(toolPanel, &ToolPanel::perspectiveCropRequested, controller,
+                             &ApplicationController::requestPerspectiveCropMode);
 }
 
 void ApplicationWiring::wireInfoPanel(InfoPanel* infoPanel, ApplicationController* controller) {

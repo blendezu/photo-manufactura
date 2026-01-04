@@ -32,7 +32,7 @@
 
 ImageController::ImageController() {
     // Default: Use GPU mode
-    m_pipeline.setFusionMode(true);
+    m_pipeline.setFusionMode(false);
 }
 
 ImageController::~ImageController() {}

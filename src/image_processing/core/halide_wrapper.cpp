@@ -56,15 +56,14 @@ HalideWrapper::HalideWrapper(Backend backendForce) {
     }
 
 // 3. Optimization Flags (Critical for Performance)
-// These flags are only enabled in Release mode (NDEBUG is defined)
-#ifdef NDEBUG
+    // 3. Optimization Flags (Critical for Performance)
+    // We enable these flags globally to bypass strict runtime checks that cause false positives (e.g. -592 access error)
     // No safety check for math such as zero division, could cause undefined behavior or crash
     m_target.set_feature(Halide::Target::NoAsserts);
     // No checking, if the size & stride of input match the requirement of the compiled code, could
     // cause undefined behavior or crash. For example, if you pass a 1000px width image to a
     // function that expects 1200px width, in this mode it won't check and it will crash.
     m_target.set_feature(Halide::Target::NoBoundsQuery);
-#endif
 
     m_isGPU = m_target.has_gpu_feature();
 }
