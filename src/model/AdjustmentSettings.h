@@ -21,6 +21,7 @@ class AdjustmentSettings : public QObject {
     Q_PROPERTY(int temperature READ temperature WRITE setTemperature NOTIFY temperatureChanged)
     Q_PROPERTY(int tint READ tint WRITE setTint NOTIFY tintChanged)
     Q_PROPERTY(int saturation READ saturation WRITE setSaturation NOTIFY saturationChanged)
+    Q_PROPERTY(int denoise READ denoise WRITE setDenoise NOTIFY denoiseChanged)
 
    public:
     explicit AdjustmentSettings(QObject* parent = nullptr);
@@ -60,6 +61,11 @@ class AdjustmentSettings : public QObject {
         return m_saturation;
     }
 
+    // Detail adjustments
+    int denoise() const {
+        return m_denoise;
+    }
+
     // Check if any adjustment is non-default
     bool hasAdjustments() const;
 
@@ -78,6 +84,9 @@ class AdjustmentSettings : public QObject {
     void setTint(int value);
     void setSaturation(int value);
 
+    // Detail adjustments
+    void setDenoise(int value);
+
     // Reset all to defaults
     void resetAll();
 
@@ -92,6 +101,7 @@ Q_SIGNALS:
     void temperatureChanged(int value);
     void tintChanged(int value);
     void saturationChanged(int value);
+    void denoiseChanged(int value);
     void settingsReset();
     void anySettingChanged();
 
@@ -109,4 +119,7 @@ Q_SIGNALS:
     int m_temperature = 0;
     int m_tint = 0;
     int m_saturation = 0;
+
+    // Detail adjustments (range: 0 to +100, default: 0)
+    int m_denoise = 0;
 };

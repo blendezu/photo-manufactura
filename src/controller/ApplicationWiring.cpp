@@ -227,6 +227,10 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::saturationChanged, controller,
                              &ApplicationController::adjustSaturation);
 
+    // Detail connections
+    m_connections << connect(toolPanel, &ToolPanel::denoiseChanged, controller,
+                             &ApplicationController::adjustDenoise);
+
     // Geometry tool connections
     m_connections << connect(toolPanel, &ToolPanel::rotateLeftRequested, controller,
                              [controller]() { controller->rotateImage(-90); });
@@ -234,11 +238,21 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::rotateRightRequested, controller,
                              [controller]() { controller->rotateImage(90); });
 
+    // Custom angle rotation
+    m_connections << connect(toolPanel, &ToolPanel::rotateAngleChanged, controller,
+                             &ApplicationController::rotateImage);
+
     m_connections << connect(toolPanel, &ToolPanel::flipHorizontalRequested, controller,
                              [controller]() { controller->flipImage(1); });
 
     m_connections << connect(toolPanel, &ToolPanel::flipVerticalRequested, controller,
                              [controller]() { controller->flipImage(0); });
+
+    // Resize - receive confirmed width/height from tool panel (logic handled there)
+    m_connections << connect(toolPanel, &ToolPanel::resizeConfirmed, controller,
+                             &ApplicationController::resizeImage);
+
+
 
     // Reset all adjustments
     m_connections << connect(toolPanel, &ToolPanel::resetAllRequested, controller,
@@ -301,6 +315,12 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     // Update sliders when preset is applied
     m_connections << connect(controller, &ApplicationController::adjustmentsChanged, toolPanel,
                              &ToolPanel::updateSliders);
+
+    // Update image info in tool panel when image loads
+    m_connections << connect(controller, &ApplicationController::imageLoaded, toolPanel,
+                             [toolPanel](const QImage& img, const QString&) {
+                                 toolPanel->updateImageInfo(img);
+                             });
 
     // Enable/disable color controls based on active filter
     // Grayscale filter should disable color sliders as they have no effect

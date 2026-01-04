@@ -135,9 +135,12 @@ class ApplicationController : public QObject {
     void adjustTemperature(int value);
     void adjustTint(int value);
     void adjustSaturation(int value);
+    void adjustDenoise(int value);  // Detail adjustment
     void rotateImage(int degrees);
     void flipImage(int direction);  // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
+    void resizeImage(int width, int height);  // Resize image
+    QSize currentImageSize() const;  // Get current image dimensions
     void resetAdjustments();
 
     // Filter/Effect operations

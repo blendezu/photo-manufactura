@@ -41,6 +41,9 @@ class ToolPanel : public QWidget {
     void temperatureChanged(int value);
     void tintChanged(int value);
 
+    // Detail signals
+    void denoiseChanged(int value);
+
     // Geometry signals
     void rotateLeftRequested();
     void rotateRightRequested();
@@ -48,6 +51,9 @@ class ToolPanel : public QWidget {
     void flipVerticalRequested();
     void cropRequested();
     void straightenRequested();
+
+    void rotateAngleChanged(int degrees);  // Custom angle rotation
+    void resizeConfirmed(int width, int height);  // Resize with specific dimensions
 
     // Crop option signals
     void cropAspectRatioChanged(int presetIndex);  // AspectRatioPreset as int
@@ -88,6 +94,9 @@ class ToolPanel : public QWidget {
                       int highlights, int shadows, int whites, int blacks,
                       int temperature, int tint);  // Update sliders from preset
     void setColorControlsEnabled(bool enabled);  // Enable/disable color sliders based on active effect
+    void updateImageInfo(const QImage& image);   // Receive current image info
+    void showResizeDialog();
+
 
    private:
     void setupUI();
@@ -118,11 +127,17 @@ class ToolPanel : public QWidget {
     ModernSlider* m_tintSlider;
     ModernSlider* m_saturationSlider;
 
+    // Detail adjustments
+    ModernSlider* m_denoiseSlider;
+
     // Crop options
     QComboBox* m_cropModeCombo;
     QWidget* m_fixedSizeWidget;
     QSpinBox* m_cropWidthSpin;
     QSpinBox* m_cropHeightSpin;
+
+    // Rotate angle
+    QSpinBox* m_rotateAngleSpin;
 
     // Quick actions (modern buttons)
     ModernToolButton* m_autoEnhanceBtn;
@@ -135,6 +150,9 @@ class ToolPanel : public QWidget {
 
     // Collapsible sections (for enabling/disabling)
     ModernCollapsible* m_colorSection;
+
+    // State
+    QSize m_currentImageSize;
 
     // Presets
     QComboBox* m_presetCombo;

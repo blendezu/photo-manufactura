@@ -1,5 +1,6 @@
 #include "ApplicationController.h"
 
+
 #include <QApplication>
 #include <QDebug>
 #include <QFileDialog>
@@ -349,6 +350,13 @@ void ApplicationController::adjustSaturation(int value) {
     }
 }
 
+void ApplicationController::adjustDenoise(int value) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setDenoise(value);
+        setState("isModified", true);
+    }
+}
+
 void ApplicationController::rotateImage(int degrees) {
     if (m_documentManager->hasDocument()) {
         m_documentManager->rotateImage(degrees);
@@ -387,6 +395,28 @@ void ApplicationController::cropImage(const QRect& cropArea) {
         }
     }
 }
+
+void ApplicationController::resizeImage(int width, int height) {
+    if (m_documentManager->hasDocument()) {
+        m_documentManager->resizeImage(width, height);
+        setState("isModified", true);
+
+        // Update canvas with resized image
+        if (m_documentManager->currentDocument()) {
+            QImage image = m_documentManager->currentDocument()->processedImage();
+            emit imageLoaded(image, m_documentManager->currentFilePath());
+        }
+    }
+}
+
+QSize ApplicationController::currentImageSize() const {
+    if (m_documentManager->hasDocument() && m_documentManager->currentDocument()) {
+        return m_documentManager->currentDocument()->originalImage().size();
+    }
+    return QSize();
+}
+
+
 
 void ApplicationController::resetAdjustments() {
     if (auto* adjustments = m_documentManager->adjustments()) {
