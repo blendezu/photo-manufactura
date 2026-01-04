@@ -170,6 +170,10 @@ void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationControlle
                              [controller]() { controller->setTheme("light"); });
     m_connections << connect(viewMenu, &SubMenuView::themeToggleRequested, controller,
                              &ApplicationController::toggleTheme);
+
+    // GPU/CPU processing mode toggle
+    m_connections << connect(viewMenu, &SubMenuView::gpuModeToggled, controller,
+                             &ApplicationController::setGpuMode);
 }
 
 void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* controller) {

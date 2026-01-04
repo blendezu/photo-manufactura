@@ -22,9 +22,11 @@ class SubMenuView : public QMenu {
     void darkThemeRequested();
     void lightThemeRequested();
     void themeToggleRequested();
+    void gpuModeToggled(bool enabled);  // CPU/GPU processing mode toggle
 
    public slots:
     void setZoomModeChecked(bool checked);
+    void setGpuModeChecked(bool checked);  // Update GPU toggle state from controller
 
    private slots:
     void onDarkThemeTriggered();
@@ -48,4 +50,5 @@ class SubMenuView : public QMenu {
     QAction* m_resetZoomAction;
     QAction* m_fitToWindowAction;
     QAction* m_toggleHistogramAction;
+    QAction* m_gpuModeAction;  // CPU/GPU processing mode toggle
 };
