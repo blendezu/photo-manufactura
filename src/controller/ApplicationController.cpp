@@ -506,6 +506,19 @@ void ApplicationController::applyAutoEnhance() {
         if (std::abs(settings.contrast) > 1.0f) {
             adjustments->setContrast(static_cast<int>(settings.contrast));
         }
+        
+        // Apply Smart Recovery and Tone Mapping
+        if (std::abs(settings.highlight) > 1.0f)
+            adjustments->setHighlights(static_cast<int>(settings.highlight));
+            
+        if (std::abs(settings.shadow) > 1.0f)
+            adjustments->setShadows(static_cast<int>(settings.shadow));
+            
+        if (std::abs(settings.white) > 1.0f)
+            adjustments->setWhites(static_cast<int>(settings.white));
+            
+        if (std::abs(settings.black) > 1.0f)
+            adjustments->setBlacks(static_cast<int>(settings.black));
 
         setState("isModified", true);
         
@@ -741,4 +754,12 @@ void ApplicationController::onFileOperationComplete() {
 
 AdjustmentSettings* ApplicationController::getAdjustments() const {
     return m_documentManager ? m_documentManager->adjustments() : nullptr;
+}
+
+void ApplicationController::requestPerspectiveCropMode() {
+    emit enablePerspectiveCropMode();
+}
+
+void ApplicationController::requestCropMode() {
+    emit enableCropMode(true);
 }

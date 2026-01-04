@@ -611,7 +611,9 @@ ModernCollapsible* ToolPanel::createToolSection() {
     m_cropModeCombo->addItem("21:9 Ultrawide", 5);
     m_cropModeCombo->addItem("3:4 Portrait", 6);
     m_cropModeCombo->addItem("2:3 Portrait", 7);
+    m_cropModeCombo->addItem("2:3 Portrait", 7);
     m_cropModeCombo->addItem("9:16 Portrait", 8);
+    m_cropModeCombo->addItem("Perspective (4-Point)", 99);
     m_cropModeCombo->addItem("Fixed Size...", 100);
     m_cropModeCombo->setStyleSheet(R"(
         QComboBox {
@@ -685,6 +687,9 @@ ModernCollapsible* ToolPanel::createToolSection() {
                     m_fixedSizeWidget->setVisible(true);
                     Q_EMIT cropFixedSizeChanged(m_cropWidthSpin->value(),
                                                 m_cropHeightSpin->value());
+                } else if (presetValue == 99) {
+                    m_fixedSizeWidget->setVisible(false);
+                    Q_EMIT perspectiveCropRequested();
                 } else {
                     m_fixedSizeWidget->setVisible(false);
                     Q_EMIT cropAspectRatioChanged(presetValue);

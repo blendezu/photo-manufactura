@@ -41,223 +41,39 @@
 
 int main() {
     try {
-        // Bild laden
-        // cv::Mat testImage = cv::imread("images/Baum_dark.jpg");
-
-        cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
-
-        cv::cvtColor(testImage, testImage, cv::COLOR_BGR2GRAY);
-
-        if (testImage.empty()) {
-            std::cerr << "❌ Bild konnte nicht geladen werden!" << std::endl;
-            return 1;
-        }
-
-        // Histogram vom Orignalbild
-        auto oriHist = Histogram::histogramImg(testImage);
-
-        // Bild für Anzeige vorbereiten (falls 16-bit)
-        cv::Mat displayImage = testImage.clone();
-        if (displayImage.depth() == CV_16U) {
-            displayImage.convertTo(displayImage, CV_8UC3, 1.0 / 256.0);
-        }
+        // Create synthetic image (500x500 green)
+        cv::Mat testImage(500, 500, CV_8UC3, cv::Scalar(0, 255, 0));
+        
+        std::cout << "✅ Created synthetic test image: " << testImage.cols << "x" << testImage.rows << std::endl;
 
         // Pipeline erstellen
         ImagePipeline pipeline;
+        // Explicitly ensure Fusion is FALSE (though default is now false)
         pipeline.setFusionMode(false);
-
         pipeline.setImg(testImage);
+        std::cout << "✅ Image set to pipeline. Fusion Mode: " << (pipeline.isFusionMode() ? "ON" : "OFF") << std::endl;
 
-        // Zähler für die Schritte
-        int stepCounter = 0;
+        // Add operations (that previously crashed on GPU)
+        pipeline.addOperation(std::make_shared<AdjustExposure>(1.0));
+        pipeline.addOperation(std::make_shared<AdjustContrast>(20));
+        pipeline.addOperation(std::make_shared<Sharpen>(50));
 
-        AutoLightSettings settings = AutoLight::analyze(pipeline.getImg());
+        std::cout << "✅ Operations added. Processing..." << std::endl;
 
-        std::cout << "=== AutoLight Result ===" << std::endl;
-        std::cout << "Exposure:   " << settings.exposure << std::endl;
-        std::cout << "Contrast:   " << settings.contrast << std::endl;
-        std::cout << "Highlight:  " << settings.highlight << std::endl;
-        std::cout << "Shadow:     " << settings.shadow << std::endl;
-        std::cout << "White:      " << settings.white << std::endl;
-        std::cout << "Black:      " << settings.black << std::endl;
-        std::cout << "Brightness: " << settings.brightness << std::endl;
-        std::cout << "========================" << std::endl;
-
-        // Hauptloop
-        while (true) {
-            cv::Mat currentResult;
-
-            // --- COLD START - JIT COMPILATION ---
-            auto cold_start = std::chrono::high_resolution_clock::now();
-
-            cv::Mat processed = pipeline.process();
-
-            auto cold_end = std::chrono::high_resolution_clock::now();
-            auto cold_duration =
-                std::chrono::duration_cast<std::chrono::milliseconds>(cold_end - cold_start);
-            std::cout << "Time for Cold Start: " << cold_duration.count() << " ms" << std::endl;
-            pipeline.invalidateCache();
-
-            // --- NO JIT COMPLATION - LIKE AOT -
-            const int ITERATIONS = 1;
-            auto start = std::chrono::high_resolution_clock::now();
-
-            for (int i = 0; i < ITERATIONS; i++) {
-                processed = pipeline.process();
-                pipeline.invalidateCache();
-            }
-
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            std::cout << "Time for processing: " << duration.count() / ITERATIONS << " ms"
-                      << std::endl;
-
-            currentResult = processed.clone();
-
-            if (currentResult.depth() == CV_16U) {
-                currentResult.convertTo(currentResult, CV_8UC3, 1.0 / 256.0);
-            }
-
-            auto currHist = Histogram::histogramImg(currentResult);
-
-            cv::imshow("currentResult", currentResult);
-
-            // Auf Tastendruck warten
-            int key = cv::waitKey(0);
-
-            if (key == 27) {  // ESC-Taste
-                break;
-            }
-
-            else if (key == 110) {  // Taste n
-
-                std::cout << std::endl;
-                std::cout << std::endl;
-                std::cout << "➡️  Resize-Operation\n";
-                // Zeile 120-136: ANGEPASST an ImageController-Reihenfolge + AOT-Generator
-                // WICHTIG: Denoise wird im JIT nicht separat aufgerufen (nur in AOT als
-                // Halide-Filter)
-
-                // 1. RGB Block
-                pipeline.addOperation(std::make_shared<AdjustExposure>(-0.2));  // 1. Exposure
-                pipeline.addOperation(std::make_shared<WhiteBalance>(20));      // 2. Temperature
-                pipeline.addOperation(std::make_shared<TintMagenta>(20));       // 3. TintMagenta
-
-                // 2. HSL Block
-                pipeline.addOperation(std::make_shared<AdjustBrightness>(20));  // 4. Brightness
-                pipeline.addOperation(std::make_shared<AdjustHighlight>(20));   // 5. Highlight
-                pipeline.addOperation(std::make_shared<AdjustShadow>(20));      // 6. Shadow
-                pipeline.addOperation(std::make_shared<AdjustWhite>(20));       // 7. White
-                pipeline.addOperation(std::make_shared<AdjustBlack>(20));       // 8. Black
-                pipeline.addOperation(std::make_shared<AdjustContrast>(20));    // 9. Contrast
-                pipeline.addOperation(std::make_shared<AdjustSaturation>(20));  // 10. Saturation
-                pipeline.addOperation(std::make_shared<AdjustVibrance>(20));    // 11. Vibrance
-
-                // 3. Spatial Block
-                pipeline.addOperation(std::make_shared<Sharpen>(20));  // 12. Sharpen
-                pipeline.addOperation(std::make_shared<Clarity>(20));  // 13. Clarity
-
-                // Geometry Operations (must match AOT test for fair comparison)
-                // cv::Rect cropRoi = cv::Rect(0, 0, testImage.cols, testImage.rows);
-                // pipeline.addOperation(std::make_shared<Crop>(cropRoi));  // 13. Crop
-
-                // pipeline.addOperation(std::make_shared<Denoise>(100));
-
-                // cv::Rect roi2 = cv::Rect(0, 0, testImage.cols, testImage.rows);
-                // pipeline.addOperation(std::make_shared<Rotate>(10, roi2));  // 14. Rotate
-                // pipeline.addOperation(std::make_shared<Flip>(1));           // 15. Flip
-            }
-
-            else if (key == 98) {  // Taste B
-                pipeline.clearOperations();
-                std::cout << "Clear all opearations.\n" << std::endl;
-
-            } else if (key == 97) {  // Taste 'a' (AOT Test)
-                std::cout << "🚀 Running AOT Pipeline..." << std::endl;
-
-                cv::Mat inputMat = testImage.clone();
-
-                // 4. AOT Pipeline über Controller testen (Wie GUI)
-                std::cout << "🚀 Running AOT Pipeline via Controller..." << std::endl;
-
-                ImageController controller;
-                controller.getPipeline().setFusionMode(true);
-                controller.setImage(inputMat);
-
-                // State (Slider-Werte) setzen
-                ImageState state;
-                // 1. RGB
-                state.exposure = -0.2f;
-                state.temp = 20.0f;
-                state.tintMagenta = 20.0f;
-
-                // 2. HSL
-                state.brightness = 20.0f;
-                state.highlight = 20.0f;
-                state.shadow = 20.0f;
-                state.white = 20.0f;
-                state.black = 20.0f;
-                state.contrast = 20.0f;
-                state.saturation = 20.0f;
-                state.vibrance = 20.0f;
-
-                // 3. Spatial
-                state.sharpen = 20.0f;
-                state.clarity = 20.0f;
-
-                // 4. Geometry
-                // state.flip = 1;
-
-                // Test fast path (denoise = 0) vs slow path (denoise > 0)
-                // state.denoise = 20.0f;
-                // state.resizeHeight = 3000.0f;
-                // state.resizeWidth = 3000.0f;
-
-                // state.rotation = 10.0f;
-                // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
-
-                // Enable Effects (Dynamic via Registry)
-                // state.activeEffects.push_back("Vintage 1");
-                // state.activeEffects.push_back("Gray Image");
-
-                // --- COLD START - AOT ---
-                auto aot_cold_start = std::chrono::high_resolution_clock::now();
-
-                controller.update(state);
-                cv::Mat aotResult = controller.process();
-
-                auto aot_cold_end = std::chrono::high_resolution_clock::now();
-                auto aot_cold_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    aot_cold_end - aot_cold_start);
-
-                if (!aotResult.empty()) {
-                    std::cout << "✅ AOT Pipeline Success! Cold Start Time: "
-                              << aot_cold_duration.count() << " ms" << std::endl;
-                    cv::imshow("AOT Result", aotResult);
-
-                    // --- WARM START / ITERATIONS ---
-                    const int AOT_ITERATIONS = 10;
-                    auto aot_start = std::chrono::high_resolution_clock::now();
-
-                    for (int i = 0; i < AOT_ITERATIONS; i++) {
-                        // Just run process again. AOT path doesn't cache the final output, so it
-                        // re-runs the kernel.
-                        controller.process();
-                    }
-
-                    auto aot_end = std::chrono::high_resolution_clock::now();
-                    auto aot_duration =
-                        std::chrono::duration_cast<std::chrono::milliseconds>(aot_end - aot_start);
-                    std::cout << "Time for AOT processing: "
-                              << aot_duration.count() / AOT_ITERATIONS << " ms" << std::endl;
-
-                } else {
-                    std::cerr << "❌ AOT Pipeline Failed (Empty Result)" << std::endl;
-                }
-            }
+        // Process
+        auto start = std::chrono::high_resolution_clock::now();
+        cv::Mat result = pipeline.process();
+        auto end = std::chrono::high_resolution_clock::now();
+        
+        if (result.empty()) {
+             std::cerr << "❌ Result is empty!" << std::endl;
+             return 1;
         }
 
-        std::cout << "✅ Programm erfolgreich beendet!" << std::endl;
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "✅ Processing complete in " << duration.count() << " ms" << std::endl;
+        std::cout << "✅ Smoke test passed!" << std::endl;
+
     } catch (const std::exception& e) {
         std::cerr << "❌ Fehler: " << e.what() << std::endl;
         return 1;

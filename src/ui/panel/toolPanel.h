@@ -56,6 +56,7 @@ class ToolPanel : public QWidget {
 
     void rotateAngleChanged(int degrees);  // Custom angle rotation
     void resizeConfirmed(int width, int height);  // Resize with specific dimensions
+    void perspectiveCropRequested();  // Request perspective crop mode
 
     // Crop option signals
     void cropAspectRatioChanged(int presetIndex);  // AspectRatioPreset as int
