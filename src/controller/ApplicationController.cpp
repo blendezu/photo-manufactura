@@ -265,6 +265,12 @@ void ApplicationController::redo() {
     m_documentManager->redo();
 }
 
+void ApplicationController::beginAdjustment() {
+    if (m_documentManager) {
+        m_documentManager->beginInteraction();
+    }
+}
+
 void ApplicationController::copy() {
     executeCommand("Copy");
 }

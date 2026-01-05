@@ -365,6 +365,10 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::savePresetButtonClicked, controller,
                              &ApplicationController::showSavePresetDialog);
 
+    // Adjustment Interaction History (Start)
+    m_connections << connect(toolPanel, &ToolPanel::adjustmentStarted, controller,
+                             &ApplicationController::beginAdjustment);
+
     // Zoom mode toggles - connect tool panel buttons to canvas
     if (canvas) {
         m_connections << connect(toolPanel, &ToolPanel::zoomModeToggled, canvas,

@@ -121,6 +121,7 @@ class ApplicationController : public QObject {
     // Edit operations
     void undo();
     void redo();
+    void beginAdjustment();  // Signal start of an adjustment interaction
     void copy();
     void paste();
     void cut();

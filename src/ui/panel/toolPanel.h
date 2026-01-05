@@ -41,8 +41,9 @@ class ToolPanel : public QWidget {
     void temperatureChanged(int value);
     void tintChanged(int value);
 
-    // Generic signal for history tracking (emitted on slider release)
-    void adjustmentFinished(const QString& name, int value);
+    // Generic signal for history interaction
+    void adjustmentStarted();                                 // Emitted on slider press
+    void adjustmentFinished(const QString& name, int value);  // Emitted on slider release
 
     // Detail signals
     void denoiseChanged(int value);
