@@ -2,6 +2,7 @@
 
 #include <QImage>
 #include <QLabel>
+#include <QListWidget>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -19,6 +20,9 @@ class InfoPanel : public QWidget {
     void updateFileSize(qint64 sizeBytes);
     void updateZoomLevel(double level);
 
+   public Q_SLOTS:
+    void updateHistory(const QStringList& history);
+
    private:
     void setupUI();
 
@@ -32,4 +36,5 @@ class InfoPanel : public QWidget {
     QLabel* m_megapixelsLabel;
     QLabel* m_zoomLabel;
     HistogramWidget* m_histogramWidget;
+    QListWidget* m_historyList;
 };

@@ -7,14 +7,10 @@
 #include <QTimer>
 #include <memory>
 
-#include "AdjustmentSettings.h"
-#include "FourPointQuad.h"  // Four-point perspective crop
-#include "ImageDocument.h"
-
-#include "AdjustmentSettings.h"
-#include "FourPointQuad.h"  // Four-point perspective crop
-#include "ImageDocument.h"
 #include "../image_processing/operations/light/auto_light.h"  // For AutoLightSettings struct
+#include "AdjustmentSettings.h"
+#include "FourPointQuad.h"  // Four-point perspective crop
+#include "ImageDocument.h"
 class ImageController;
 struct ImageState;
 
@@ -63,7 +59,7 @@ class DocumentManager : public QObject {
     void applyAdjustmentsDebounced();     // Debounced version for slider dragging
     void setDebouncedMode(bool enabled);  // Enable/disable debouncing
     bool applyAdjustmentsPermanently();   // Bake adjustments into base image
-    
+
     // Auto-Light estimation (returns settings without applying them)
     AutoLightSettings estimateAutoLight();
 
@@ -82,11 +78,16 @@ class DocumentManager : public QObject {
     void applyFilter(const QString& filterName);
     void removeFilter();
     void setStyleStrength(float strength);
-    float getStyleStrength() const { return m_styleStrength; }
+    float getStyleStrength() const {
+        return m_styleStrength;
+    }
 
     // Undo/Redo operations
     void undo();
     void redo();
+
+    // Get current history list (most recent first)
+    QStringList getHistory() const;
 
    Q_SIGNALS:
     void documentOpened(const QString& filePath);
@@ -97,10 +98,11 @@ class DocumentManager : public QObject {
     void imageTransformed();                     // Emitted after rotate/flip/crop
     void errorOccurred(const QString& message);  // Error reporting
     void undoRedoStateChanged(bool canUndo, bool canRedo);
-    void filterChanged(const QString& filterName);  // Emitted when filter is applied/removed
+    void historyChanged(const QStringList& history);  // Emitted when history stack changes
+    void filterChanged(const QString& filterName);    // Emitted when filter is applied/removed
 
    private:
-    void saveStateToHistory();
+    void saveStateToHistory(const QString& description = "Adjustment");
     void updateUndoRedoState();
 
     std::unique_ptr<ImageDocument> m_currentDocument;
@@ -116,9 +118,11 @@ class DocumentManager : public QObject {
     // Undo/Redo history
     QStack<QImage> m_undoStack;
     QStack<QImage> m_redoStack;
+    QStack<QString> m_undoDescriptions;
+    QStack<QString> m_redoDescriptions;
     static const int MAX_HISTORY_SIZE = 20;
 
     // Active filter tracking (persists across adjustment changes)
-    QString m_currentFilter;  // Empty means no filter applied
+    QString m_currentFilter;       // Empty means no filter applied
     float m_styleStrength = 0.8f;  // Default style intensity
 };
