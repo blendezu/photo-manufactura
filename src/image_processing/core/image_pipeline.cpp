@@ -410,17 +410,6 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
     int depth = srcImg.depth();
     int channels = srcImg.channels();
     bool is8Bit = (depth == CV_8U);
-    std::cerr << "[Pipeline debug] runFusedHalideChain Start. Depth: " << depth << " Is8Bit: " << is8Bit << std::endl;
-
-    // Calculate Output Dimensions (Needed for Bounds)
-    int currentWidth = srcImg.cols;
-    int currentHeight = srcImg.rows;
-    for (const auto& op : ops) {
-        int nextW, nextH;
-        op->getOutputDimensions(currentWidth, currentHeight, nextW, nextH);
-        currentWidth = nextW;
-        currentHeight = nextH;
-    }
 
     try {
         // --- 4. CHECK CACHE VALIDITY ---
@@ -469,9 +458,10 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
             // 5.4. CRITICAL: Set Stride Constraints for Interleaved Layout
             // Halide defaults to Planar (stride(0)=1) unless specified.
             // OpenCV Interleaved: stride(0) = channels, stride(2) = 1
-            // m_pipelineCache.inputParam.dim(0).set_stride(channels);                                    // 3 strides to go to next pixel
-            // m_pipelineCache.inputParam.dim(2).set_stride(1);  // 1 stride to go to color channel
-            // m_pipelineCache.inputParam.dim(2).set_bounds(0, channels);
+            m_pipelineCache.inputParam.dim(0).set_stride(
+                channels);                                    // 3 strides to go to next pixel
+            m_pipelineCache.inputParam.dim(2).set_stride(1);  // 1 stride to go to color channel
+            m_pipelineCache.inputParam.dim(2).set_bounds(0, channels);
 
             // 5.5. Define Input with Boundary Conditions
             Halide::Func currentFunc("chain_start");
@@ -516,15 +506,15 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
 
         // 6.1. Calculate Output Dimensions & Create Destination Image
         // This is neccessary because of operations with crop like Crop or Rotation
-        // int currentWidth = srcImg.cols;
-        // int currentHeight = srcImg.rows;
-        //
-        // for (const auto& op : ops) {
-        //     int nextW, nextH;
-        //     op->getOutputDimensions(currentWidth, currentHeight, nextW, nextH);
-        //     currentWidth = nextW;
-        //     currentHeight = nextH;
-        // }
+        int currentWidth = srcImg.cols;
+        int currentHeight = srcImg.rows;
+
+        for (const auto& op : ops) {
+            int nextW, nextH;
+            op->getOutputDimensions(currentWidth, currentHeight, nextW, nextH);
+            currentWidth = nextW;
+            currentHeight = nextH;
+        }
 
         // Create destination image with correct size
         cv::Mat dstImg;
@@ -532,13 +522,11 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
 
         // 6.2. 8-bit Image
         if (is8Bit) {
-            std::cerr << "[Pipeline debug] 6.2. 8-bit Image branch entered" << std::endl;
             // 6.2.1 Wrap Inputs & Outputs using Halide Wrapper.
             // inBuf and outBuf are Halide::Buffer objects, which contain the pointer to the cv::Mat
             // data and the memory layout information (strides, width, height).
             auto inBuf = halideWrapper.wrap<uint8_t>(srcImg);
             auto outBuf = halideWrapper.wrap<uint8_t>(dstImg);
-            std::cerr << "[Pipeline debug] Buffers wrapped" << std::endl;
 
             // 6.2.2 Set Input
             m_pipelineCache.inputParam.set(inBuf);
@@ -553,9 +541,7 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
             // 6.2.4 Run Pipeline
             // output buffer is the destination image
             // target is the device found by HalideWrapper
-            std::cerr << "[Pipeline debug] About to realize. Target: " << halideWrapper.getTarget().to_string() << std::endl;
             m_pipelineCache.pipeline.realize(outBuf, halideWrapper.getTarget());
-            std::cerr << "[Pipeline debug] Realize finished" << std::endl;
 
             // 6.2.5 Copy Output Buffer to Host
             // CRITICAL: Copy the output buffer back to the host (CPU) memory.
@@ -572,7 +558,6 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
         // 6.3. 16-bit Image
         // Same as above but for 16-bit images
         else {
-            std::cerr << "[Pipeline debug] 6.3. 16-bit Image branch entered" << std::endl;
             auto inBuf = halideWrapper.wrap<uint16_t>(srcImg);
             auto outBuf = halideWrapper.wrap<uint16_t>(dstImg);
 
@@ -580,9 +565,7 @@ cv::Mat ImagePipeline::runFusedHalideChain(const cv::Mat& srcImg,
 
             inBuf.set_host_dirty();
 
-            std::cerr << "[Pipeline debug] About to realize (16-bit). Target: " << halideWrapper.getTarget().to_string() << std::endl;
             m_pipelineCache.pipeline.realize(outBuf, halideWrapper.getTarget());
-            std::cerr << "[Pipeline debug] Realize finished" << std::endl;
 
             if (halideWrapper.isGPU()) {
                 outBuf.copy_to_host();

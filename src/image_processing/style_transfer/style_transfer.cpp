@@ -2,6 +2,7 @@
 
 #include <opencv2/core/hal/interface.h>
 
+#include <iostream>
 #include <memory>
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
@@ -9,13 +10,8 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-StyleTransfer::StyleTransfer(StyleType style)
-    : currentStyle(style), env(ORT_LOGGING_LEVEL_ERROR, "StyleTransfer") {
-    // Standard-Optionen
-    sessionOptions.SetIntraOpNumThreads(1);
-    sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_BASIC);
-
-    // Erstes Modell laden
+StyleTransfer::StyleTransfer(StyleType style) : currentStyle(style) {
+    // Load first model
     loadModel(currentStyle);
 }
 
@@ -51,11 +47,17 @@ void StyleTransfer::loadModel(StyleType style) {
     std::cout << "Loading model from " << fullPath << std::endl;
 
     try {
-        session = std::make_unique<Ort::Session>(env, fullPath.c_str(), sessionOptions);
-    } catch (const Ort::Exception& e) {
-        std::cerr << "❌ ONNX Error loading model: " << e.what() << std::endl;
+        net = cv::dnn::readNetFromONNX(fullPath);
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+
+        if (net.empty()) {
+            std::cerr << "❌ Error: Could not load model " << fullPath << std::endl;
+        }
+
+    } catch (const cv::Exception& e) {
+        std::cerr << "❌ OpenCV DNN Error loading model: " << e.what() << std::endl;
         std::cerr << "Tried path: " << fullPath << std::endl;
-        session = nullptr;
     }
 }
 
@@ -66,16 +68,21 @@ void StyleTransfer::setStyle(StyleType style) {
 }
 
 // convert to interleaved BGR because output of the models ist NCHW (Planar RGB)
-cv::Mat StyleTransfer::postprocess(const std::vector<float>& floatArr, int rows, int cols) {
+cv::Mat StyleTransfer::postprocess(const cv::Mat& outputTensor, int rows, int cols) {
+    // Output is 1x3x224x224
+    // We can extract the channel pointers.
+    // The data is contiguous float.
+    const float* data = (float*)outputTensor.data;
+
     std::vector<cv::Mat> channels;
     int channelSize = rows * cols;
 
     for (int i = 0; i < 3; i++) {
         // pointer auf the start point of each chanel
-        const float* data = floatArr.data() + (i * channelSize);
+        const float* channelData = data + (i * channelSize);
 
         // create a matrix
-        cv::Mat channel(rows, cols, CV_32F, const_cast<float*>(data));
+        cv::Mat channel(rows, cols, CV_32F, const_cast<float*>(channelData));
 
         channels.push_back(channel);
     }
@@ -104,8 +111,8 @@ cv::Mat StyleTransfer::apply(const cv::Mat& srcImg) {
         return cv::Mat();
     }
 
-    if (!session) {
-        std::cerr << "❌ Error in StyleTransfer: no ONNX session loaded\n";
+    if (net.empty()) {
+        std::cerr << "❌ Error in StyleTransfer: no model loaded\n";
         return srcImg;
     }
 
@@ -132,37 +139,17 @@ cv::Mat StyleTransfer::apply(const cv::Mat& srcImg) {
                                1.0,                 // value scale factor 255 x 1 = 255
                                cv::Size(224, 224),  // transfer models expect 224x224
                                cv::Scalar(0, 0, 0),
-                               true,  // transfer models expect RGB images
-                               true);
+                               true,   // transfer models expect RGB images
+                               true);  // crop
 
     //================ INFERENZ ===============
-    // tensor setup
-    size_t inputTensorSize = inputBlob.total();
-    std::vector<float> inputTensorValues(inputTensorSize);
 
-    // copy data from Blob to the vector
-    std::memcpy(inputTensorValues.data(), inputBlob.ptr<float>(), inputTensorSize * sizeof(float));
-
-    std::vector<int64_t> inputShape = {1, 3, 224, 224};
-
-    auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-    Ort::Value inputTensor =
-        Ort::Value::CreateTensor<float>(memoryInfo, inputTensorValues.data(), inputTensorSize,
-                                        inputShape.data(), inputShape.size());
-
-    // name for in & output
-    const char* inputNames[] = {"input1"};
-    const char* outputNames[] = {"output1"};
-
-    // Run
-    auto outputTensors =
-        session->Run(Ort::RunOptions{nullptr}, inputNames, &inputTensor, 1, outputNames, 1);
+    net.setInput(inputBlob, "input1");
+    cv::Mat outputTensor = net.forward("output1");
 
     // ========== Posprocessing (Tensor -> Bild)===========
-    float* floatArr = outputTensors.front().GetTensorMutableData<float>();
 
-    cv::Mat result =
-        postprocess(std::vector<float>(floatArr, floatArr + inputTensorSize), 224, 224);
+    cv::Mat result = postprocess(outputTensor, 224, 224);
 
     // Resize to original size
     cv::resize(result, result, srcImg.size());
