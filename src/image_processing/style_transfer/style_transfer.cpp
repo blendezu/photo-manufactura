@@ -18,7 +18,6 @@ StyleTransfer::StyleTransfer(StyleType style) : currentStyle(style) {
 void StyleTransfer::loadModel(StyleType style) {
     currentStyle = style;
 
-    std::string baseDir = "AI_models/";
     std::string modelName;
 
     switch (style) {
@@ -42,7 +41,38 @@ void StyleTransfer::loadModel(StyleType style) {
             break;
     }
 
-    std::string fullPath = baseDir + modelName;
+    // List of potential paths to check
+    std::vector<std::string> baseDirs = {
+        "AI_models/",                // Standard relative path (dev/bin)
+        "../Resources/AI_models/",   // macOS Bundle Resources
+        "../../../AI_models/",       // Fallback relative to bin if run from bundle
+        "../AI_models/"              // Sibling directory
+    };
+
+    std::string fullPath;
+    bool found = false;
+
+    for (const auto& dir : baseDirs) {
+        std::string testPath = dir + modelName;
+        // Simple check if file exists using OpenCV (or just try loading)
+        // Here we rely on try/catch logic below, but strictly we should check existence first or iterate.
+        // Let's assume we find it if the file handles open. But cv::dnn::readNetFromONNX throws.
+        // A better way is to use <filesystem> or just access.
+        FILE* f = fopen(testPath.c_str(), "r");
+        if (f) {
+            fclose(f);
+            fullPath = testPath;
+            found = true;
+            std::cout << "[StyleTransfer] Found model at: " << fullPath << std::endl;
+            break;
+        }
+    }
+
+    if (!found) {
+        // Fallback to default if not found (let exception handler catch it)
+        fullPath = "AI_models/" + modelName;
+        std::cerr << "⚠️ Could not locate model " << modelName << " in any expected path." << std::endl;
+    }
 
     std::cout << "Loading model from " << fullPath << std::endl;
 
