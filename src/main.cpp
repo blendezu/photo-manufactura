@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QDebug>
+#include <QDir>
 
 #include "controller/ApplicationController.h"
 #include "controller/ApplicationWiring.h"
@@ -10,6 +11,10 @@ int main(int argc, char* argv[]) {
     Q_INIT_RESOURCE(resources);
 
     QApplication app(argc, argv);
+
+    // Set working directory to executable location (fixes relative paths in bundles)
+    QDir::setCurrent(QCoreApplication::applicationDirPath());
+    qDebug() << "Working Directory set to:" << QDir::currentPath();
 
     // Create main window
     MainWindow window;

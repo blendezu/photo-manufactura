@@ -109,6 +109,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/AI_models")
     endif()
 endif()
 
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/AI_models")
     message(STATUS "Copying Style Transfer Models to bin folder...")
     # Copy AI models to output directory
@@ -116,4 +117,21 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/AI_models")
          DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 else()
     message(WARNING "⚠️ Folder 'AI_models' not found in root!")
+endif()
+
+# Copy images folder
+if(EXISTS "${CMAKE_SOURCE_DIR}/images")
+    if(APPLE)
+        install(DIRECTORY "${CMAKE_SOURCE_DIR}/images" 
+                DESTINATION "${PROJECT_NAME}.app/Contents/Resources")
+    else()
+        install(DIRECTORY "${CMAKE_SOURCE_DIR}/images" 
+                DESTINATION bin)
+    endif()
+    
+    message(STATUS "Copying images to bin folder...")
+    file(COPY "${CMAKE_SOURCE_DIR}/images" 
+         DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+else()
+    message(WARNING "⚠️ Folder 'images' not found in root!")
 endif()
