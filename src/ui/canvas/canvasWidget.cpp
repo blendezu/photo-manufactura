@@ -439,8 +439,8 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
         // 2. Get mouse pos in image coords
         QPoint mouseImage = widgetToImageCoords(event->pos());
 
-        // 3. Clamp to Safe Inscribed Rect
-        QRect safeRect = getMaxSafeInscribedRect();
+        // 3. Clamp to Bounding Box of Rotated Image (allow user to go into black corners)
+        QRect safeRect = getMaxPossibleCropRect();
         int clampedX = qBound(safeRect.left(), mouseImage.x(), safeRect.right());
         int clampedY = qBound(safeRect.top(), mouseImage.y(), safeRect.bottom());
         QPoint clampedMouse(clampedX, clampedY);
@@ -760,6 +760,35 @@ QRect CanvasWidget::getMaxSafeInscribedRect() const {
         maxRect = QRect(left, top, static_cast<int>(newW), static_cast<int>(newH));
     }
     return maxRect;
+}
+
+QRect CanvasWidget::getMaxPossibleCropRect() const {
+    if (m_imageSize.isEmpty()) {
+        return QRect();
+    }
+
+    double W = m_imageSize.width();
+    double H = m_imageSize.height();
+
+    if (std::abs(m_straightenAngle) < 0.001f) {
+        return QRect(0, 0, static_cast<int>(W), static_cast<int>(H));
+    }
+
+    // Bounding box of rotated rectangle
+    double theta = std::abs(m_straightenAngle) * M_PI / 180.0;
+    double sinA = std::sin(theta);
+    double cosA = std::cos(theta);
+
+    double newW = W * cosA + H * sinA;
+    double newH = W * sinA + H * cosA;
+
+    // The coordinate system is relative to the original image (0,0 to W,H).
+    // The rotated image is centered at the same center point.
+    // So distinct from the centered inscribed rect, we need offsets that might be negative.
+    int left = static_cast<int>((W - newW) / 2.0);
+    int top = static_cast<int>((H - newH) / 2.0);
+
+    return QRect(left, top, static_cast<int>(newW), static_cast<int>(newH));
 }
 
 QRect CanvasWidget::getInscribedCropRect() const {

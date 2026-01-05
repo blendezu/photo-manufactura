@@ -219,7 +219,8 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 
     // Helper methods
     int hitTestStraightenHandle(const QPoint& widgetPos, const QRect& displayRect) const;
-    QRect getMaxSafeInscribedRect() const;  // Helper for straighten constraints
+    QRect getMaxSafeInscribedRect() const;  // Helper for auto-crop constraint
+    QRect getMaxPossibleCropRect() const;   // Helper for manual crop constraint (full bounding box)
     void setupShaders();
     void setupGeometry();
     void updateMatrices();

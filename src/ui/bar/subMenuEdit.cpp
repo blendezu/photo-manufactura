@@ -22,5 +22,15 @@ SubMenuEdit::SubMenuEdit(QWidget* parent) : QMenu(parent) {
     this->addAction(redoAction);
 }
 
+void SubMenuEdit::setUndoEnabled(bool enabled) {
+    if (undoAction)
+        undoAction->setEnabled(enabled);
+}
+
+void SubMenuEdit::setRedoEnabled(bool enabled) {
+    if (redoAction)
+        redoAction->setEnabled(enabled);
+}
+
 // Destructor
 SubMenuEdit::~SubMenuEdit() {}
