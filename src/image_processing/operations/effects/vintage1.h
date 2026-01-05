@@ -4,7 +4,9 @@
 
 class Vintage1 : public ImageOperation {
    private:
-    cv::Mat scratchImg = cv::imread("images/9003.jpg");
+    static cv::Mat scratchImg;
+    static cv::Mat cachedScratchMask;
+    static cv::Size lastSize;
 
    public:
     Vintage1() {};
