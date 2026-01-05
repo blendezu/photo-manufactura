@@ -96,9 +96,16 @@ void CanvasWidget::setupShaders() {
         #version 120
         varying vec2 TexCoord;
         uniform sampler2D u_texture;
+        uniform sampler2D u_textureOriginal;
+        uniform bool u_compareMode;
+        uniform float u_splitPosition;
         
         void main() {
-            gl_FragColor = texture2D(u_texture, TexCoord);
+            if (u_compareMode && TexCoord.x < u_splitPosition) {
+                gl_FragColor = texture2D(u_textureOriginal, TexCoord);
+            } else {
+                gl_FragColor = texture2D(u_texture, TexCoord);
+            }
         }
     )";
 
@@ -207,6 +214,16 @@ void CanvasWidget::paintGL() {
     m_texture->bind(0);
     m_shaderProgram->setUniformValue("u_texture", 0);
 
+    // Bind original texture for comparison
+    if (m_compareMode && m_originalTexture) {
+        m_originalTexture->bind(1);
+        m_shaderProgram->setUniformValue("u_textureOriginal", 1);
+        m_shaderProgram->setUniformValue("u_compareMode", true);
+        m_shaderProgram->setUniformValue("u_splitPosition", (float)m_compareSplitPosition);
+    } else {
+        m_shaderProgram->setUniformValue("u_compareMode", false);
+    }
+
     // Set transformation matrices for zoom/pan
     m_shaderProgram->setUniformValue("u_mvpMatrix", m_mvpMatrix);
 
@@ -214,6 +231,11 @@ void CanvasWidget::paintGL() {
     m_quadVAO.bind();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     m_quadVAO.release();
+
+    // Release textures
+    if (m_compareMode && m_originalTexture) {
+        m_originalTexture->release();
+    }
 
     // Cleanup
     m_texture->release();
