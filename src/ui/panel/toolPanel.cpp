@@ -142,8 +142,15 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
     infoLabel->setWordWrap(true);
     layout->addWidget(infoLabel);
 
+    // Container for combo and save button
+    QWidget* container = new QWidget(this);
+    QHBoxLayout* comboLayout = new QHBoxLayout(container);
+    comboLayout->setContentsMargins(0, 0, 0, 0);
+    comboLayout->setSpacing(8);
+
     // Preset combo box
     m_presetCombo = new QComboBox(this);
+    m_presetCombo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_presetCombo->addItem("Select a preset...");
     m_presetCombo->insertSeparator(1);
 
@@ -197,14 +204,27 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
                 }
             });
 
-    layout->addWidget(m_presetCombo);
+    comboLayout->addWidget(m_presetCombo);
 
     // Save preset button
-    IconButton* saveBtn = new IconButton("", "Save Current as Preset", this);
+    ModernButton* saveBtn = new ModernButton("Save", ModernButton::Secondary, this);
+    saveBtn->setButtonSize(ModernButton::Small);
     saveBtn->setIconEmoji("💾");
     saveBtn->setToolTip("Save current adjustments as a new preset");
+    saveBtn->setFixedWidth(65); // Adjusted width
+    // Custom styling for extra compactness to match user request
+    saveBtn->setStyleSheet(R"(
+        QPushButton {
+            padding: 4px 4px 4px 26px;
+            text-align: left;
+            font-size: 11px;
+            margin: 0px;
+        }
+    )");
     connect(saveBtn, &QPushButton::clicked, this, &ToolPanel::savePresetButtonClicked);
-    layout->addWidget(saveBtn);
+    comboLayout->addWidget(saveBtn);
+
+    layout->addWidget(container);
 
     presetsSection->setContentLayout(layout);
     return presetsSection;
