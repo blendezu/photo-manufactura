@@ -42,7 +42,7 @@
 int main() {
     try {
         // Bild laden
-        cv::Mat testImage = cv::imread("images/baum.jpg");
+        cv::Mat testImage = cv::imread("images/baum_dark.jpg");
 
         // cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
@@ -221,7 +221,7 @@ int main() {
                 // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
 
                 // Enable Effects (Dynamic via Registry)
-                // state.activeEffects.push_back("Vintage 1");
+                state.activeEffects.push_back("Vintage 1");
                 // state.activeEffects.push_back("Gray Image");
 
                 // --- COLD START - AOT ---

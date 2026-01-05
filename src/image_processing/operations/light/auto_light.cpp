@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <opencv2/imgproc.hpp>
 
 AutoLightSettings AutoLight::analyze(const cv::Mat& srcImg) {
@@ -73,50 +74,80 @@ AutoLightSettings AutoLight::analyze(const cv::Mat& srcImg) {
         }
     }
 
-    // --- 3. Auto Exposure: Move Median (p50) to Middle Gray (around 127) ---
-    if (p50 > 0) {
-        float targetMean = 127.0f;
-        float exposureDiff = std::log2(targetMean / (float)p50);
+    std::cout << "P1: " << p01 << "; P99: " << p99 << std::endl;
 
-        // Clamp and attenuate the exposureDiff with 0.8 to avoid too strong reaction
-        settings.exposure = std::clamp(exposureDiff * 0.8f, -2.0f, 2.0f);
-    }
+    // --- Decision: Good Dynamic Range vs. Safe To Adjust ---
+    // "Good DR": Black point is low enough (< safeBlack) AND White point is high enough (>
+    // safeWhite). In this case, using Brightness to avoid changing Dynamic Range
 
-    // --- 4. Auto Contrast: Maximize Dynamic Range ---
-    // Range is p99 - p01. Ideal is close to 255.
-    // If range is small (e.g. < 150), boost contrast.
-    int dynamicRange = p99 - p01;
-    if (dynamicRange < 200) {
-        // Simple heuristic: Map 0..200 range to 0..30 contrast boost
-        float boost = (200.0f - dynamicRange) / 200.0f;  // 0.0 to 1.0
-        settings.contrast = boost * 30.0f;               // Max 30 contrast
-    }
+    bool safeBlack = p01 < 40;
+    bool safeWhite = p99 > 200;
 
-    // 5. Smart Recovery (Highlights & Shadows)
-    // Now we simulate what the exposure boost did to the edges.
+    if (safeBlack && safeWhite) {
+        // --- PATH A: Good DR -> Adjust Brightness (Midtone Curve) ---
 
-    // Estimate new Black/White points after exposure shift
-    // (Approximation: Value * 2^EV)
-    float evScale = std::pow(2.0f, settings.exposure);
-    float newP01 = p01 * evScale;
-    float newP99 = p99 * evScale;
+        float currentMid = p50 / 255.0f;
+        float targetMid = 0.5f;
 
-    // A. Shadows Recovery
-    // If we darkened the image (ev < 0), blacks might clip to 0.
-    // Or if original blacks were crushed, we want to lift them.
-    if (newP01 < 10.0f) {
-        // Boost shadows to recover detail
-        // Factor is stronger if black point is lower
-        float recovery = (10.0f - newP01) * 2.0f;
-        settings.shadow = std::clamp(recovery, 0.0f, 40.0f);
-    }
+        // Required shift
+        float shift = targetMid - currentMid;
 
-    // B. Highlights Recovery
-    // If we brightened the image (ev > 0), whites might clip to 255.
-    if (newP99 > 245.0f) {
-        // Reduce highlights to recover detail
-        float recovery = (newP99 - 245.0f) * 2.0f;
-        settings.highlight = std::clamp(-recovery, -50.0f, 0.0f);
+        // Brightness slider only 70.0 to avoid over correcting, mapped to approx -1.0 to 1.0 shift
+        float brightnessVal = shift * 70.0f;
+
+        // Clamp to safe range (-50 to +50 is usually enough for auto)
+        settings.brightness = std::clamp(brightnessVal, -50.0f, 50.0f);
+
+        // Don't touch exposure/shadows/highlights
+        settings.exposure = 0.0f;
+        settings.contrast = 0.0f;
+        settings.shadow = 0.0f;
+        settings.highlight = 0.0f;
+
+    } else {
+        // --- PATH B: Bad/Partial DR -> Adjust Exposure (Legacy Logic) ---
+
+        // 3. Auto Exposure: Move Median (p50) to Middle Gray (around 127)
+        if (p50 > 0) {
+            float targetMean = 127.0f;
+            float exposureDiff = std::log2(targetMean / (float)p50);
+
+            // Clamp and attenuate the exposureDiff with 0.8 to avoid too strong reaction
+            settings.exposure = std::clamp(exposureDiff * 0.8f, -2.0f, 2.0f);
+        }
+
+        // 4. Auto Contrast: Maximize Dynamic Range
+        // Range is p99 - p01. Ideal is close to 255.
+        // If range is small (e.g. < 150), boost contrast.
+        // int dynamicRange = p99 - p01;
+        // if (dynamicRange < 200) {
+        //     // Simple heuristic: Map 0..200 range to 0..30 contrast boost
+        //     float boost = (200.0f - dynamicRange) / 200.0f;  // 0.0 to 1.0
+        //     settings.contrast = boost * 30.0f;               // Max 30 contrast
+        // }
+
+        // 5. Smart Recovery (Highlights & Shadows)
+        // Now we simulate what the exposure boost did to the edges.
+
+        // Estimate new Black/White points after exposure shift
+        // (Approximation: Value * 2^EV)
+        float evScale = std::pow(2.0f, settings.exposure);
+        float newP01 = p01 * evScale;
+        float newP99 = p99 * evScale;
+
+        // A. Shadows Recovery
+        if (newP01 < 10.0f) {
+            float recovery = (10.0f - newP01) * 2.0f;
+            settings.shadow = std::clamp(recovery, 0.0f, 40.0f);
+        }
+
+        // B. Highlights Recovery
+        // If we brightened the image (ev > 0), whites might clip to 255.
+        if (newP99 > 245.0f) {
+            // Reduce highlights to recover detail
+            float recovery = (newP99 - 245.0f) * 2.0f;
+            settings.highlight = std::clamp(-recovery, -50.0f, 0.0f);
+        }
     }
 
     return settings;
