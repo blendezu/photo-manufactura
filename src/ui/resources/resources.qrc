@@ -15,5 +15,11 @@
         <file>assets/icons/rect_select.png</file>
         <file>assets/icons/lasso_select.png</file>
         <file>assets/icons/resize.png</file>
+        <file>assets/icons/reset.svg</file>
+        <file>assets/icons/compare.svg</file>
+        <file>assets/icons/apply.svg</file>
+        <file>assets/icons/zoom_in.svg</file>
+        <file>assets/icons/dropdown.svg</file>
+        <file>assets/icons/save.svg</file>
     </qresource>
 </RCC>

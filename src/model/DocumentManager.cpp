@@ -390,8 +390,9 @@ void DocumentManager::rotateImage(int degrees) {
     // Save state for undo before making changes
     saveStateToHistory(QString("Rotate %1°").arg(degrees));
 
-    // Get the current image (processed if available, otherwise original)
-    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+    // Get the current image (always use original for destructive ops to avoid baking in
+    // adjustments)
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
 
     // Apply rotation
     auto rotateOp = std::make_shared<Rotate>(degrees);
@@ -429,7 +430,7 @@ void DocumentManager::flipImage(int direction) {
     saveStateToHistory(QString("Flip %1").arg(dirStr));
 
     // Get the current image
-    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
 
     // Apply flip (0 = vertical, 1 = horizontal)
     auto flipOp = std::make_shared<Flip>(direction);
@@ -471,7 +472,7 @@ void DocumentManager::cropImage(const QRect& cropArea) {
     saveStateToHistory("Crop");
 
     // Get the current image
-    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
 
     // Validate crop area against image dimensions
     cv::Rect cvCropRect(cropArea.x(), cropArea.y(), cropArea.width(), cropArea.height());
@@ -519,7 +520,7 @@ void DocumentManager::perspectiveCropImage(const FourPointQuad& quad) {
     saveStateToHistory("Perspective Crop");
 
     // Get the current image
-    cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
+    cv::Mat cvImage = qImageToCvMat(m_currentDocument->originalImage());
 
     // Convert FourPointQuad (Qt) to PerspectiveCrop::QuadPoints (OpenCV)
     PerspectiveCrop::QuadPoints quadPoints;

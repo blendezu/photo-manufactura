@@ -92,28 +92,26 @@ QWidget* ToolPanel::createQuickActionsBar() {
     layout->setContentsMargins(8, 8, 8, 8);
     layout->setSpacing(6);
 
-    // Auto Enhance button removed from here, moved to Light section
-
     // Apply button (applies corrections to permanent image)
-    ModernToolButton* applyBtn = new ModernToolButton("Apply", ":/assets/icons/apply.png", bar);
+    ModernToolButton* applyBtn = new ModernToolButton("Apply", ":/assets/icons/apply.svg", bar);
     applyBtn->setToolTip("Apply current adjustments permanently");
     connect(applyBtn, &ModernToolButton::clicked, this, &ToolPanel::applyRequested);
 
     // Before/After compare button (checkable)
-    m_compareBtn = new ModernToolButton("Compare", ":/assets/icons/compare.png", bar);
+    m_compareBtn = new ModernToolButton("Compare", ":/assets/icons/compare.svg", bar);
     m_compareBtn->setCheckable(true);
     m_compareBtn->setToolTip("Toggle before/after comparison (Space)");
     connect(m_compareBtn, &ModernToolButton::toggled, this, &ToolPanel::compareModeToggled);
 
     // Zoom button (toggleable)
-    m_zoomBtn = new ModernToolButton("Zoom", ":/assets/icons/zoom_in.png", bar);
+    m_zoomBtn = new ModernToolButton("Zoom", ":/assets/icons/zoom_in.svg", bar);
     m_zoomBtn->setCheckable(true);
     m_zoomBtn->setToolTip(
         "Toggle Zoom mode (Z)\nClick = zoom in, Alt+Click = zoom out\nScroll to zoom");
     connect(m_zoomBtn, &ModernToolButton::toggled, this, &ToolPanel::zoomModeToggled);
 
     // Reset button
-    ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.png", bar);
+    ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.svg", bar);
     resetBtn->setToolTip("Reset all adjustments");
     connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetAllAdjustments);
 
@@ -174,7 +172,7 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
         QComboBox:hover { border-color: #4a4a4a; background: #303030; }
         QComboBox:focus { border-color: #6366f1; }
         QComboBox::drop-down { border: none; width: 24px; }
-        QComboBox::down-arrow { image: url(:/assets/icons/dropdown.png); width: 10px; }
+        QComboBox::down-arrow { image: url(:/assets/icons/dropdown.svg); width: 10px; }
         QComboBox QAbstractItemView {
             background: #2a2a2a;
             color: #d0d0d0;
@@ -208,7 +206,7 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
     // Save preset button
     ModernButton* saveBtn = new ModernButton("Save", ModernButton::Secondary, this);
     saveBtn->setButtonSize(ModernButton::Small);
-    saveBtn->setIconEmoji("💾");
+    saveBtn->setIcon(":/assets/icons/save.svg");
     saveBtn->setToolTip("Save current adjustments as a new preset");
     saveBtn->setFixedWidth(65);  // Adjusted width
     // Custom styling for extra compactness to match user request
@@ -544,12 +542,10 @@ ModernCollapsible* ToolPanel::createToolSection() {
 
     IconButton* rotateLeftBtn =
         new IconButton(":/assets/icons/rotate_left.png", "Rotate Left", this);
-    rotateLeftBtn->setIconEmoji("↺");
     connect(rotateLeftBtn, &QPushButton::clicked, this, &ToolPanel::rotateLeftRequested);
 
     IconButton* rotateRightBtn =
         new IconButton(":/assets/icons/rotate_right.png", "Rotate Right", this);
-    rotateRightBtn->setIconEmoji("↻");
     connect(rotateRightBtn, &QPushButton::clicked, this, &ToolPanel::rotateRightRequested);
 
     rotateLayout->addWidget(rotateLeftBtn);
@@ -582,8 +578,7 @@ ModernCollapsible* ToolPanel::createToolSection() {
         QSpinBox:focus { border-color: #6366f1; }
     )");
 
-    IconButton* applyAngleBtn = new IconButton("", "Apply Rotation", this);
-    applyAngleBtn->setIconEmoji("✓");
+    IconButton* applyAngleBtn = new IconButton(":/assets/icons/apply.svg", "Apply Rotation", this);
     connect(applyAngleBtn, &QPushButton::clicked, this, [this]() {
         int angle = m_rotateAngleSpin->value();
         if (angle != 0) {
