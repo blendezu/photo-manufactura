@@ -42,7 +42,7 @@
 int main() {
     try {
         // Bild laden
-        cv::Mat testImage = cv::imread("images/Baum.jpg");
+        cv::Mat testImage = cv::imread("images/baum.jpg");
 
         // cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
@@ -186,6 +186,7 @@ int main() {
                 ImageController controller;
                 controller.getPipeline().setFusionMode(true);
                 controller.setImage(inputMat);
+                controller.setPreviewMode(false);
 
                 // State (Slider-Werte) setzen
                 ImageState state;

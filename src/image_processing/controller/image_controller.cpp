@@ -235,7 +235,7 @@ cv::Mat ImageController::process() {
         (float)highlight_under, (float)highlight_upper, (float)shadow_f, (float)shadow_under,
         (float)shadow_upper, (float)white_f, (float)white_under, (float)white_upper, (float)black_f,
         (float)black_lower, (float)black_upper, (float)sat_factor, (float)vibrance_f, (float)t_mag,
-        (float)wb_red, (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f, 0.0f,
+        (float)wb_red, (float)wb_blue, (float)sharpen_amt, (float)clarity_amt,
         (struct halide_buffer_t*)(outputPlanar.raw_buffer()));
 
     if (err != 0) {
