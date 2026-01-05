@@ -143,7 +143,10 @@ bool DocumentManager::openDocument(const QString& filePath) {
     m_adjustments->resetAll();
     m_currentDocument->clear();
     *m_currentImageState = ImageState{};  // Reset image state
-    *m_currentImageState = ImageState{};  // Reset image state
+    // Clear filter state
+    m_currentFilter.clear();
+    Q_EMIT filterChanged("");
+
     m_undoStack.clear();
     m_redoStack.clear();
     Q_EMIT historyChanged(QStringList());
@@ -259,6 +262,10 @@ void DocumentManager::resetToOriginal() {
         // For unsaved/new documents, we can only reset adjustments as we don't have a source file
         // to recover the pre-transformed pixel data from (unless we cache it, which is heavy).
         m_adjustments->resetAll();
+        // Clear filter state for unsaved docs too
+        m_currentFilter.clear();
+        Q_EMIT filterChanged("");
+
         m_adjustments->setRotation(0);
         applyAdjustments();
         // Clear logic for stack missing here? m_undoStack.clear()?
@@ -374,6 +381,11 @@ bool DocumentManager::applyAdjustmentsPermanently() {
     // Set the processed image as the new original
     m_currentDocument->setOriginalImage(processedImage);
     m_currentDocument->setProcessedImage(processedImage);
+
+    // Update ImageController with the new base image
+    // This is critical effectively "baking" the adjustments into the pipeline's source
+    cv::Mat cvImage = qImageToCvMat(processedImage);
+    m_imageController->setImage(cvImage);
 
     // Reset all adjustments to zero since they're now baked in
     m_adjustments->resetAll();
@@ -901,6 +913,11 @@ void DocumentManager::undo() {
     // Restore base image
     m_currentDocument->setOriginalImage(previousState.image);
 
+    // CRITICAL: Update ImageController's base image to the restored original
+    // This ensures that we are processing on the correct base (e.g. undoing an 'Apply')
+    cv::Mat restoredCvImage = qImageToCvMat(previousState.image);
+    m_imageController->setImage(restoredCvImage);
+
     // Restore adjustments
     m_adjustments->applySnapshot(previousState.adjustments);
 
@@ -933,6 +950,11 @@ void DocumentManager::redo() {
     HistoryState nextState = m_redoStack.pop();
 
     m_currentDocument->setOriginalImage(nextState.image);
+
+    // CRITICAL for Redo: Update ImageController's base image
+    cv::Mat nextCvImage = qImageToCvMat(nextState.image);
+    m_imageController->setImage(nextCvImage);
+
     m_adjustments->applySnapshot(nextState.adjustments);
 
     applyAdjustments();

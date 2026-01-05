@@ -26,6 +26,7 @@ class ModernToolButton : public QWidget {
     void setCheckable(bool checkable) {
         m_checkable = checkable;
     }
+    void setFlat(bool flat);                 // Transparent background when not hovered/checked
     void setBadgeText(const QString& text);  // For showing status like "AI"
 
    Q_SIGNALS:
@@ -52,6 +53,7 @@ class ModernToolButton : public QWidget {
     bool m_pressed = false;
     bool m_checked = false;
     bool m_checkable = false;
+    bool m_flat = false;
     QString m_iconPath;
 };
 

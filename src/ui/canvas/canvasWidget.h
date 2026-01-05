@@ -216,6 +216,8 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QRect m_manualStraightenCropRect;  // Image coordinates, empty if auto
     int m_straightenDragHandle = -1;   // -1=none, 0=TL, 1=TR, 2=BR, 3=BL
     QPoint m_straightenDragStart;      // Widget coordinates
+    bool m_straightenMoving = false;   // Dragging the entire rect
+    QPoint m_straightenMoveStart;      // Widget coordinates for move start
 
     // Helper methods
     int hitTestStraightenHandle(const QPoint& widgetPos, const QRect& displayRect) const;

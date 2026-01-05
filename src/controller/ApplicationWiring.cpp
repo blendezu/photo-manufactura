@@ -410,6 +410,14 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
                                  });
     }
 
+    // Reset ToolPanel UI when a new file is opened (or reset to original)
+    // This ensures sliders snap back to 0 even if the model reset logic happened silently
+    m_connections << connect(controller, &ApplicationController::fileOpened, toolPanel,
+                             [toolPanel](const QString&) { toolPanel->resetAllAdjustments(); });
+
+    // Also connect to imageLoaded? No, imageLoaded fires on rotation/filters too.
+    // fileOpened is specific to new document load (or reset reload).
+
     // Crop tool - activates crop mode on canvas
     m_connections << connect(toolPanel, &ToolPanel::cropRequested, controller, [controller]() {
         controller->requestCropMode();
@@ -499,6 +507,11 @@ void ApplicationWiring::wireDocumentToCanvas(ApplicationController* controller,
                 QFileInfo fileInfo(filePath);
                 mainWindow->setWindowTitle(
                     QString("Photo Manufactura - %1").arg(fileInfo.fileName()));
+
+                // Reset CanvasWidget transformation state (exit crop/straighten modes)
+                canvas->setCropMode(false);
+                canvas->setStraightenMode(false);
+                canvas->resetView();  // Reset zoom/pan
 
                 qDebug() << "Document opened and canvas updated:" << filePath;
             }

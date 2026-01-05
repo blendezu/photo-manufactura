@@ -155,7 +155,7 @@ class ToolPanel : public QWidget {
     ModernSlider* m_rotationSlider;
 
     // Straighten mode controls
-    ModernButton* m_straightenToggle;
+    ModernToolButton* m_straightenToggle;
     ModernButton* m_applyStraightenBtn;
     QComboBox* m_straightenRatioCombo;
 

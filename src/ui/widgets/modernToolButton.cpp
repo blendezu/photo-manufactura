@@ -121,6 +121,13 @@ void ModernToolButton::paintEvent(QPaintEvent* event) {
     // Background painting handled by stylesheet
 }
 
+void ModernToolButton::setFlat(bool flat) {
+    if (m_flat != flat) {
+        m_flat = flat;
+        updateStyle();
+    }
+}
+
 void ModernToolButton::updateStyle() {
     QString bgColor, borderColor, labelColor;
 
@@ -129,16 +136,16 @@ void ModernToolButton::updateStyle() {
         borderColor = "#0078d4";
         labelColor = "#fff";
     } else if (m_pressed) {
-        bgColor = "#2a2a2a";
+        bgColor = m_flat ? "rgba(255, 255, 255, 0.12)" : "#2a2a2a";
         borderColor = "#0078d4";
         labelColor = "#ddd";
     } else if (m_hovered) {
-        bgColor = "#4a4a4a";
-        borderColor = "#666";
+        bgColor = m_flat ? "rgba(255, 255, 255, 0.08)" : "#4a4a4a";
+        borderColor = m_flat ? "transparent" : "#666";
         labelColor = "#fff";
     } else {
-        bgColor = "#3a3a3a";
-        borderColor = "#505050";
+        bgColor = m_flat ? "transparent" : "#3a3a3a";
+        borderColor = m_flat ? "transparent" : "#505050";
         labelColor = "#aaa";
     }
 
