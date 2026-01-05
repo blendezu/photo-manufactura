@@ -221,7 +221,7 @@ int main() {
                 // state.cropRect = cv::Rect(0, 0, currentResult.cols, currentResult.rows);
 
                 // Enable Effects (Dynamic via Registry)
-                // state.activeEffects.push_back("Vintage 1");
+                state.activeEffects.push_back("Vintage 1");
                 // state.activeEffects.push_back("Gray Image");
 
                 // --- COLD START - AOT ---

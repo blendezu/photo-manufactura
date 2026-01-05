@@ -85,12 +85,12 @@ AutoLightSettings AutoLight::analyze(const cv::Mat& srcImg) {
     // --- 4. Auto Contrast: Maximize Dynamic Range ---
     // Range is p99 - p01. Ideal is close to 255.
     // If range is small (e.g. < 150), boost contrast.
-    int dynamicRange = p99 - p01;
-    if (dynamicRange < 200) {
-        // Simple heuristic: Map 0..200 range to 0..30 contrast boost
-        float boost = (200.0f - dynamicRange) / 200.0f;  // 0.0 to 1.0
-        settings.contrast = boost * 30.0f;               // Max 30 contrast
-    }
+    // int dynamicRange = p99 - p01;
+    // if (dynamicRange < 200) {
+    //     // Simple heuristic: Map 0..200 range to 0..30 contrast boost
+    //     float boost = (200.0f - dynamicRange) / 200.0f;  // 0.0 to 1.0
+    //     settings.contrast = boost * 30.0f;               // Max 30 contrast
+    // }
 
     // 5. Smart Recovery (Highlights & Shadows)
     // Now we simulate what the exposure boost did to the edges.
