@@ -80,7 +80,8 @@ class DocumentManager : public QObject {
 
     // Geometry operations (destructive - modify the base image)
     void rotateImage(int degrees);
-    void flipImage(int direction);  // 0 = vertical, 1 = horizontal
+    void applyStraighten(float angle, const QRect& cropRect);  // Destructive straighten
+    void flipImage(int direction);                             // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
     void perspectiveCropImage(const FourPointQuad& quad);  // Four-point perspective crop
     void resizeImage(int width, int height);               // Resize image to new dimensions

@@ -32,6 +32,8 @@ class ModernSlider : public QWidget {
     void reset();
     void setTooltip(const QString& tooltip);
     void setUnit(const QString& unit);
+    void setShowTickMarks(bool show, int count = 11);  // Camera-style EV ticks
+    void setDisplayDivisor(float divisor);  // Divide value by this for display (e.g., 10 for EV)
     QString label() const {
         return m_labelText;
     }
@@ -58,11 +60,13 @@ class ModernSlider : public QWidget {
     void enterEvent(QEnterEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;  // For tick marks
 
    private:
     void setupUI();
     void updateSliderStyle();
     void animateHandleGlow(bool highlight);
+    void updateDisplayValue(int rawValue);  // Format display with divisor
 
     QString m_labelText;
     QString m_unit;
@@ -76,6 +80,9 @@ class ModernSlider : public QWidget {
     qreal m_handleGlow;
     QPropertyAnimation* m_glowAnimation;
     bool m_isHovered;
+    bool m_showTickMarks = false;
+    int m_tickCount = 11;           // -5 to +5 = 11 marks
+    float m_displayDivisor = 1.0f;  // Divide value by this for display
 };
 
 /**

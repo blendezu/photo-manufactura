@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QImage>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "FourPointQuad.h"  // Four-point perspective crop data structure
 
@@ -255,17 +257,18 @@ void DocumentManager::applyAdjustments() {
     // Map AdjustmentSettings (-100 to +100 int) to ImageState (float)
     m_currentImageState->brightness = static_cast<float>(m_adjustments->brightness());
     m_currentImageState->contrast = static_cast<float>(m_adjustments->contrast());
-    m_currentImageState->exposure =
-        static_cast<float>(m_adjustments->exposure()) / 20.0f;  // Map to -5.0 to +5.0
+    m_currentImageState->exposure = static_cast<float>(m_adjustments->exposure()) /
+                                    10.0f;  // Slider -50 to +50 → -5.0 to +5.0 EV
     m_currentImageState->highlight = static_cast<float>(m_adjustments->highlights());
     m_currentImageState->shadow = static_cast<float>(m_adjustments->shadows());
     m_currentImageState->white = static_cast<float>(m_adjustments->whites());
     m_currentImageState->black = static_cast<float>(m_adjustments->blacks());
     m_currentImageState->temp = static_cast<float>(m_adjustments->temperature());
-    m_currentImageState->tint = static_cast<float>(m_adjustments->tint());
+    m_currentImageState->tintMagenta = static_cast<float>(m_adjustments->tint());
     m_currentImageState->saturation = static_cast<float>(m_adjustments->saturation());
     m_currentImageState->clarity = static_cast<float>(m_adjustments->clarity());
     m_currentImageState->sharpen = static_cast<float>(m_adjustments->sharpening());
+    m_currentImageState->rotation = static_cast<float>(m_adjustments->rotation());
 
     // Update controller with new state and process
     m_imageController->update(*m_currentImageState);
@@ -417,6 +420,60 @@ void DocumentManager::rotateImage(int degrees) {
             m_undoStack.pop();
         Q_EMIT errorOccurred("Failed to rotate image");
     }
+}
+
+void DocumentManager::applyStraighten(float angle, const QRect& cropRect) {
+    if (!hasDocument()) {
+        Q_EMIT errorOccurred("No document to straighten");
+        return;
+    }
+
+    saveStateToHistory(QString("Straighten %1°").arg(angle));
+
+    // Get current original image
+    cv::Mat source = qImageToCvMat(m_currentDocument->originalImage());
+
+    // Rotate (OpenCV uses CCW for positive angle, UI uses CW. So use -angle)
+    cv::Point2f center(source.cols / 2.0f, source.rows / 2.0f);
+    cv::Mat rot = cv::getRotationMatrix2D(center, -angle, 1.0);
+    cv::Mat rotated;
+    cv::warpAffine(source, rotated, rot, source.size(), cv::INTER_CUBIC);
+
+    // Crop to inscribed rectangle
+    cv::Rect roi(cropRect.x(), cropRect.y(), cropRect.width(), cropRect.height());
+    roi = roi & cv::Rect(0, 0, rotated.cols, rotated.rows);
+
+    if (roi.empty()) {
+        if (!m_undoStack.isEmpty())
+            m_undoStack.pop();
+        Q_EMIT errorOccurred("Invalid crop area");
+        return;
+    }
+
+    cv::Mat cropped = rotated(roi);
+    cv::Mat finalImage = cropped.clone();  // Deep copy to ensure data continuity
+
+    QImage newOriginal = cvMatToQImage(finalImage);
+
+    // Update document with new base image
+    m_currentDocument->setOriginalImage(newOriginal);
+    m_currentDocument->setProcessedImage(newOriginal);
+
+    // Update pipeline base image
+    m_imageController->setImage(finalImage);
+
+    // Reset rotation slider to 0 since rotation is now baked in
+    if (m_adjustments) {
+        m_adjustments->setRotation(0);
+    }
+
+    // Re-apply other existing adjustments (brightness, contrast, etc.)
+    applyAdjustments();
+
+    m_currentDocument->setModified(true);
+    Q_EMIT imageTransformed();
+    qDebug() << "Image straightened by" << angle << "degrees and cropped to" << cropRect.width()
+             << "x" << cropRect.height();
 }
 
 void DocumentManager::flipImage(int direction) {

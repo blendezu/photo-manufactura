@@ -77,6 +77,23 @@ void ApplicationWiring::wireComponents(ApplicationController* controller, MainWi
                                      canvas->setFixedCropSize(QSize(width, height));
                                      canvas->setCropType(CropType::FixedSize);
                                  });
+
+        // Rotation slider updates canvas straighten angle for live crop preview
+        m_connections << connect(
+            toolPanel, &ToolPanel::rotateAngleChanged, canvas,
+            [canvas](int angle) { canvas->setStraightenAngle(static_cast<float>(angle)); });
+
+        // Straighten mode toggle - enable/disable straighten mode on canvas
+        m_connections << connect(toolPanel, &ToolPanel::straightenModeToggled, canvas,
+                                 &CanvasWidget::setStraightenMode);
+
+        // Apply straighten - emit canvas signal with angle and inscribed crop rect
+        m_connections << connect(toolPanel, &ToolPanel::applyStraightenRequested, canvas,
+                                 [canvas]() {
+                                     float angle = canvas->getStraightenAngle();
+                                     QRect cropRect = canvas->getInscribedCropRect();
+                                     Q_EMIT canvas->straightenCropRequested(angle, cropRect);
+                                 });
     }
 
     if (auto* infoPanel = mainWindow->getInfoPanel()) {
@@ -192,6 +209,10 @@ void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* 
     m_connections << connect(canvas, &CanvasWidget::cropRequested, controller,
                              &ApplicationController::cropImage);
 
+    // Straighten: canvas emits straightenCropRequested with angle and inscribed rect
+    m_connections << connect(canvas, &CanvasWidget::straightenCropRequested, controller,
+                             &ApplicationController::applyStraighten);
+
     // Four-point perspective crop
     m_connections << connect(canvas, &CanvasWidget::perspectiveCropRequested, controller,
                              &ApplicationController::perspectiveCropImage);
@@ -269,9 +290,9 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::rotateRightRequested, controller,
                              [controller]() { controller->rotateImage(90); });
 
-    // Custom angle rotation
+    // Custom angle rotation via slider (non-destructive via ImageState)
     m_connections << connect(toolPanel, &ToolPanel::rotateAngleChanged, controller,
-                             &ApplicationController::rotateImage);
+                             &ApplicationController::adjustRotation);
 
     m_connections << connect(toolPanel, &ToolPanel::flipHorizontalRequested, controller,
                              [controller]() { controller->flipImage(1); });

@@ -5,7 +5,8 @@ AdjustmentSettings::AdjustmentSettings(QObject* parent) : QObject(parent) {}
 bool AdjustmentSettings::hasAdjustments() const {
     return m_exposure != 0 || m_contrast != 0 || m_brightness != 0 || m_highlights != 0 ||
            m_shadows != 0 || m_whites != 0 || m_blacks != 0 || m_temperature != 0 || m_tint != 0 ||
-           m_saturation != 0 || m_denoise != 0 || m_clarity != 0 || m_sharpening != 0;
+           m_saturation != 0 || m_denoise != 0 || m_clarity != 0 || m_sharpening != 0 ||
+           m_rotation != 0;
 }
 
 void AdjustmentSettings::setExposure(int value) {
@@ -112,6 +113,14 @@ void AdjustmentSettings::setSharpening(int value) {
     }
 }
 
+void AdjustmentSettings::setRotation(int value) {
+    if (m_rotation != value) {
+        m_rotation = value;
+        Q_EMIT rotationChanged(value);
+        Q_EMIT anySettingChanged();
+    }
+}
+
 void AdjustmentSettings::resetAll() {
     m_exposure = 0;
     m_contrast = 0;
@@ -126,6 +135,7 @@ void AdjustmentSettings::resetAll() {
     m_denoise = 0;
     m_clarity = 0;
     m_sharpening = 0;
+    m_rotation = 0;
     Q_EMIT settingsReset();
     Q_EMIT anySettingChanged();
 }
@@ -145,6 +155,7 @@ AdjustmentSettings::Snapshot AdjustmentSettings::createSnapshot() const {
     s.denoise = m_denoise;
     s.clarity = m_clarity;
     s.sharpening = m_sharpening;
+    s.rotation = m_rotation;
     return s;
 }
 
@@ -183,4 +194,6 @@ void AdjustmentSettings::applySnapshot(const Snapshot& s) {
         setClarity(s.clarity);
     if (m_sharpening != s.sharpening)
         setSharpening(s.sharpening);
+    if (m_rotation != s.rotation)
+        setRotation(s.rotation);
 }
