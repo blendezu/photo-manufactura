@@ -112,11 +112,6 @@ QWidget* ToolPanel::createQuickActionsBar() {
         "Toggle Zoom mode (Z)\nClick = zoom in, Alt+Click = zoom out\nScroll to zoom");
     connect(m_zoomBtn, &ModernToolButton::toggled, this, &ToolPanel::zoomModeToggled);
 
-    // Save Preset button
-    ModernToolButton* savePresetBtn = new ModernToolButton("Preset", ":/assets/icons/save.png", bar);
-    savePresetBtn->setToolTip("Save current settings as preset");
-    connect(savePresetBtn, &ModernToolButton::clicked, this, &ToolPanel::savePresetButtonClicked);
-
     // Reset button
     ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.png", bar);
     resetBtn->setToolTip("Reset all adjustments");
@@ -126,7 +121,7 @@ QWidget* ToolPanel::createQuickActionsBar() {
     layout->addWidget(applyBtn);
     layout->addWidget(m_compareBtn);
     layout->addWidget(m_zoomBtn);
-    layout->addWidget(savePresetBtn);
+    // Removed duplicate Save Preset button
     layout->addStretch();
     layout->addWidget(resetBtn);
 
