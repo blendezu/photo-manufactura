@@ -295,6 +295,9 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     // AI Style Transfer connections
     m_connections << connect(toolPanel, &ToolPanel::styleTransferRequested, controller,
                              &ApplicationController::applyStyleTransfer);
+    
+    m_connections << connect(toolPanel, &ToolPanel::styleStrengthChanged, controller,
+                             &ApplicationController::setStyleTransferStrength);
 
     // Compare mode toggle - wire to canvas setCompareMode
     CanvasWidget* canvas = m_mainWindow->getCanvasWidget();

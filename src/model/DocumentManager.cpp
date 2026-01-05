@@ -659,6 +659,7 @@ void DocumentManager::applyFilter(const QString& filterName) {
             }
 
             StyleTransfer styleTransfer(styleType);
+            styleTransfer.setStrength(m_styleStrength);
             resultMat = styleTransfer.apply(srcMat);
         } else {
             qDebug() << "Unknown filter:" << filterName;
@@ -801,4 +802,16 @@ void DocumentManager::redo() {
     Q_EMIT imageTransformed();
     updateUndoRedoState();
     qDebug() << "Redo performed, redo stack size:" << m_redoStack.size();
+}
+
+void DocumentManager::setStyleStrength(float strength) {
+    if (std::abs(m_styleStrength - strength) < 0.01f)
+        return;
+
+    m_styleStrength = strength;
+    
+    // If we are currently using a style transfer filter, reapply it
+    if (m_currentFilter.startsWith("StyleTransfer_")) {
+        applyFilter(m_currentFilter);
+    }
 }

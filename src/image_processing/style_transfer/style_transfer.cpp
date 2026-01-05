@@ -184,5 +184,35 @@ cv::Mat StyleTransfer::apply(const cv::Mat& srcImg) {
     // Resize to original size
     cv::resize(result, result, srcImg.size());
 
+    // Apply strength blending if < 1.0
+    if (strength < 1.0f) {
+        cv::Mat blended;
+        // Blend original (converted to 8-bit BGR if needed) with result
+        // Result is always 8-bit BGR
+        
+        // Ensure we have a compatible source image for blending
+        cv::Mat srcForBlending;
+        if (srcImg.depth() != CV_8U) {
+             // If source was 16-bit, we already have img8 which is 8-bit
+             srcForBlending = img8; 
+             // Note: img8 is already BGR (converted earlier if needed)
+        } else {
+             srcForBlending = srcImg;
+             // Ensure channels match (srcImg might be BGRA or Gray, result is BGR)
+             if (srcForBlending.channels() != 3) {
+                 srcForBlending = img8; // img8 is already 3-channel BGR
+             }
+        }
+        
+        // Verify sizes match (resize should have handled this, but good to be safe)
+        if (srcForBlending.size() == result.size() && srcForBlending.type() == result.type()) {
+             cv::addWeighted(srcForBlending, 1.0f - strength, result, strength, 0.0, blended);
+             return blended;
+        } else {
+             std::cerr << "⚠️ StyleTransfer: Blending skipped due to type/size mismatch." << std::endl;
+             // Fallback to result
+        }
+    }
+
     return result;
 }

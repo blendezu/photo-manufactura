@@ -37,5 +37,13 @@ class StyleTransfer : public ImageOperation {
 
     // Setter to change style (Drop out in GUI)
     void setStyle(StyleType style);
+
+    // Set intensity of the style (0.0 - 1.0)
+    void setStrength(float strength) {
+        this->strength = std::clamp(strength, 0.0f, 1.0f);
+    }
+
+   private:
+    float strength = 1.0f;
 };
 #endif  // STYLE_TRANSFER_H

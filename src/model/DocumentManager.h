@@ -81,6 +81,8 @@ class DocumentManager : public QObject {
     // Filter operations
     void applyFilter(const QString& filterName);
     void removeFilter();
+    void setStyleStrength(float strength);
+    float getStyleStrength() const { return m_styleStrength; }
 
     // Undo/Redo operations
     void undo();
@@ -118,4 +120,5 @@ class DocumentManager : public QObject {
 
     // Active filter tracking (persists across adjustment changes)
     QString m_currentFilter;  // Empty means no filter applied
+    float m_styleStrength = 0.8f;  // Default style intensity
 };

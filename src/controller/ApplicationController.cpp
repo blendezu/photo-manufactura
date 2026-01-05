@@ -762,3 +762,10 @@ void ApplicationController::requestPerspectiveCropMode() {
 void ApplicationController::requestCropMode() {
     emit enableCropMode(true);
 }
+void ApplicationController::setStyleTransferStrength(int strength) {
+    if (m_documentManager) {
+        float normalizedStrength = static_cast<float>(strength) / 100.0f;
+        m_documentManager->setStyleStrength(normalizedStrength);
+        setState("isModified", true);
+    }
+}
