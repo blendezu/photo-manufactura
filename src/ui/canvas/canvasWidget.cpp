@@ -324,12 +324,52 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     }
 
     QOpenGLWidget::keyPressEvent(event);
+    QOpenGLWidget::keyPressEvent(event);
+}
+
+int CanvasWidget::hitTestStraightenHandle(const QPoint& widgetPos, const QRect& displayRect) const {
+    const int handleSize = 30;  // Hit diameter
+    const int radiusSq = (handleSize / 2) * (handleSize / 2);
+
+    QPoint corners[4] = {displayRect.topLeft(), displayRect.topRight(), displayRect.bottomRight(),
+                         displayRect.bottomLeft()};
+
+    for (int i = 0; i < 4; ++i) {
+        QPoint d = widgetPos - corners[i];
+        if (d.x() * d.x() + d.y() * d.y() <= radiusSq) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
+        // Straighten Mode Interaction
+        if (m_straightenMode) {
+            QRect cropRectIs = getInscribedCropRect();  // Current rect (manual if set, else auto)
+
+            // Convert to widget coords
+            QPoint tl = imageToWidgetCoords(cropRectIs.topLeft());
+            QPoint br = imageToWidgetCoords(cropRectIs.bottomRight());
+            QRect displayRect(tl, br);
+
+            int hit = hitTestStraightenHandle(event->pos(), displayRect);
+            if (hit != -1) {
+                m_straightenDragHandle = hit;
+                m_straightenDragStart = event->pos();
+
+                // If manual rect is empty, initialize it with current auto rect so we can modify it
+                if (m_manualStraightenCropRect.isEmpty()) {
+                    m_manualStraightenCropRect = cropRectIs;
+                }
+                return;
+            }
+            // If not hitting handle, allow pan? logic below handles panning if we don't return
+        }
+
         // Check if clicking on compare split divider
-        if (m_compareMode) {
+        if (m_compareMode && !m_straightenMode) {
             QRectF imageBounds = getDisplayedImageBounds();
             int splitX =
                 static_cast<int>(imageBounds.left() + imageBounds.width() * m_compareSplitPosition);
@@ -350,7 +390,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
             return;
         }
 
-        if (m_cropMode) {
+        if (m_cropMode && !m_straightenMode) {
             // Four-point mode: check if clicking on a corner handle
             if (m_cropType == CropType::FourPoint) {
                 int corner = hitTestCorner(event->pos());
@@ -376,6 +416,91 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
 }
 
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
+    // Handle Straighten Mode Dragging
+    if (m_straightenMode && m_straightenDragHandle != -1) {
+        // 1. Get current rect and determine anchor corner (opposite to dragged handle)
+        QRect currentRect = m_manualStraightenCropRect;  // Should be valid since started drag
+        QPoint anchorImage;
+        switch (m_straightenDragHandle) {
+            case 0:
+                anchorImage = currentRect.bottomRight();
+                break;  // Dragging TL
+            case 1:
+                anchorImage = currentRect.bottomLeft();
+                break;  // Dragging TR
+            case 2:
+                anchorImage = currentRect.topLeft();
+                break;  // Dragging BR
+            case 3:
+                anchorImage = currentRect.topRight();
+                break;  // Dragging BL
+        }
+
+        // 2. Get mouse pos in image coords
+        QPoint mouseImage = widgetToImageCoords(event->pos());
+
+        // 3. Clamp to Safe Inscribed Rect
+        QRect safeRect = getMaxSafeInscribedRect();
+        int clampedX = qBound(safeRect.left(), mouseImage.x(), safeRect.right());
+        int clampedY = qBound(safeRect.top(), mouseImage.y(), safeRect.bottom());
+        QPoint clampedMouse(clampedX, clampedY);
+
+        // 4. Form preliminary rect
+        QRect newRect = QRect(anchorImage, clampedMouse).normalized();
+
+        // 5. Apply Aspect Ratio Logic manually (since standard constrainCropSelection uses
+        // m_aspectPreset, not m_straightenAspectPreset)
+        if (m_straightenAspectPreset != AspectRatioPreset::Free) {
+            double targetRatio = 1.0;
+            if (m_straightenAspectPreset != AspectRatioPreset::Custom) {
+                targetRatio = getPresetAspectRatio(m_straightenAspectPreset);
+            }
+
+            // Adjust newRect to respect ratio while keeping ANCHOR fixed
+            // This logic mirrors constrainCropSelection but for straighten
+            int dx = qAbs(clampedMouse.x() - anchorImage.x());
+            int dy = qAbs(clampedMouse.y() - anchorImage.y());
+
+            if (dx == 0 || dy == 0)
+                return;  // Degenerate
+
+            double currentRatio = (double)dx / dy;
+
+            int finalW = dx;
+            int finalH = dy;
+
+            // Determine dominant axis based on movement? Or just fit?
+            // Standard crop logic: Maintain aspect ratio.
+            // If dragging, usually we project the point onto the diagonal.
+            if (currentRatio > targetRatio) {
+                // Too wide, reduce width (or increase height?)
+                // Usually limit by the smaller dimension relative to ratio
+                finalW = static_cast<int>(dy * targetRatio);
+            } else {
+                // Too tall
+                finalH = static_cast<int>(dx / targetRatio);
+            }
+
+            // Reconstruct rect from anchor
+            int xDir = (clampedMouse.x() < anchorImage.x()) ? -1 : 1;
+            int yDir = (clampedMouse.y() < anchorImage.y()) ? -1 : 1;
+
+            newRect =
+                QRect(anchorImage, anchorImage + QPoint(finalW * xDir, finalH * yDir)).normalized();
+
+            // Final check: intersect with safe rect again (floating point errors might push it out
+            // slightly)
+            newRect = newRect.intersected(safeRect);
+
+            // If intersection broke aspect ratio significantly, we might want to shrink?
+            // But for now, simple clamp is safer than infinite loop.
+        }
+
+        m_manualStraightenCropRect = newRect;
+        update();
+        return;
+    }
+
     // Handle compare mode split dragging
     if (m_draggingSplit && m_compareMode) {
         QRectF imageBounds = getDisplayedImageBounds();
@@ -419,6 +544,12 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
 
 void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
+        // Handle Straighten Release
+        if (m_straightenMode && m_straightenDragHandle != -1) {
+            m_straightenDragHandle = -1;
+            return;
+        }
+
         // Handle compare split drag release
         if (m_draggingSplit) {
             m_draggingSplit = false;
@@ -583,51 +714,105 @@ void CanvasWidget::setStraightenMode(bool enabled) {
 void CanvasWidget::setStraightenAngle(float angle) {
     if (m_straightenAngle != angle) {
         m_straightenAngle = angle;
+        m_manualStraightenCropRect = QRect();  // Reset manual crop on rotation change
         update();
     }
 }
 
-QRect CanvasWidget::getInscribedCropRect() const {
-    if (m_imageSize.isEmpty() || std::abs(m_straightenAngle) < 0.001f) {
-        return QRect(0, 0, m_imageSize.width(), m_imageSize.height());
+void CanvasWidget::setStraightenAspectRatio(AspectRatioPreset preset) {
+    if (m_straightenAspectPreset != preset) {
+        m_straightenAspectPreset = preset;
+        m_manualStraightenCropRect = QRect();  // Reset manual crop on ratio change
+        update();
+    }
+}
+
+QRect CanvasWidget::getMaxSafeInscribedRect() const {
+    if (m_imageSize.isEmpty()) {
+        return QRect();
     }
 
-    // Calculate largest inscribed rectangle after rotation
-    // Formula: For rotation angle θ, the inscribed rectangle dimensions are:
-    // newW = W * cos(θ) - H * sin(θ) (for W > H after accounting for aspect)
-    // This is the conservative crop that removes all black corners
-
-    double W = m_imageSize.width();
-    double H = m_imageSize.height();
-    double theta = std::abs(m_straightenAngle) * M_PI / 180.0;
-
-    double sinA = std::sin(theta);
-    double cosA = std::cos(theta);
-
-    // For a rotated rectangle, the largest inscribed axis-aligned rectangle:
-    // If aspect = W/H, the inscribed rectangle has:
-    double aspect = W / H;
-
-    double newW, newH;
-    if (aspect >= 1.0) {
-        // Landscape: width constrained
-        newW = W * cosA - H * sinA;
-        newH = H * cosA - W * sinA;
+    QRect maxRect;
+    if (std::abs(m_straightenAngle) < 0.001f) {
+        maxRect = QRect(0, 0, m_imageSize.width(), m_imageSize.height());
     } else {
-        // Portrait: height constrained
-        newW = W * cosA - H * sinA;
-        newH = H * cosA - W * sinA;
+        double W = m_imageSize.width();
+        double H = m_imageSize.height();
+        double theta = std::abs(m_straightenAngle) * M_PI / 180.0;
+        double sinA = std::sin(theta);
+        double cosA = std::cos(theta);
+
+        double aspect = W / H;
+        double newW, newH;
+        if (aspect >= 1.0) {
+            newW = W * cosA - H * sinA;
+            newH = H * cosA - W * sinA;
+        } else {
+            newW = W * cosA - H * sinA;
+            newH = H * cosA - W * sinA;
+        }
+
+        newW = std::max(10.0, newW);
+        newH = std::max(10.0, newH);
+
+        int left = static_cast<int>((W - newW) / 2);
+        int top = static_cast<int>((H - newH) / 2);
+        maxRect = QRect(left, top, static_cast<int>(newW), static_cast<int>(newH));
+    }
+    return maxRect;
+}
+
+QRect CanvasWidget::getInscribedCropRect() const {
+    if (m_imageSize.isEmpty()) {
+        return QRect();
     }
 
-    // Ensure positive dimensions
-    newW = std::max(10.0, newW);
-    newH = std::max(10.0, newH);
+    // 1. Calculate the conservative "Max Inscribed" rectangle for current rotation
+    QRect maxRect = getMaxSafeInscribedRect();
 
-    // Center the crop rectangle
-    int left = static_cast<int>((W - newW) / 2);
-    int top = static_cast<int>((H - newH) / 2);
+    // 2. Apply Manual Override intersected with MaxRect
+    QRect baseRect = maxRect;
+    if (!m_manualStraightenCropRect.isEmpty()) {
+        baseRect = m_manualStraightenCropRect.intersected(maxRect);
+        if (baseRect.isEmpty())
+            baseRect = maxRect;  // Fallback
+    }
 
-    return QRect(left, top, static_cast<int>(newW), static_cast<int>(newH));
+    // 3. Apply Aspect Ratio Constraint
+    if (m_straightenAspectPreset != AspectRatioPreset::Free) {
+        double targetRatio = 1.0;
+        if (m_straightenAspectPreset == AspectRatioPreset::Custom) {
+            // Fallback to 1.0 or existing custom logic if we port it
+            targetRatio = 1.0;
+        } else {
+            targetRatio = getPresetAspectRatio(m_straightenAspectPreset);
+        }
+
+        // Fit targetRatio inside baseRect
+        double baseW = baseRect.width();
+        double baseH = baseRect.height();
+        double baseRatio = baseW / baseH;
+
+        double finalW, finalH;
+
+        // If wider than target, limit by height
+        if (baseRatio > targetRatio) {
+            finalH = baseH;
+            finalW = finalH * targetRatio;
+        } else {
+            // Taller than target, limit by width
+            finalW = baseW;
+            finalH = finalW / targetRatio;
+        }
+
+        // Center inside baseRect
+        int cx = baseRect.center().x();
+        int cy = baseRect.center().y();
+        return QRect(cx - static_cast<int>(finalW) / 2, cy - static_cast<int>(finalH) / 2,
+                     static_cast<int>(finalW), static_cast<int>(finalH));
+    }
+
+    return baseRect;
 }
 
 double CanvasWidget::getPresetAspectRatio(AspectRatioPreset preset) const {
@@ -1084,6 +1269,20 @@ void CanvasWidget::drawStraightenOverlay(QPainter& painter) {
     painter.setPen(QPen(QColor(80, 150, 255), 2));  // Blue accent for straighten mode
     painter.drawRect(displaySelection);
 
+    // Draw Handles (Corners)
+    painter.setBrush(Qt::white);
+    painter.setPen(QPen(QColor(80, 150, 255), 2));
+    const int handleSize = 12;
+    // Corners: TL, TR, BR, BL order matches hit test indices 0, 1, 2, 3
+    QPoint corners[4] = {displaySelection.topLeft(), displaySelection.topRight(),
+                         displaySelection.bottomRight(), displaySelection.bottomLeft()};
+
+    for (int i = 0; i < 4; ++i) {
+        QRect r(corners[i].x() - handleSize / 2, corners[i].y() - handleSize / 2, handleSize,
+                handleSize);
+        painter.drawEllipse(r);
+    }
+
     // Draw grid overlay (always show 3x3 grid for straightening)
     painter.setPen(QPen(QColor(255, 255, 255, 120), 1));
     int w = displaySelection.width();
@@ -1103,7 +1302,7 @@ void CanvasWidget::drawStraightenOverlay(QPainter& painter) {
     }
 
     // Draw instruction overlay
-    QString instructions = QString("Straighten: %1° • Auto-crop enabled")
+    QString instructions = QString("Straighten: %1° • Drag corners to crop")
                                .arg(QString::number(m_straightenAngle, 'f', 1));
     QFont font = painter.font();
     font.setPointSize(12);

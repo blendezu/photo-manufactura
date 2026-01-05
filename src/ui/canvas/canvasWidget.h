@@ -116,6 +116,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     float getStraightenAngle() const {
         return m_straightenAngle;
     }
+    void setStraightenAspectRatio(AspectRatioPreset preset);
     QRect getInscribedCropRect() const;  // Get auto-crop rectangle
 
    public Q_SLOTS:
@@ -208,10 +209,17 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     static constexpr double ZOOM_STEP = 1.2;
 
     // Straighten mode state
+    // Straighten mode state
     bool m_straightenMode = false;
     float m_straightenAngle = 0.0f;
+    AspectRatioPreset m_straightenAspectPreset = AspectRatioPreset::Free;
+    QRect m_manualStraightenCropRect;  // Image coordinates, empty if auto
+    int m_straightenDragHandle = -1;   // -1=none, 0=TL, 1=TR, 2=BR, 3=BL
+    QPoint m_straightenDragStart;      // Widget coordinates
 
     // Helper methods
+    int hitTestStraightenHandle(const QPoint& widgetPos, const QRect& displayRect) const;
+    QRect getMaxSafeInscribedRect() const;  // Helper for straighten constraints
     void setupShaders();
     void setupGeometry();
     void updateMatrices();

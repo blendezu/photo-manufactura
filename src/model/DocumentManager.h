@@ -64,6 +64,8 @@ class DocumentManager : public QObject {
     bool saveDocumentAs(const QString& filePath);
     void closeDocument();
     void newDocument(int width = 1920, int height = 1080);
+    // Reloads original image from file and resets all adjustments
+    void resetToOriginal();
 
     // Apply adjustments to generate processed image
     void applyAdjustments();

@@ -94,7 +94,17 @@ void ApplicationWiring::wireComponents(ApplicationController* controller, MainWi
                                      QRect cropRect = canvas->getInscribedCropRect();
                                      Q_EMIT canvas->straightenCropRequested(angle, cropRect);
                                  });
-    }
+
+        // Straighten Aspect Ratio
+        m_connections << connect(
+            toolPanel, &ToolPanel::straightenAspectRatioChanged, canvas, [canvas](int index) {
+                canvas->setStraightenAspectRatio(static_cast<AspectRatioPreset>(index));
+            });
+        // Reset
+        m_connections << connect(toolPanel, &ToolPanel::resetToOriginalRequested,
+                                 controller->getDocumentManager(),
+                                 &DocumentManager::resetToOriginal);
+    }  // End of ToolPanel wiring block? Wait, no.
 
     if (auto* infoPanel = mainWindow->getInfoPanel()) {
         wireInfoPanel(infoPanel, controller);
