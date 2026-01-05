@@ -373,6 +373,13 @@ void ApplicationController::adjustSharpening(int value) {
     }
 }
 
+void ApplicationController::adjustRotation(int degrees) {
+    if (auto* adjustments = m_documentManager->adjustments()) {
+        adjustments->setRotation(degrees);
+        setState("isModified", true);
+    }
+}
+
 void ApplicationController::rotateImage(int degrees) {
     if (m_documentManager->hasDocument()) {
         m_documentManager->rotateImage(degrees);
@@ -383,6 +390,13 @@ void ApplicationController::rotateImage(int degrees) {
             QImage image = m_documentManager->currentDocument()->processedImage();
             emit imageLoaded(image, m_documentManager->currentFilePath());
         }
+    }
+}
+
+void ApplicationController::applyStraighten(float angle, const QRect& cropRect) {
+    if (m_documentManager && m_documentManager->hasDocument()) {
+        m_documentManager->applyStraighten(angle, cropRect);
+        setState("isModified", true);
     }
 }
 
@@ -502,8 +516,8 @@ void ApplicationController::applyAutoEnhance() {
         }
 
         if (std::abs(settings.exposure) > 0.01f) {
-            // Map exposure range (-5.0 to 5.0) to slider range (-100 to 100)
-            int exposureVal = static_cast<int>(settings.exposure * 20.0f);
+            // Map exposure range (-5.0 to 5.0) to slider range (-50 to 50)
+            int exposureVal = static_cast<int>(settings.exposure * 10.0f);
             adjustments->setExposure(exposureVal);
         }
 

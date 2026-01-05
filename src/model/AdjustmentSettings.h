@@ -24,6 +24,7 @@ class AdjustmentSettings : public QObject {
     Q_PROPERTY(int denoise READ denoise WRITE setDenoise NOTIFY denoiseChanged)
     Q_PROPERTY(int clarity READ clarity WRITE setClarity NOTIFY clarityChanged)
     Q_PROPERTY(int sharpening READ sharpening WRITE setSharpening NOTIFY sharpeningChanged)
+    Q_PROPERTY(int rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
 
    public:
     explicit AdjustmentSettings(QObject* parent = nullptr);
@@ -74,6 +75,11 @@ class AdjustmentSettings : public QObject {
         return m_sharpening;
     }
 
+    // Geometry adjustments
+    int rotation() const {
+        return m_rotation;
+    }
+
     // Check if any adjustment is non-default
     bool hasAdjustments() const;
 
@@ -91,6 +97,7 @@ class AdjustmentSettings : public QObject {
         int denoise = 0;
         int clarity = 0;
         int sharpening = 0;
+        int rotation = 0;
 
         bool operator==(const Snapshot& other) const {
             return exposure == other.exposure && contrast == other.contrast &&
@@ -98,7 +105,8 @@ class AdjustmentSettings : public QObject {
                    shadows == other.shadows && whites == other.whites && blacks == other.blacks &&
                    temperature == other.temperature && tint == other.tint &&
                    saturation == other.saturation && denoise == other.denoise &&
-                   clarity == other.clarity && sharpening == other.sharpening;
+                   clarity == other.clarity && sharpening == other.sharpening &&
+                   rotation == other.rotation;
         }
         bool operator!=(const Snapshot& other) const {
             return !(*this == other);
@@ -128,6 +136,9 @@ class AdjustmentSettings : public QObject {
     void setClarity(int value);
     void setSharpening(int value);
 
+    // Geometry adjustments
+    void setRotation(int value);
+
     // Reset all to defaults
     void resetAll();
 
@@ -145,6 +156,7 @@ class AdjustmentSettings : public QObject {
     void denoiseChanged(int value);
     void clarityChanged(int value);
     void sharpeningChanged(int value);
+    void rotationChanged(int value);
     void settingsReset();
     void anySettingChanged();
 
@@ -167,4 +179,7 @@ class AdjustmentSettings : public QObject {
     int m_denoise = 0;
     int m_clarity = 0;
     int m_sharpening = 0;
+
+    // Geometry adjustments
+    int m_rotation = 0;  // Range: -180 to +180
 };

@@ -31,6 +31,9 @@ void CanvasWidget::setImage(const QImage& image) {
     if (image.isNull())
         return;
 
+    // Check if dimensions changed (need to reset view)
+    bool dimensionsChanged = (m_imageSize != image.size());
+
     makeCurrent();
 
     // Clean up old texture
@@ -44,8 +47,11 @@ void CanvasWidget::setImage(const QImage& image) {
 
     m_imageSize = image.size();
 
-    // Reset view to center the image when dimensions change
-    resetView();
+    // Only reset view when image dimensions change (e.g., new image loaded)
+    // This preserves zoom/pan during adjustment updates
+    if (dimensionsChanged) {
+        resetView();
+    }
 
     update();
 
@@ -259,6 +265,14 @@ void CanvasWidget::paintGL() {
         } else {
             drawCropOverlay(painter);
         }
+        painter.end();
+    }
+
+    // Draw straighten mode crop preview overlay
+    if (m_straightenMode && std::abs(m_straightenAngle) > 0.1f) {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        drawStraightenOverlay(painter);
         painter.end();
     }
 }
@@ -541,6 +555,79 @@ void CanvasWidget::setCustomAspectRatio(double widthRatio, double heightRatio) {
         Q_EMIT cropTypeChanged(m_cropType);
         update();
     }
+}
+
+// ============================================================================
+// Straighten Mode Methods
+// ============================================================================
+
+void CanvasWidget::setStraightenMode(bool enabled) {
+    if (m_straightenMode != enabled) {
+        m_straightenMode = enabled;
+        m_straightenAngle = 0.0f;
+
+        // Disable other modes
+        if (enabled) {
+            if (m_cropMode)
+                setCropMode(false);
+            if (m_zoomMode != ZoomMode::None)
+                setZoomMode(ZoomMode::None);
+        }
+
+        setCursor(enabled ? Qt::CrossCursor : Qt::ArrowCursor);
+        Q_EMIT straightenModeChanged(enabled);
+        update();
+    }
+}
+
+void CanvasWidget::setStraightenAngle(float angle) {
+    if (m_straightenAngle != angle) {
+        m_straightenAngle = angle;
+        update();
+    }
+}
+
+QRect CanvasWidget::getInscribedCropRect() const {
+    if (m_imageSize.isEmpty() || std::abs(m_straightenAngle) < 0.001f) {
+        return QRect(0, 0, m_imageSize.width(), m_imageSize.height());
+    }
+
+    // Calculate largest inscribed rectangle after rotation
+    // Formula: For rotation angle θ, the inscribed rectangle dimensions are:
+    // newW = W * cos(θ) - H * sin(θ) (for W > H after accounting for aspect)
+    // This is the conservative crop that removes all black corners
+
+    double W = m_imageSize.width();
+    double H = m_imageSize.height();
+    double theta = std::abs(m_straightenAngle) * M_PI / 180.0;
+
+    double sinA = std::sin(theta);
+    double cosA = std::cos(theta);
+
+    // For a rotated rectangle, the largest inscribed axis-aligned rectangle:
+    // If aspect = W/H, the inscribed rectangle has:
+    double aspect = W / H;
+
+    double newW, newH;
+    if (aspect >= 1.0) {
+        // Landscape: width constrained
+        newW = W * cosA - H * sinA;
+        newH = H * cosA - W * sinA;
+    } else {
+        // Portrait: height constrained
+        newW = W * cosA - H * sinA;
+        newH = H * cosA - W * sinA;
+    }
+
+    // Ensure positive dimensions
+    newW = std::max(10.0, newW);
+    newH = std::max(10.0, newH);
+
+    // Center the crop rectangle
+    int left = static_cast<int>((W - newW) / 2);
+    int top = static_cast<int>((H - newH) / 2);
+
+    return QRect(left, top, static_cast<int>(newW), static_cast<int>(newH));
 }
 
 double CanvasWidget::getPresetAspectRatio(AspectRatioPreset preset) const {
@@ -909,76 +996,132 @@ void CanvasWidget::drawCropOverlay(QPainter& painter) {
         // Vertical thirds
         painter.drawLine(x + w / 3, y, x + w / 3, y + h);
         painter.drawLine(x + 2 * w / 3, y, x + 2 * w / 3, y + h);
+        const int handleSize = 10;
+        painter.setBrush(Qt::white);
+        painter.setPen(QPen(QColor(50, 50, 50), 2));
 
-        // Horizontal thirds
-        painter.drawLine(x, y + h / 3, x + w, y + h / 3);
-        painter.drawLine(x, y + 2 * h / 3, x + w, y + 2 * h / 3);
-    }
+        QRect tl(displaySelection.topLeft() - QPoint(handleSize / 2, handleSize / 2),
+                 QSize(handleSize, handleSize));
+        QRect tr(displaySelection.topRight() - QPoint(handleSize / 2, handleSize / 2),
+                 QSize(handleSize, handleSize));
+        QRect bl(displaySelection.bottomLeft() - QPoint(handleSize / 2, handleSize / 2),
+                 QSize(handleSize, handleSize));
+        QRect br(displaySelection.bottomRight() - QPoint(handleSize / 2, handleSize / 2),
+                 QSize(handleSize, handleSize));
 
-    // Draw corner handles with improved styling
-    const int handleSize = 10;
-    painter.setBrush(Qt::white);
-    painter.setPen(QPen(QColor(50, 50, 50), 2));
+        painter.drawEllipse(tl);
+        painter.drawEllipse(tr);
+        painter.drawEllipse(bl);
+        painter.drawEllipse(br);
 
-    QRect tl(displaySelection.topLeft() - QPoint(handleSize / 2, handleSize / 2),
-             QSize(handleSize, handleSize));
-    QRect tr(displaySelection.topRight() - QPoint(handleSize / 2, handleSize / 2),
-             QSize(handleSize, handleSize));
-    QRect bl(displaySelection.bottomLeft() - QPoint(handleSize / 2, handleSize / 2),
-             QSize(handleSize, handleSize));
-    QRect br(displaySelection.bottomRight() - QPoint(handleSize / 2, handleSize / 2),
-             QSize(handleSize, handleSize));
+        // Draw size info with mode label
+        if (imageSelection.isValid()) {
+            QString modeLabel = getCropModeLabel();
+            QString sizeText = QString("%1 × %2 px • %3")
+                                   .arg(imageSelection.width())
+                                   .arg(imageSelection.height())
+                                   .arg(modeLabel);
+            QFont font = painter.font();
+            font.setPointSize(10);
+            font.setBold(true);
+            painter.setFont(font);
 
-    painter.drawEllipse(tl);
-    painter.drawEllipse(tr);
-    painter.drawEllipse(bl);
-    painter.drawEllipse(br);
+            QFontMetrics fm(font);
+            QRect textRect = fm.boundingRect(sizeText);
+            textRect.adjust(-6, -3, 6, 3);
+            textRect.moveTo(displaySelection.left() + 8, displaySelection.top() + 8);
 
-    // Draw size info with mode label
-    if (imageSelection.isValid()) {
-        QString modeLabel = getCropModeLabel();
-        QString sizeText = QString("%1 × %2 px • %3")
-                               .arg(imageSelection.width())
-                               .arg(imageSelection.height())
-                               .arg(modeLabel);
-        QFont font = painter.font();
-        font.setPointSize(10);
-        font.setBold(true);
-        painter.setFont(font);
+            painter.setBrush(QColor(0, 0, 0, 180));
+            painter.setPen(Qt::NoPen);
+            painter.drawRoundedRect(textRect, 3, 3);
 
-        QFontMetrics fm(font);
-        QRect textRect = fm.boundingRect(sizeText);
-        textRect.adjust(-6, -3, 6, 3);
-        textRect.moveTo(displaySelection.left() + 8, displaySelection.top() + 8);
+            painter.setPen(Qt::white);
+            painter.drawText(textRect, Qt::AlignCenter, sizeText);
+        }
 
-        painter.setBrush(QColor(0, 0, 0, 180));
-        painter.setPen(Qt::NoPen);
-        painter.drawRoundedRect(textRect, 3, 3);
+        // Draw instruction text when selection is high enough
+        if (displaySelection.isEmpty() || displaySelection.top() > 60) {
+            QString instructions = "Drag to select • Enter to crop • Esc to cancel";
+            QFont font = painter.font();
+            font.setPointSize(12);
+            painter.setFont(font);
 
-        painter.setPen(Qt::white);
-        painter.drawText(textRect, Qt::AlignCenter, sizeText);
-    }
+            QFontMetrics fm(font);
+            QRect textRect = fm.boundingRect(instructions);
+            textRect.adjust(-12, -8, 12, 8);
+            textRect.moveCenter(QPoint(width() / 2, 30));
 
-    // Draw instruction text when selection is high enough
-    if (displaySelection.isEmpty() || displaySelection.top() > 60) {
-        QString instructions = "Drag to select • Enter to crop • Esc to cancel";
-        QFont font = painter.font();
-        font.setPointSize(12);
-        painter.setFont(font);
+            painter.setBrush(QColor(0, 0, 0, 200));
+            painter.setPen(Qt::NoPen);
+            painter.drawRoundedRect(textRect, 5, 5);
 
-        QFontMetrics fm(font);
-        QRect textRect = fm.boundingRect(instructions);
-        textRect.adjust(-12, -8, 12, 8);
-        textRect.moveCenter(QPoint(width() / 2, 30));
-
-        painter.setBrush(QColor(0, 0, 0, 200));
-        painter.setPen(Qt::NoPen);
-        painter.drawRoundedRect(textRect, 5, 5);
-
-        painter.setPen(Qt::white);
-        painter.drawText(textRect, Qt::AlignCenter, instructions);
+            painter.setPen(Qt::white);
+            painter.drawText(textRect, Qt::AlignCenter, instructions);
+        }
     }
 }
+
+void CanvasWidget::drawStraightenOverlay(QPainter& painter) {
+    if (!m_straightenMode || m_imageSize.isEmpty())
+        return;
+
+    // Get the inscribed crop rectangle in image coordinates
+    QRect cropRect = getInscribedCropRect();
+
+    // Map crop rect corners to widget coordinates
+    QPoint topLeft = imageToWidgetCoords(cropRect.topLeft());
+    QPoint bottomRight = imageToWidgetCoords(cropRect.bottomRight());
+    QRect displaySelection(topLeft, bottomRight);
+
+    // Draw semi-transparent overlay everywhere EXCEPT the selection
+    QRegion overlayRegion(rect());
+    overlayRegion = overlayRegion.subtracted(QRegion(displaySelection));
+    painter.setClipRegion(overlayRegion);
+    painter.fillRect(rect(), QColor(0, 0, 0, 160));  // Darker than normal crop
+    painter.setClipping(false);
+
+    // Draw selection border
+    painter.setPen(QPen(QColor(80, 150, 255), 2));  // Blue accent for straighten mode
+    painter.drawRect(displaySelection);
+
+    // Draw grid overlay (always show 3x3 grid for straightening)
+    painter.setPen(QPen(QColor(255, 255, 255, 120), 1));
+    int w = displaySelection.width();
+    int h = displaySelection.height();
+    int x = displaySelection.x();
+    int y = displaySelection.y();
+
+    // Dense grid for alignment (4x4 or 3x3)
+    for (int i = 1; i <= 3; ++i) {
+        // Vertical lines
+        int xi = x + i * w / 4;
+        painter.drawLine(xi, y, xi, y + h);
+
+        // Horizontal lines
+        int yi = y + i * h / 4;
+        painter.drawLine(x, yi, x + w, yi);
+    }
+
+    // Draw instruction overlay
+    QString instructions = QString("Straighten: %1° • Auto-crop enabled")
+                               .arg(QString::number(m_straightenAngle, 'f', 1));
+    QFont font = painter.font();
+    font.setPointSize(12);
+    painter.setFont(font);
+
+    QFontMetrics fm(font);
+    QRect textRect = fm.boundingRect(instructions);
+    textRect.adjust(-12, -8, 12, 8);
+    textRect.moveCenter(QPoint(width() / 2, height() - 50));  // Bottom center
+
+    painter.setBrush(QColor(0, 0, 0, 200));
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(textRect, 5, 5);
+
+    painter.setPen(Qt::white);
+    painter.drawText(textRect, Qt::AlignCenter, instructions);
+}
+
 // Before/After comparison methods
 void CanvasWidget::setOriginalImage(const QImage& image) {
     if (image.isNull())

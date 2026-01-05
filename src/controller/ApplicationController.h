@@ -140,8 +140,10 @@ class ApplicationController : public QObject {
     void adjustDenoise(int value);  // Detail adjustment
     void adjustClarity(int value);
     void adjustSharpening(int value);
-    void rotateImage(int degrees);
-    void flipImage(int direction);  // 0 = vertical, 1 = horizontal
+    void adjustRotation(int degrees);  // Non-destructive rotation via ImageState
+    void rotateImage(int degrees);     // Destructive rotation (90° steps)
+    void applyStraighten(float angle, const QRect& cropRect);  // Destructive straighten
+    void flipImage(int direction);                             // 0 = vertical, 1 = horizontal
     void cropImage(const QRect& cropArea);
     void perspectiveCropImage(const FourPointQuad& quad);  // Four-point perspective crop
     void requestPerspectiveCropMode();                     // Activate perspective crop in view
@@ -197,8 +199,8 @@ class ApplicationController : public QObject {
     void adjustmentsChanged(int brightness, int contrast, int saturation, int exposure,
                             int highlights, int shadows, int whites, int blacks, int temperature,
                             int tint, int denoise, int clarity, int sharpening);
-    void enablePerspectiveCropMode();            // Signal to view (Canvas)
-    void enableCropMode(bool enabled);           // Toggle crop mode
+    void enablePerspectiveCropMode();   // Signal to view (Canvas)
+    void enableCropMode(bool enabled);  // Toggle crop mode
 
    private slots:
     void onImageProcessingComplete();

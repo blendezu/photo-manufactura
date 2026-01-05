@@ -107,6 +107,17 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     }
     void setCompareSplitPosition(double position);  // 0.0 to 1.0
 
+    // Straighten mode (rotation + auto-crop preview)
+    void setStraightenMode(bool enabled);
+    bool isStraightenMode() const {
+        return m_straightenMode;
+    }
+    void setStraightenAngle(float angle);  // Set rotation angle for preview
+    float getStraightenAngle() const {
+        return m_straightenAngle;
+    }
+    QRect getInscribedCropRect() const;  // Get auto-crop rectangle
+
    public Q_SLOTS:
     // Receive zoom level from controller (0.1 to 10.0)
     void setZoomLevel(double level);
@@ -129,6 +140,9 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void cropTypeChanged(CropType type);
     // Compare mode
     void compareModeChanged(bool enabled);
+    // Straighten mode
+    void straightenModeChanged(bool enabled);
+    void straightenCropRequested(float angle, const QRect& cropRect);  // Apply rotation + crop
 
    protected:
     void initializeGL() override;
@@ -193,6 +207,10 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     static constexpr double MAX_ZOOM = 10.0;
     static constexpr double ZOOM_STEP = 1.2;
 
+    // Straighten mode state
+    bool m_straightenMode = false;
+    float m_straightenAngle = 0.0f;
+
     // Helper methods
     void setupShaders();
     void setupGeometry();
@@ -202,6 +220,7 @@ class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     QRectF getDisplayedImageBounds() const;
     void drawCropOverlay(QPainter& painter);
     void drawCompareOverlay(QPainter& painter);
+    void drawStraightenOverlay(QPainter& painter);  // Straighten mode crop preview
 
     // Crop helper methods
     QRect constrainCropSelection(const QPoint& startWidget, const QPoint& endWidget) const;

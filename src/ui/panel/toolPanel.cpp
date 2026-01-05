@@ -268,8 +268,11 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     layout->addWidget(line);
 
     // Create modern sliders
-    m_exposureSlider = new ModernSlider("Exposure", -100, 100, 0, this);
-    m_exposureSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
+    m_exposureSlider = new ModernSlider("Exposure", -50, 50, 0, this);
+    m_exposureSlider->setTooltip("Adjust exposure in EV (-5 to +5)\nDouble-click to reset");
+    m_exposureSlider->setUnit(" EV");
+    m_exposureSlider->setDisplayDivisor(10.0f);    // Display -5 to +5 instead of -50 to +50
+    m_exposureSlider->setShowTickMarks(true, 11);  // -5 to +5 = 11 ticks
 
     m_contrastSlider = new ModernSlider("Contrast", -100, 100, 0, this);
     m_contrastSlider->setTooltip(
@@ -313,14 +316,14 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     connect(m_blacksSlider, &ModernSlider::valueChanged, this, &ToolPanel::blacksChanged);
     connect(m_brightnessSlider, &ModernSlider::valueChanged, this, &ToolPanel::brightnessChanged);
 
-    // Add to layout
+    // Add to layout - Brightness directly after Exposure per user request
     layout->addWidget(m_exposureSlider);
+    layout->addWidget(m_brightnessSlider);
     layout->addWidget(m_contrastSlider);
     layout->addWidget(m_highlightsSlider);
     layout->addWidget(m_shadowsSlider);
     layout->addWidget(m_whitesSlider);
     layout->addWidget(m_blacksSlider);
-    layout->addWidget(m_brightnessSlider);
 
     basicSection->setContentLayout(layout);
     return basicSection;
@@ -553,45 +556,39 @@ ModernCollapsible* ToolPanel::createToolSection() {
     rotateLayout->addStretch();
     layout->addLayout(rotateLayout);
 
-    // Custom angle rotation
-    QHBoxLayout* angleLayout = new QHBoxLayout();
-    angleLayout->setSpacing(8);
+    // Real-time rotation slider - full 360° range
+    m_rotationSlider = new ModernSlider("Rotation", -180, 180, 0, this);
+    m_rotationSlider->setTooltip(
+        "Adjust rotation angle (-180° to +180°)\nDrag for real-time preview");
+    m_rotationSlider->setUnit("°");
+    connect(m_rotationSlider, &ModernSlider::valueChanged, this, &ToolPanel::rotateAngleChanged);
+    connect(m_rotationSlider, &ModernSlider::sliderReleased, this,
+            [this]() { Q_EMIT adjustmentFinished("Rotation", m_rotationSlider->value()); });
+    layout->addWidget(m_rotationSlider);
 
-    QLabel* angleLabel = new QLabel("Angle:", this);
-    angleLabel->setStyleSheet("color: #999; font-size: 11px;");
+    // Straighten mode controls
+    QHBoxLayout* straightenLayout = new QHBoxLayout();
+    straightenLayout->setSpacing(8);
 
-    m_rotateAngleSpin = new QSpinBox(this);
-    m_rotateAngleSpin->setRange(-180, 180);
-    m_rotateAngleSpin->setValue(0);
-    m_rotateAngleSpin->setSuffix("°");
-    m_rotateAngleSpin->setStyleSheet(R"(
-        QSpinBox {
-            background: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            border-radius: 6px;
-            padding: 6px 8px;
-            color: #d0d0d0;
-            font-size: 12px;
-            min-width: 60px;
-        }
-        QSpinBox:hover { border-color: #4a4a4a; }
-        QSpinBox:focus { border-color: #6366f1; }
-    )");
+    m_straightenToggle = new ModernButton("Straighten", ModernButton::Secondary, this);
+    m_straightenToggle->setCheckable(true);
+    m_straightenToggle->setToolTip("Enable straighten mode with auto-crop preview");
+    connect(m_straightenToggle, &QPushButton::toggled, this, &ToolPanel::straightenModeToggled);
 
-    IconButton* applyAngleBtn = new IconButton(":/assets/icons/apply.svg", "Apply Rotation", this);
-    connect(applyAngleBtn, &QPushButton::clicked, this, [this]() {
-        int angle = m_rotateAngleSpin->value();
-        if (angle != 0) {
-            Q_EMIT rotateAngleChanged(angle);
-            m_rotateAngleSpin->setValue(0);  // Reset after applying
-        }
-    });
+    m_applyStraightenBtn = new ModernButton("Apply", ModernButton::Primary, this);
+    m_applyStraightenBtn->setEnabled(false);  // Enable when straighten mode active
+    m_applyStraightenBtn->setToolTip("Apply rotation with auto-crop to remove black corners");
+    connect(m_applyStraightenBtn, &QPushButton::clicked, this,
+            &ToolPanel::applyStraightenRequested);
 
-    angleLayout->addWidget(angleLabel);
-    angleLayout->addWidget(m_rotateAngleSpin);
-    angleLayout->addWidget(applyAngleBtn);
-    angleLayout->addStretch();
-    layout->addLayout(angleLayout);
+    straightenLayout->addWidget(m_straightenToggle);
+    straightenLayout->addWidget(m_applyStraightenBtn);
+    straightenLayout->addStretch();
+    layout->addLayout(straightenLayout);
+
+    // Enable/disable Apply button based on straighten mode
+    connect(m_straightenToggle, &QPushButton::toggled, m_applyStraightenBtn,
+            &QPushButton::setEnabled);
 
     // Flip tools
     QLabel* flipLabel = new QLabel("FLIP", this);
