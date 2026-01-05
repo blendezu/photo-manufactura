@@ -42,7 +42,7 @@
 int main() {
     try {
         // Bild laden
-        cv::Mat testImage = cv::imread("images/baum.jpg");
+        cv::Mat testImage = cv::imread("images/baum_dark.jpg");
 
         // cv::Mat testImage = RawProcessing::loadRawImg("images/rawCanon.cr3");
 
