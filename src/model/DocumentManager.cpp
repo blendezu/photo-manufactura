@@ -143,6 +143,9 @@ bool DocumentManager::openDocument(const QString& filePath) {
     *m_currentImageState = ImageState{};  // Reset image state
     m_undoStack.clear();
     m_redoStack.clear();
+    m_undoDescriptions.clear();
+    m_redoDescriptions.clear();
+    Q_EMIT historyChanged(QStringList());
 
     // Set up new document
     m_currentDocument->setFilePath(filePath);
@@ -215,9 +218,12 @@ void DocumentManager::closeDocument() {
     *m_currentImageState = ImageState{};  // Reset image state
     m_undoStack.clear();
     m_redoStack.clear();
+    m_undoDescriptions.clear();
+    m_redoDescriptions.clear();
 
     Q_EMIT documentClosed();
     Q_EMIT documentStateChanged();
+    Q_EMIT historyChanged(QStringList());
     updateUndoRedoState();
 }
 
@@ -325,7 +331,7 @@ bool DocumentManager::applyAdjustmentsPermanently() {
     }
 
     // Save state for undo before making permanent changes
-    saveStateToHistory();
+    saveStateToHistory("Apply Adjustments");
 
     // Get the current processed image and make it the new original
     QImage processedImage = m_currentDocument->processedImage();
@@ -385,7 +391,7 @@ void DocumentManager::rotateImage(int degrees) {
     }
 
     // Save state for undo before making changes
-    saveStateToHistory();
+    saveStateToHistory(QString("Rotate %1°").arg(degrees));
 
     // Get the current image (processed if available, otherwise original)
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
@@ -422,7 +428,8 @@ void DocumentManager::flipImage(int direction) {
     }
 
     // Save state for undo before making changes
-    saveStateToHistory();
+    QString dirStr = (direction == 1) ? "Horizontal" : "Vertical";
+    saveStateToHistory(QString("Flip %1").arg(dirStr));
 
     // Get the current image
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
@@ -464,7 +471,7 @@ void DocumentManager::cropImage(const QRect& cropArea) {
     }
 
     // Save state for undo before making changes
-    saveStateToHistory();
+    saveStateToHistory("Crop");
 
     // Get the current image
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
@@ -512,7 +519,7 @@ void DocumentManager::perspectiveCropImage(const FourPointQuad& quad) {
     }
 
     // Save state for undo before making changes
-    saveStateToHistory();
+    saveStateToHistory("Perspective Crop");
 
     // Get the current image
     cv::Mat cvImage = qImageToCvMat(m_currentDocument->processedImage());
@@ -569,7 +576,7 @@ void DocumentManager::resizeImage(int width, int height) {
     }
 
     // Save state for undo
-    saveStateToHistory();
+    saveStateToHistory(QString("Resize %1x%2").arg(width).arg(height));
 
     // Get current image
     QImage currentImage = m_currentDocument->originalImage();
@@ -612,7 +619,7 @@ void DocumentManager::applyFilter(const QString& filterName) {
     qDebug() << "Applying filter:" << filterName;
 
     // Save state for undo
-    saveStateToHistory();
+    saveStateToHistory(QString("Filter: %1").arg(filterName));
 
     // Get current image
     QImage originalImage = m_currentDocument->originalImage();
@@ -734,22 +741,36 @@ bool DocumentManager::canRedo() const {
     return !m_redoStack.isEmpty();
 }
 
-void DocumentManager::saveStateToHistory() {
+QStringList DocumentManager::getHistory() const {
+    // Convert stack to list (most recent first)
+    QStringList list;
+    // Iterate in reverse order of stack (top to bottom)
+    for (int i = m_undoDescriptions.size() - 1; i >= 0; --i) {
+        list.append(m_undoDescriptions[i]);
+    }
+    return list;
+}
+
+void DocumentManager::saveStateToHistory(const QString& description) {
     if (!hasDocument())
         return;
 
     // Save current state to undo stack
     m_undoStack.push(m_currentDocument->processedImage().copy());
+    m_undoDescriptions.push(description);
 
     // Clear redo stack when new action is performed
     m_redoStack.clear();
+    m_redoDescriptions.clear();
 
     // Limit history size
     while (m_undoStack.size() > MAX_HISTORY_SIZE) {
-        m_undoStack.remove(0);  // Remove oldest
+        m_undoStack.remove(0);         // Remove oldest image
+        m_undoDescriptions.remove(0);  // Remove oldest description
     }
 
     updateUndoRedoState();
+    Q_EMIT historyChanged(getHistory());
 }
 
 void DocumentManager::updateUndoRedoState() {
@@ -765,6 +786,14 @@ void DocumentManager::undo() {
     // Save current state to redo stack
     m_redoStack.push(m_currentDocument->processedImage().copy());
 
+    // Move description from undo to redo
+    if (!m_undoDescriptions.isEmpty()) {
+        m_redoDescriptions.push(m_undoDescriptions.pop());
+    } else {
+        // Fallback if stacks desync (shouldn't happen)
+        m_redoDescriptions.push("Unknown Action");
+    }
+
     // Restore previous state
     QImage previousState = m_undoStack.pop();
     m_currentDocument->setOriginalImage(previousState);
@@ -777,6 +806,7 @@ void DocumentManager::undo() {
     m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
     updateUndoRedoState();
+    Q_EMIT historyChanged(getHistory());
     qDebug() << "Undo performed, undo stack size:" << m_undoStack.size();
 }
 
@@ -789,6 +819,13 @@ void DocumentManager::redo() {
     // Save current state to undo stack
     m_undoStack.push(m_currentDocument->processedImage().copy());
 
+    // Move description from redo to undo
+    if (!m_redoDescriptions.isEmpty()) {
+        m_undoDescriptions.push(m_redoDescriptions.pop());
+    } else {
+        m_undoDescriptions.push("Redone Action");
+    }
+
     // Restore next state
     QImage nextState = m_redoStack.pop();
     m_currentDocument->setOriginalImage(nextState);
@@ -798,10 +835,9 @@ void DocumentManager::redo() {
     cv::Mat cvImage = qImageToCvMat(nextState);
     m_imageController->setImage(cvImage);
 
-    m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
     updateUndoRedoState();
-    qDebug() << "Redo performed, redo stack size:" << m_redoStack.size();
+    Q_EMIT historyChanged(getHistory());
 }
 
 void DocumentManager::setStyleStrength(float strength) {
@@ -809,7 +845,7 @@ void DocumentManager::setStyleStrength(float strength) {
         return;
 
     m_styleStrength = strength;
-    
+
     // If we are currently using a style transfer filter, reapply it
     if (m_currentFilter.startsWith("StyleTransfer_")) {
         applyFilter(m_currentFilter);

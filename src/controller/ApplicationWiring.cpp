@@ -201,15 +201,16 @@ void ApplicationWiring::wireCanvas(CanvasWidget* canvas, ApplicationController* 
                              [canvas]() {
                                  canvas->setCropType(CropType::FourPoint);
                                  canvas->setCropMode(true);
-                                 canvas->update(); // Ensure redraw
+                                 canvas->update();  // Ensure redraw
                              });
 
     // Standard crop mode toggle
-    m_connections << connect(controller, &ApplicationController::enableCropMode, canvas,
-                             [canvas](bool enabled) {
-                                 canvas->setCropMode(enabled);
-                                 if (enabled) canvas->setCropType(CropType::Free); // Default to Free or current
-                             });
+    m_connections << connect(
+        controller, &ApplicationController::enableCropMode, canvas, [canvas](bool enabled) {
+            canvas->setCropMode(enabled);
+            if (enabled)
+                canvas->setCropType(CropType::Free);  // Default to Free or current
+        });
 }
 
 void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationController* controller) {
@@ -295,7 +296,7 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     // AI Style Transfer connections
     m_connections << connect(toolPanel, &ToolPanel::styleTransferRequested, controller,
                              &ApplicationController::applyStyleTransfer);
-    
+
     m_connections << connect(toolPanel, &ToolPanel::styleStrengthChanged, controller,
                              &ApplicationController::setStyleTransferStrength);
 
@@ -359,13 +360,14 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     }
 
     // Crop tool - activates crop mode on canvas
-    m_connections << connect(toolPanel, &ToolPanel::cropRequested, controller,
-                             [controller]() { controller->requestCropMode(); }); // Assume requestCropMode (check if exists or use lambda wrapper to canvas)
-    
-    // Actually, check what cropRequested does. 
+    m_connections << connect(toolPanel, &ToolPanel::cropRequested, controller, [controller]() {
+        controller->requestCropMode();
+    });  // Assume requestCropMode (check if exists or use lambda wrapper to canvas)
+
+    // Actually, check what cropRequested does.
     // Existing code: "The actual crop is handled via canvas signals" comment.
     // But ToolPanel has cropRequested().
-    
+
     m_connections << connect(toolPanel, &ToolPanel::perspectiveCropRequested, controller,
                              &ApplicationController::requestPerspectiveCropMode);
 }
@@ -373,11 +375,16 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
 void ApplicationWiring::wireInfoPanel(InfoPanel* infoPanel, ApplicationController* controller) {
     qDebug() << "Wiring Info Panel...";
 
-    // TODO: Add info panel connections if needed
-    // Info panel is typically display-only, but may have interactive elements
+    DocumentManager* docManager = controller->getDocumentManager();
+    if (docManager) {
+        // Connect history updates
+        m_connections << connect(docManager, &DocumentManager::historyChanged, infoPanel,
+                                 &InfoPanel::updateHistory);
 
-    Q_UNUSED(infoPanel);
-    Q_UNUSED(controller);
+        // Also update history when document is opened (to clear/reset)
+        // Note: DocumentManager emits historyChanged on open/close, so explicit connect
+        // implementation details handles it
+    }
 }
 
 void ApplicationWiring::wireControllerToMainWindow(ApplicationController* controller,
