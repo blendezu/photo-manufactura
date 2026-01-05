@@ -87,13 +87,11 @@ class HalideWrapper {
         int h = mat.rows;
         int c = mat.channels();
 
+        // 4. Create Buffer - Tell Halide that the data is interleaved (BGR BGR ...)
+        // Dimensions 0: width; Stride (to the next element) c
+        // Dimensions 1: height; Stride (to the next row) w * c
         // Dimensions 2: channels; Stride (to the next channel) 1
-        auto buf = Halide::Buffer<T>::make_interleaved(reinterpret_cast<T*>(mat.data), w, h, c);
-        // Debug
-        // std::cout << "[HalideWrapper] Wrapped Buffer: " << w << "x" << h << "x" << c 
-        //           << " min=" << buf.dim(0).min() << "," << buf.dim(1).min() << "," << buf.dim(2).min()
-        //           << " stride=" << buf.dim(0).stride() << "," << buf.dim(1).stride() << "," << buf.dim(2).stride() << std::endl;
-        return buf;
+        return Halide::Buffer<T>::make_interleaved(reinterpret_cast<T*>(mat.data), w, h, c);
     }
 
     /**

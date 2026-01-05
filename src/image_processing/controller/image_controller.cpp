@@ -32,14 +32,51 @@
 
 ImageController::ImageController() {
     // Default: Use GPU mode
-    m_pipeline.setFusionMode(false);
+    m_pipeline.setFusionMode(true);
 }
 
 ImageController::~ImageController() {}
 
 void ImageController::setImage(const cv::Mat& img) {
-    m_pipeline.setImg(img);
+    m_fullResImage = img;
+
+    // Generate Preview Image
+    // Strategy: Resize to max 1920px (longer edge) if larger
+    const int MAX_PREVIEW_SIZE = 1920;
+    if (img.cols > MAX_PREVIEW_SIZE || img.rows > MAX_PREVIEW_SIZE) {
+        float ratio = 1.0f;
+        if (img.cols > img.rows) {
+            ratio = (float)MAX_PREVIEW_SIZE / img.cols;
+        } else {
+            ratio = (float)MAX_PREVIEW_SIZE / img.rows;
+        }
+        cv::resize(img, m_previewImage, cv::Size(), ratio, ratio, cv::INTER_AREA);
+    } else {
+        m_previewImage = img.clone();
+    }
+
+    // Default to Preview Mode
+    m_isPreviewMode = true;
+    m_pipeline.setImg(m_previewImage);
+
     m_statsValid = false;  // Invalidate cache on new image
+}
+
+void ImageController::setPreviewMode(bool enabled) {
+    if (m_isPreviewMode == enabled) {
+        return;
+    }
+
+    m_isPreviewMode = enabled;
+
+    if (m_isPreviewMode) {
+        m_pipeline.setImg(m_previewImage);
+    } else {
+        m_pipeline.setImg(m_fullResImage);
+    }
+
+    // Invalidate stats because switching resolution might slightly change min/max L
+    m_statsValid = false;
 }
 
 void ImageController::update(const ImageState& state) {
@@ -130,7 +167,7 @@ cv::Mat ImageController::process() {
 
     // Brightness
     float brightness_factor =
-        1.0f + (m_currentState.brightness / AdjustBrightness::BRIGHTNESS_SCALING_FACTOR);
+        m_currentState.brightness / AdjustBrightness::BRIGHTNESS_SCALING_FACTOR;
 
     // Highlight
     float highlight_f = m_currentState.highlight / AdjustHighlight::HIGHLIGHT_SCALING_FACTOR;
@@ -194,11 +231,11 @@ cv::Mat ImageController::process() {
     // 6. Call AOT Function
     int err = photo_adjustment(
         (struct halide_buffer_t*)(inputPlanar.raw_buffer()), (float)exposure_factor,
-        (float)contrast, (float)brightness_factor, (float)highlight_f, (float)highlight_under,
-        (float)highlight_upper, (float)shadow_f, (float)shadow_under, (float)shadow_upper,
-        (float)white_f, (float)white_under, (float)white_upper, (float)black_f, (float)black_lower,
-        (float)black_upper, (float)sat_factor, (float)vibrance_f, (float)t_mag, (float)wb_red,
-        (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f, 0.0f,
+        (float)contrast, (float)brightness_factor, (float)minL, (float)maxL, (float)highlight_f,
+        (float)highlight_under, (float)highlight_upper, (float)shadow_f, (float)shadow_under,
+        (float)shadow_upper, (float)white_f, (float)white_under, (float)white_upper, (float)black_f,
+        (float)black_lower, (float)black_upper, (float)sat_factor, (float)vibrance_f, (float)t_mag,
+        (float)wb_red, (float)wb_blue, (float)sharpen_amt, (float)clarity_amt, 1.0f, 0.1f, 0.0f,
         (struct halide_buffer_t*)(outputPlanar.raw_buffer()));
 
     if (err != 0) {
