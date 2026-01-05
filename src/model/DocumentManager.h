@@ -97,6 +97,8 @@ class DocumentManager : public QObject {
     }
 
     // Save current adjustment state to history (for slider release)
+    // Save current adjustment state to history (for slider release)
+    void beginInteraction();  // Capture state before starting an interaction
     void saveAdjustmentState(const QString& name, int value);
 
     // Undo/Redo operations
@@ -140,4 +142,8 @@ class DocumentManager : public QObject {
     // Active filter tracking (persists across adjustment changes)
     QString m_currentFilter;       // Empty means no filter applied
     float m_styleStrength = 0.8f;  // Default style intensity
+
+    // Interaction state tracking
+    HistoryState m_interactionStartState;
+    bool m_hasInteractionState = false;
 };

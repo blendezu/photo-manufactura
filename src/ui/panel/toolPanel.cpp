@@ -298,6 +298,7 @@ ModernCollapsible* ToolPanel::createBasicSection() {
 
     // Connect slider released signals for history
     auto connectHistory = [this](ModernSlider* slider, const QString& name) {
+        connect(slider, &ModernSlider::sliderPressed, this, &ToolPanel::adjustmentStarted);
         connect(slider, &ModernSlider::sliderReleased, this,
                 [this, name, slider]() { Q_EMIT adjustmentFinished(name, slider->value()); });
     };

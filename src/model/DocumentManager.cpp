@@ -847,21 +847,54 @@ QStringList DocumentManager::getHistory() const {
     return list;
 }
 
+void DocumentManager::beginInteraction() {
+    if (!hasDocument())
+        return;
+
+    // Capture the state BEFORE the interaction starts
+    m_interactionStartState.image = m_currentDocument->originalImage().copy();
+    m_interactionStartState.adjustments = m_adjustments->createSnapshot();
+    // Use last description or generic?
+    if (!m_undoStack.isEmpty()) {
+        m_interactionStartState.description = m_undoStack.top().description;
+    } else {
+        m_interactionStartState.description = "Original";
+    }
+    m_hasInteractionState = true;
+}
+
 void DocumentManager::saveAdjustmentState(const QString& name, int value) {
     if (!hasDocument())
         return;
 
-    // For slider adjustments, we save the state locally to avoid spamming the stack.
-    // However, since we don't have a "Previous State" mechanism yet, we will
-    // rely on the fact that simple adjustment undo/redo is acceptable to restore
-    // the snapshot of settings *at that point*.
+    // If we captured a start state, push THAT to the stack.
+    // This ensures Undo returns to the state BEFORE the drag.
+    if (m_hasInteractionState) {
+        m_interactionStartState.description = QString("%1: %2").arg(name).arg(value);
+        m_undoStack.push(m_interactionStartState);
 
-    // NOTE: Ideally we should save the state BEFORE the drag started.
-    // Capturing it at release time means we capture the NEW value.
-    // This is a known limitation to be addressed in the next iteration if needed.
-    // For now, consistent snapshots allow jumping between states.
+        // Clear redo stack when new action is performed
+        m_redoStack.clear();
 
-    saveStateToHistory(QString("%1: %2").arg(name).arg(value));
+        // Limit history size
+        while (m_undoStack.size() > MAX_HISTORY_SIZE) {
+            m_undoStack.remove(0);
+        }
+
+        updateUndoRedoState();
+        Q_EMIT historyChanged(getHistory());
+
+        // Reset flag
+        m_hasInteractionState = false;
+    } else {
+        // Fallback if beginInteraction wasn't called (e.g. discrete action)
+        // In this case, we have to save the current state, but that's the "Result".
+        // To be safe for things like direct button clicks, we should probably
+        // assume the previous state was "Current - Change"?
+        // For now, fallback to old behavior but warn or try to capture?
+        // Old behavior: saveStateToHistory(description); which saved CURRENT.
+        saveStateToHistory(QString("%1: %2").arg(name).arg(value));
+    }
 }
 
 void DocumentManager::saveStateToHistory(const QString& description) {
