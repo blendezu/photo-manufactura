@@ -60,8 +60,11 @@ class ToolPanel : public QWidget {
     void rotateAngleChanged(int degrees);         // Custom angle rotation
     void resizeConfirmed(int width, int height);  // Resize with specific dimensions
     void perspectiveCropRequested();              // Request perspective crop mode
-    void straightenModeToggled(bool enabled);     // Straighten mode toggle
-    void applyStraightenRequested();              // Apply straighten with auto-crop
+
+    // Straighten mode signals
+    void straightenModeToggled(bool enabled);            // Straighten mode toggle
+    void applyStraightenRequested();                     // Apply straighten with auto-crop
+    void straightenAspectRatioChanged(int aspectIndex);  // Straighten aspect ratio changed
 
     // Crop option signals
     void cropAspectRatioChanged(int presetIndex);  // AspectRatioPreset as int
@@ -80,6 +83,7 @@ class ToolPanel : public QWidget {
     // Preset signals
     void presetSelected(const QString& presetName);
     void savePresetRequested(const QString& presetName);
+    void resetToOriginalRequested();  // Global reset (file reload)
 
     // Reset signal
     void resetAllRequested();
@@ -153,6 +157,7 @@ class ToolPanel : public QWidget {
     // Straighten mode controls
     ModernButton* m_straightenToggle;
     ModernButton* m_applyStraightenBtn;
+    QComboBox* m_straightenRatioCombo;
 
     // Quick actions (modern buttons)
     ModernToolButton* m_autoEnhanceBtn;

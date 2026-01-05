@@ -112,8 +112,8 @@ QWidget* ToolPanel::createQuickActionsBar() {
 
     // Reset button
     ModernToolButton* resetBtn = new ModernToolButton("Reset", ":/assets/icons/reset.svg", bar);
-    resetBtn->setToolTip("Reset all adjustments");
-    connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetAllAdjustments);
+    resetBtn->setToolTip("Reset to original image (removes all adjustments and transforms)");
+    connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetToOriginalRequested);
 
     layout->addWidget(applyBtn);
     layout->addWidget(m_compareBtn);
@@ -531,236 +531,219 @@ void ToolPanel::resetAllAdjustments() {
 ModernCollapsible* ToolPanel::createToolSection() {
     ModernCollapsible* toolSection = new ModernCollapsible("Transform", "📐", this);
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setSpacing(12);
-    layout->setContentsMargins(8, 8, 8, 12);
+    layout->setSpacing(16);
+    layout->setContentsMargins(12, 12, 12, 16);
 
-    // Rotate tools
-    QLabel* rotateLabel = new QLabel("ROTATE", this);
-    rotateLabel->setStyleSheet(
-        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px;");
-    layout->addWidget(rotateLabel);
+    // Helper for sectional headers
+    auto createHeader = [this](const QString& text) -> QLabel* {
+        QLabel* label = new QLabel(text, this);
+        label->setStyleSheet(
+            "font-weight: 700; color: #808080; font-size: 10px; letter-spacing: 1px; "
+            "text-transform: uppercase; margin-bottom: 4px;");
+        return label;
+    };
 
-    QHBoxLayout* rotateLayout = new QHBoxLayout();
-    rotateLayout->setSpacing(8);
+    // --- ROTATE & FLIP ---
+    // Combined row for efficient space usage
+    QHBoxLayout* topRow = new QHBoxLayout();
+    topRow->setSpacing(16);
 
-    IconButton* rotateLeftBtn =
-        new IconButton(":/assets/icons/rotate_left.png", "Rotate Left", this);
+    // Rotate Column
+    QVBoxLayout* rotateCol = new QVBoxLayout();
+    rotateCol->setSpacing(8);
+    rotateCol->addWidget(createHeader("ROTATE"));
+
+    QHBoxLayout* rotateBtns = new QHBoxLayout();
+    rotateBtns->setSpacing(8);
+
+    ModernButton* rotateLeftBtn = new ModernButton("Left", ModernButton::Secondary, this);
+    rotateLeftBtn->setIcon(":/assets/icons/rotate_left.png");
+    rotateLeftBtn->setToolTip("Rotate 90° Left");
     connect(rotateLeftBtn, &QPushButton::clicked, this, &ToolPanel::rotateLeftRequested);
 
-    IconButton* rotateRightBtn =
-        new IconButton(":/assets/icons/rotate_right.png", "Rotate Right", this);
+    ModernButton* rotateRightBtn = new ModernButton("Right", ModernButton::Secondary, this);
+    rotateRightBtn->setIcon(":/assets/icons/rotate_right.png");
+    rotateRightBtn->setToolTip("Rotate 90° Right");
     connect(rotateRightBtn, &QPushButton::clicked, this, &ToolPanel::rotateRightRequested);
 
-    rotateLayout->addWidget(rotateLeftBtn);
-    rotateLayout->addWidget(rotateRightBtn);
-    rotateLayout->addStretch();
-    layout->addLayout(rotateLayout);
+    rotateBtns->addWidget(rotateLeftBtn);
+    rotateBtns->addWidget(rotateRightBtn);
+    rotateCol->addLayout(rotateBtns);
+    topRow->addLayout(rotateCol);
 
-    // Real-time rotation slider - full 360° range
-    m_rotationSlider = new ModernSlider("Rotation", -180, 180, 0, this);
-    m_rotationSlider->setTooltip(
-        "Adjust rotation angle (-180° to +180°)\nDrag for real-time preview");
+    // Flip Column
+    QVBoxLayout* flipCol = new QVBoxLayout();
+    flipCol->setSpacing(8);
+    flipCol->addWidget(createHeader("FLIP"));
+
+    QHBoxLayout* flipBtns = new QHBoxLayout();
+    flipBtns->setSpacing(8);
+
+    ModernButton* flipHBtn = new ModernButton("Horiz", ModernButton::Secondary, this);
+    flipHBtn->setIcon(":/assets/icons/flip_horizontal.png");
+    flipHBtn->setToolTip("Flip Horizontally");
+    connect(flipHBtn, &QPushButton::clicked, this, &ToolPanel::flipHorizontalRequested);
+
+    ModernButton* flipVBtn = new ModernButton("Vert", ModernButton::Secondary, this);
+    flipVBtn->setIcon(":/assets/icons/flip_vertical.png");
+    flipVBtn->setToolTip("Flip Vertically");
+    connect(flipVBtn, &QPushButton::clicked, this, &ToolPanel::flipVerticalRequested);
+
+    flipBtns->addWidget(flipHBtn);
+    flipBtns->addWidget(flipVBtn);
+    flipCol->addLayout(flipBtns);
+    topRow->addLayout(flipCol);
+
+    layout->addLayout(topRow);
+
+    // --- MANUAL ROTATION ---
+    layout->addWidget(createHeader("FINE ROTATION"));
+    m_rotationSlider = new ModernSlider("", -45, 45, 0, this);
+    m_rotationSlider->setRange(-180, 180);
     m_rotationSlider->setUnit("°");
     connect(m_rotationSlider, &ModernSlider::valueChanged, this, &ToolPanel::rotateAngleChanged);
     connect(m_rotationSlider, &ModernSlider::sliderReleased, this,
             [this]() { Q_EMIT adjustmentFinished("Rotation", m_rotationSlider->value()); });
     layout->addWidget(m_rotationSlider);
 
-    // Straighten mode controls
-    QHBoxLayout* straightenLayout = new QHBoxLayout();
+    // --- STRAIGHTEN (Enhanced) ---
+    layout->addWidget(createHeader("STRAIGHTEN & CROP"));
+
+    QFrame* straightenFrame = new QFrame(this);
+    straightenFrame->setStyleSheet("background: #2a2a2a; border-radius: 6px;");
+    QVBoxLayout* straightenLayout = new QVBoxLayout(straightenFrame);
+    straightenLayout->setContentsMargins(8, 8, 8, 8);
     straightenLayout->setSpacing(8);
 
-    m_straightenToggle = new ModernButton("Straighten", ModernButton::Secondary, this);
+    // Toggle and Apple buttons
+    QHBoxLayout* straightRow = new QHBoxLayout();
+    m_straightenToggle = new ModernButton("Straighten Mode", ModernButton::Secondary, this);
+    m_straightenToggle->setIcon(":/assets/icons/straighten.png");
     m_straightenToggle->setCheckable(true);
-    m_straightenToggle->setToolTip("Enable straighten mode with auto-crop preview");
     connect(m_straightenToggle, &QPushButton::toggled, this, &ToolPanel::straightenModeToggled);
 
     m_applyStraightenBtn = new ModernButton("Apply", ModernButton::Primary, this);
-    m_applyStraightenBtn->setEnabled(false);  // Enable when straighten mode active
-    m_applyStraightenBtn->setToolTip("Apply rotation with auto-crop to remove black corners");
-    connect(m_applyStraightenBtn, &QPushButton::clicked, this,
-            &ToolPanel::applyStraightenRequested);
-
-    straightenLayout->addWidget(m_straightenToggle);
-    straightenLayout->addWidget(m_applyStraightenBtn);
-    straightenLayout->addStretch();
-    layout->addLayout(straightenLayout);
-
-    // Enable/disable Apply button based on straighten mode
+    m_applyStraightenBtn->setEnabled(false);
+    connect(m_applyStraightenBtn, &QPushButton::clicked, this, [this]() {
+        Q_EMIT applyStraightenRequested();
+        if (m_straightenToggle) {
+            m_straightenToggle->setChecked(false);  // Auto-exit Straighten Mode
+        }
+    });
     connect(m_straightenToggle, &QPushButton::toggled, m_applyStraightenBtn,
             &QPushButton::setEnabled);
 
-    // Flip tools
-    QLabel* flipLabel = new QLabel("FLIP", this);
-    flipLabel->setStyleSheet(
-        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px;");
-    layout->addWidget(flipLabel);
+    straightRow->addWidget(m_straightenToggle, 2);
+    straightRow->addWidget(m_applyStraightenBtn, 1);
+    straightenLayout->addLayout(straightRow);
 
-    QHBoxLayout* flipLayout = new QHBoxLayout();
-    flipLayout->setSpacing(8);
+    // Aspect Ratio Combo
+    m_straightenRatioCombo = new QComboBox(this);
+    // ... Ratio items ...
+    struct RatioItem {
+        QString name;
+        int id;
+    };
+    const std::vector<RatioItem> ratios = {
+        {"Free", 0},         {"1:1 Square", 1},      {"4:3 Photo", 2},
+        {"3:2 Photo", 3},    {"16:9 Widescreen", 4}, {"21:9 Ultrawide", 5},
+        {"3:4 Portrait", 6}, {"2:3 Portrait", 7},    {"9:16 Portrait", 8}};
+    for (const auto& r : ratios)
+        m_straightenRatioCombo->addItem(r.name, r.id);
 
-    IconButton* flipHBtn =
-        new IconButton(":/assets/icons/flip_horizontal.png", "Flip Horizontal", this);
-    flipHBtn->setIconEmoji("↔");
-    connect(flipHBtn, &QPushButton::clicked, this, &ToolPanel::flipHorizontalRequested);
+    QString comboStyle = R"(
+        QComboBox { background: #333; border: 1px solid #444; border-radius: 4px; padding: 6px 10px; color: #ddd; min-height: 28px; }
+        QComboBox:hover { border-color: #555; background: #383838; }
+        QComboBox::focus { border-color: #6366f1; }
+        QComboBox::drop-down { border: none; width: 20px; }
+        QComboBox QAbstractItemView { background: #2a2a2a; color: #ddd; selection-background-color: #6366f1; border: 1px solid #444; }
+    )";
+    m_straightenRatioCombo->setStyleSheet(comboStyle);
+    m_straightenRatioCombo->setEnabled(false);
+    connect(m_straightenToggle, &QPushButton::toggled, m_straightenRatioCombo,
+            &QPushButton::setEnabled);
+    connect(
+        m_straightenRatioCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+        [this](int index) {
+            Q_EMIT straightenAspectRatioChanged(m_straightenRatioCombo->itemData(index).toInt());
+        });
 
-    IconButton* flipVBtn =
-        new IconButton(":/assets/icons/flip_vertical.png", "Flip Vertical", this);
-    flipVBtn->setIconEmoji("↕");
-    connect(flipVBtn, &QPushButton::clicked, this, &ToolPanel::flipVerticalRequested);
+    straightenLayout->addWidget(m_straightenRatioCombo);
+    layout->addWidget(straightenFrame);
 
-    flipLayout->addWidget(flipHBtn);
-    flipLayout->addWidget(flipVBtn);
-    flipLayout->addStretch();
-    layout->addLayout(flipLayout);
+    // --- STANDARD OPERATIONS (Crop & Resize) ---
+    // Grouping these nicely
+    layout->addWidget(createHeader("STANDARD OPERATIONS"));
 
-    // Resize section
-    QLabel* resizeLabel = new QLabel("RESIZE", this);
-    resizeLabel->setStyleSheet(
-        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
-    layout->addWidget(resizeLabel);
-
-    IconButton* resizeBtn = new IconButton("", "Resize Image", this);
-    resizeBtn->setIconEmoji("📐");
-    resizeBtn->setToolTip("Open resize dialog to change image dimensions");
-    connect(resizeBtn, &QPushButton::clicked, this, &ToolPanel::showResizeDialog);
-
-    QHBoxLayout* resizeBtnLayout = new QHBoxLayout();
-    resizeBtnLayout->addWidget(resizeBtn);
-    resizeBtnLayout->addStretch();
-    layout->addLayout(resizeBtnLayout);
-
-    // Crop section
-    QLabel* cropLabel = new QLabel("CROP", this);
-    cropLabel->setStyleSheet(
-        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
-    layout->addWidget(cropLabel);
-
-    // Crop button to activate crop mode
-    IconButton* cropBtn = new IconButton(":/assets/icons/crop.png", "Start Crop", this);
-    cropBtn->setIconEmoji("✂️");
-    cropBtn->setToolTip("Click to enter crop mode, then drag on image to select area");
-    connect(cropBtn, &QPushButton::clicked, this, &ToolPanel::cropRequested);
-
-    QHBoxLayout* cropBtnLayout = new QHBoxLayout();
-    cropBtnLayout->addWidget(cropBtn);
-    cropBtnLayout->addStretch();
-    layout->addLayout(cropBtnLayout);
-
-    // Crop mode options
-    QLabel* cropOptionsLabel = new QLabel("ASPECT RATIO", this);
-    cropOptionsLabel->setStyleSheet(
-        "font-weight: 600; color: #666; font-size: 10px; letter-spacing: 1px; margin-top: 4px;");
-    layout->addWidget(cropOptionsLabel);
-
+    // Crop Row
     m_cropModeCombo = new QComboBox(this);
-    m_cropModeCombo->addItem("Free", 0);
-    m_cropModeCombo->addItem("1:1 Square", 1);
-    m_cropModeCombo->addItem("4:3 Photo", 2);
-    m_cropModeCombo->addItem("3:2 Photo", 3);
-    m_cropModeCombo->addItem("16:9 Widescreen", 4);
-    m_cropModeCombo->addItem("21:9 Ultrawide", 5);
-    m_cropModeCombo->addItem("3:4 Portrait", 6);
-    m_cropModeCombo->addItem("2:3 Portrait", 7);
-    m_cropModeCombo->addItem("2:3 Portrait", 7);
-    m_cropModeCombo->addItem("9:16 Portrait", 8);
-    m_cropModeCombo->addItem("Perspective (4-Point)", 99);
+    for (const auto& r : ratios)
+        m_cropModeCombo->addItem(r.name, r.id);
+    m_cropModeCombo->addItem("Perspective", 99);
     m_cropModeCombo->addItem("Fixed Size...", 100);
-    m_cropModeCombo->setStyleSheet(R"(
-        QComboBox {
-            background: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            border-radius: 6px;
-            padding: 8px 12px;
-            color: #d0d0d0;
-            font-size: 12px;
-        }
-        QComboBox:hover { border-color: #4a4a4a; background: #303030; }
-        QComboBox:focus { border-color: #0078d4; }
-        QComboBox::drop-down { border: none; width: 24px; }
-        QComboBox::down-arrow { image: url(:/assets/icons/dropdown.png); width: 10px; }
-        QComboBox QAbstractItemView {
-            background: #2a2a2a;
-            color: #d0d0d0;
-            selection-background-color: #0078d4;
-            selection-color: white;
-            border: 1px solid #3a3a3a;
-            border-radius: 6px;
-            padding: 4px;
-        }
-    )");
-    layout->addWidget(m_cropModeCombo);
+    m_cropModeCombo->setStyleSheet(comboStyle);
 
-    // Fixed size options (initially hidden)
+    QHBoxLayout* cropRow = new QHBoxLayout();
+    ModernButton* startCropBtn = new ModernButton("Crop", ModernButton::Secondary, this);
+    startCropBtn->setIcon(":/assets/icons/crop.png");
+    startCropBtn->setToolTip("Enter Crop Mode");
+    connect(startCropBtn, &QPushButton::clicked, this, &ToolPanel::cropRequested);
+
+    cropRow->addWidget(startCropBtn, 1);
+    cropRow->addWidget(m_cropModeCombo, 2);
+    layout->addLayout(cropRow);
+
+    // Fixed Size Inputs
     m_fixedSizeWidget = new QWidget(this);
-    QHBoxLayout* fixedSizeLayout = new QHBoxLayout(m_fixedSizeWidget);
-    fixedSizeLayout->setContentsMargins(0, 8, 0, 0);
-    fixedSizeLayout->setSpacing(8);
-
+    QHBoxLayout* fsLayout = new QHBoxLayout(m_fixedSizeWidget);
+    fsLayout->setContentsMargins(0, 0, 0, 0);
     m_cropWidthSpin = new QSpinBox(this);
     m_cropWidthSpin->setRange(1, 10000);
     m_cropWidthSpin->setValue(800);
-    m_cropWidthSpin->setSuffix(" px");
-    m_cropWidthSpin->setStyleSheet(R"(
-        QSpinBox {
-            background: #2a2a2a;
-            border: 1px solid #3a3a3a;
-            border-radius: 6px;
-            padding: 6px 8px;
-            color: #d0d0d0;
-            font-size: 12px;
-        }
-        QSpinBox:hover { border-color: #4a4a4a; }
-        QSpinBox:focus { border-color: #0078d4; }
-    )");
-
-    QLabel* xLabel = new QLabel("×", this);
-    xLabel->setStyleSheet("color: #666; font-size: 14px; font-weight: bold;");
-
     m_cropHeightSpin = new QSpinBox(this);
     m_cropHeightSpin->setRange(1, 10000);
     m_cropHeightSpin->setValue(600);
-    m_cropHeightSpin->setSuffix(" px");
-    m_cropHeightSpin->setStyleSheet(m_cropWidthSpin->styleSheet());
+    QString spinStyle =
+        "QSpinBox { background: #333; border: 1px solid #444; padding: 6px; color: #ddd; "
+        "min-height: 28px; border-radius: 4px; }";
+    m_cropWidthSpin->setStyleSheet(spinStyle);
+    m_cropHeightSpin->setStyleSheet(spinStyle);
 
-    fixedSizeLayout->addWidget(m_cropWidthSpin);
-    fixedSizeLayout->addWidget(xLabel);
-    fixedSizeLayout->addWidget(m_cropHeightSpin);
-    fixedSizeLayout->addStretch();
+    fsLayout->addWidget(m_cropWidthSpin);
+    fsLayout->addWidget(new QLabel("×", this));
+    fsLayout->addWidget(m_cropHeightSpin);
     m_fixedSizeWidget->setVisible(false);
     layout->addWidget(m_fixedSizeWidget);
 
-    // Connect crop mode combo
     connect(m_cropModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             [this](int index) {
-                int presetValue = m_cropModeCombo->itemData(index).toInt();
-                if (presetValue == 100) {
-                    m_fixedSizeWidget->setVisible(true);
+                int val = m_cropModeCombo->itemData(index).toInt();
+                m_fixedSizeWidget->setVisible(val == 100);
+                if (val == 99)
+                    Q_EMIT perspectiveCropRequested();
+                else if (val == 100)
                     Q_EMIT cropFixedSizeChanged(m_cropWidthSpin->value(),
                                                 m_cropHeightSpin->value());
-                } else if (presetValue == 99) {
-                    m_fixedSizeWidget->setVisible(false);
-                    Q_EMIT perspectiveCropRequested();
-                } else {
-                    m_fixedSizeWidget->setVisible(false);
-                    Q_EMIT cropAspectRatioChanged(presetValue);
-                }
+                else
+                    Q_EMIT cropAspectRatioChanged(val);
             });
+    auto updateFixed = [this](int) {
+        if (m_fixedSizeWidget->isVisible())
+            Q_EMIT cropFixedSizeChanged(m_cropWidthSpin->value(), m_cropHeightSpin->value());
+    };
+    connect(m_cropWidthSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, updateFixed);
+    connect(m_cropHeightSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, updateFixed);
 
-    // Connect fixed size spinboxes
-    connect(m_cropWidthSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) {
-        if (m_fixedSizeWidget->isVisible()) {
-            Q_EMIT cropFixedSizeChanged(m_cropWidthSpin->value(), m_cropHeightSpin->value());
-        }
-    });
-    connect(m_cropHeightSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int) {
-        if (m_fixedSizeWidget->isVisible()) {
-            Q_EMIT cropFixedSizeChanged(m_cropWidthSpin->value(), m_cropHeightSpin->value());
-        }
-    });
+    // Resize Button
+    ModernButton* resizeBtn = new ModernButton("Resize Image...", ModernButton::Secondary, this);
+    resizeBtn->setIcon(
+        ":/assets/icons/resize.png");  // Assuming icon name? Or keep Emoji if no icon
+    resizeBtn->setToolTip("Open resize dialog");
+    connect(resizeBtn, &QPushButton::clicked, this, &ToolPanel::showResizeDialog);
+    layout->addWidget(resizeBtn);
 
     toolSection->setContentLayout(layout);
-    toolSection->setExpanded(false);  // Start collapsed
+    toolSection->setExpanded(false);
     return toolSection;
 }
 

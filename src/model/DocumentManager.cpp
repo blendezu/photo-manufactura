@@ -162,6 +162,7 @@ bool DocumentManager::openDocument(const QString& filePath) {
 
     Q_EMIT documentOpened(filePath);
     Q_EMIT documentStateChanged();
+    updateUndoRedoState();
     return true;
 }
 
@@ -239,6 +240,25 @@ void DocumentManager::newDocument(int width, int height) {
 
     Q_EMIT documentCreated();
     Q_EMIT documentStateChanged();
+}
+
+void DocumentManager::resetToOriginal() {
+    if (!hasDocument())
+        return;
+
+    if (!m_currentDocument->filePath().isEmpty() && QFile::exists(m_currentDocument->filePath())) {
+        // Reloading the document effectively resets everything (image, adjustments, history)
+        if (!openDocument(m_currentDocument->filePath())) {
+            Q_EMIT errorOccurred("Failed to reload original image from disk.");
+        }
+    } else {
+        // For unsaved/new documents, we can only reset adjustments as we don't have a source file
+        // to recover the pre-transformed pixel data from (unless we cache it, which is heavy).
+        m_adjustments->resetAll();
+        m_adjustments->setRotation(0);
+        applyAdjustments();
+        Q_EMIT errorOccurred("Cannot fully reset unsaved document (adjustments reset only).");
+    }
 }
 
 void DocumentManager::applyAdjustments() {
