@@ -13,20 +13,19 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
     Halide::GeneratorInput<float> exposureFactor{"exposureFactor"};  // pow(2, exposure)
     Halide::GeneratorInput<float> contrastFactor{"contrastFactor"};  // 1.0 + contrast / 50.0
     Halide::GeneratorInput<float> brightnessFactor{"brightnessFactor"};
+    Halide::GeneratorInput<float> brightnessMinL{"brightnessMinL"};
+    Halide::GeneratorInput<float> brightnessMaxL{"brightnessMaxL"};
 
     // --- 1.3 Tone Mapping Parameters ---
     Halide::GeneratorInput<float> highlightFactor{"highlightFactor"};
     Halide::GeneratorInput<float> highlightUnder{"highlightUnder"};
     Halide::GeneratorInput<float> highlightUpper{"highlightUpper"};
-
     Halide::GeneratorInput<float> shadowFactor{"shadowFactor"};
     Halide::GeneratorInput<float> shadowUnder{"shadowUnder"};
     Halide::GeneratorInput<float> shadowUpper{"shadowUpper"};
-
     Halide::GeneratorInput<float> whiteFactor{"whiteFactor"};
     Halide::GeneratorInput<float> whiteUnder{"whiteUnder"};
     Halide::GeneratorInput<float> whiteUpper{"whiteUpper"};
-
     Halide::GeneratorInput<float> blackFactor{"blackFactor"};
     Halide::GeneratorInput<float> blackLower{"blackLower"};
     Halide::GeneratorInput<float> blackUpper{"blackUpper"};
@@ -34,15 +33,13 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
     // --- 1.4 Color Parameters ---
     Halide::GeneratorInput<float> saturationFactor{"saturationFactor"};
     Halide::GeneratorInput<float> vibranceFactor{"vibranceFactor"};
-
-    // --- 1.5 Temp/Tint ---
     Halide::GeneratorInput<float> tintMagentaFactor{"tintMagentaFactor"};
 
-    // --- 1.6 White Balance ---
+    // --- 1.5 Temp/Tint ---
     Halide::GeneratorInput<float> wbFactorR{"wbFactorR"};
     Halide::GeneratorInput<float> wbFactorB{"wbFactorB"};
 
-    // --- 1.7 Detail Parameters ---
+    // --- 1.6 Detail Parameters ---
     // Sharpen
     Halide::GeneratorInput<float> sharpenAmount{"sharpenAmount"};
 
@@ -74,7 +71,9 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         // 2.1.2 Light Params
         exposureFactor.set_estimate(1.0f);
         contrastFactor.set_estimate(1.0f);
-        brightnessFactor.set_estimate(1.0f);
+        brightnessFactor.set_estimate(0.0f);  // Now a delta, so typical is 0
+        brightnessMinL.set_estimate(0.0f);
+        brightnessMaxL.set_estimate(1.0f);
 
         highlightFactor.set_estimate(0.0f);
         highlightUnder.set_estimate(0.5f);
@@ -147,7 +146,8 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         Halide::Expr L = hslImg[2];
 
         // 2.5.2.2 Brightness
-        L = HalideBuildGraph::apply_brightness_L(L, brightnessFactor);
+        L = HalideBuildGraph::apply_brightness_L(L, brightnessFactor, brightnessMinL,
+                                                 brightnessMaxL);
 
         // 2.5.2.3 Tone Mapping
         L = HalideBuildGraph::apply_highlight_L(L, highlightFactor, highlightUnder, highlightUpper);

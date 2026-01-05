@@ -10,7 +10,7 @@ set(CMAKE_MACOSX_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 # Füge hier beide Pfade hinzu (ONNX und Halide)
-set(CMAKE_INSTALL_RPATH "${CMAKE_SOURCE_DIR}/libs/Halide/lib;${CMAKE_SOURCE_DIR}/libs/onnxruntime/lib")
+set(CMAKE_INSTALL_RPATH "")
 
 # ==========================================
 # FIX 1: Build-Type wird nun über CMakePresets gesteuert
@@ -85,50 +85,40 @@ find_package(OpenMP REQUIRED)
 # --- OpenCV ---
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn) 
 
+
+
 # =========================================================
-# LOKALE ONNX RUNTIME (Struktur: libs/onnxruntime)
+# SYSTEM HALIDE (Homebrew)
 # =========================================================
-set(OR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/onnxruntime")
-set(ONNXRUNTIME_INCLUDE_DIR "${OR_ROOT}/include")
+# Halide via Homebrew ist normalerweise in /opt/homebrew installiert.
+# Wir nutzen find_package, da moderne Halide Versionen Config-Dateien mitliefern.
+# Falls nicht, suchen wir manuell.
 
-if(NOT EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime_cxx_api.h")
-    message(FATAL_ERROR "❌ ONNX Runtime Headers nicht gefunden in: ${ONNXRUNTIME_INCLUDE_DIR}")
-endif()
+find_package(Halide CONFIG)
 
-find_library(ONNXRUNTIME_LIB 
-    NAMES onnxruntime
-    PATHS "${OR_ROOT}/lib"
-    NO_DEFAULT_PATH
-)
-
-if(ONNXRUNTIME_LIB)
-    message(STATUS "✅ Using Local ONNX Runtime Lib: ${ONNXRUNTIME_LIB}")
+if(Halide_FOUND)
+    message(STATUS "✅ Found Halide via CMake Config: ${Halide_DIR}")
+    # Halide::Halide ist das Target, das wir linken sollten
+    set(HALIDE_LIB Halide::Halide)
+    # Include Directories sind im Target enthalten, aber für Generatoren brauchen wir evtl. den Pfad
+    get_target_property(HALIDE_INCLUDE_DIR Halide::Halide INTERFACE_INCLUDE_DIRECTORIES)
 else()
-    message(FATAL_ERROR "❌ Local ONNX Runtime Lib not found in ${OR_ROOT}/lib")
-endif()
+    # Fallback: Manuelle Suche (z.B. für /opt/homebrew)
+    find_library(HALIDE_LIB 
+        NAMES Halide 
+        PATHS "/opt/homebrew/lib" "/usr/local/lib"
+    )
+    find_path(HALIDE_INCLUDE_DIR 
+        NAMES Halide.h 
+        PATHS "/opt/homebrew/include" "/usr/local/include"
+    )
 
-# =========================================================
-# LOKALE HALIDE LIB (Struktur: libs/Halide)
-# =========================================================
-set(HALIDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/Halide")
-set(HALIDE_INCLUDE_DIR "${HALIDE_ROOT}/include")
-
-# 1. Header Pfad prüfen
-if(NOT EXISTS "${HALIDE_INCLUDE_DIR}/Halide.h")
-    message(FATAL_ERROR "❌ Halide Headers nicht gefunden in: ${HALIDE_INCLUDE_DIR}")
-endif()
-
-# 2. Library finden
-find_library(HALIDE_LIB 
-    NAMES Halide 
-    PATHS "${HALIDE_ROOT}/lib"
-    NO_DEFAULT_PATH
-)
-
-if(HALIDE_LIB)
-    message(STATUS "✅ Using Local Halide Lib: ${HALIDE_LIB}")
-else()
-    message(FATAL_ERROR "❌ Local Halide Lib not found in ${HALIDE_ROOT}/lib")
+    if(HALIDE_LIB AND HALIDE_INCLUDE_DIR)
+        message(STATUS "✅ Found System Halide Lib: ${HALIDE_LIB}")
+        message(STATUS "✅ Found System Halide Include: ${HALIDE_INCLUDE_DIR}")
+    else()
+        message(FATAL_ERROR "❌ Halide not found! Please install with 'brew install halide'")
+    endif()
 endif()
 
 
@@ -183,7 +173,7 @@ target_include_directories(image_processing PUBLIC
 
 target_include_directories(image_processing SYSTEM PUBLIC
     # --- Externe Libraries Includes ---
-    ${ONNXRUNTIME_INCLUDE_DIR}
+
 )
 
 if(OpenMP_ROOT)
@@ -198,7 +188,7 @@ target_compile_features(image_processing PUBLIC cxx_std_20)
 target_link_libraries(image_processing 
     PUBLIC 
         ${OpenCV_LIBS}
-        ${ONNXRUNTIME_LIB}
+
         ${HALIDE_LIB}
         raw_processing
         # System Libraries für Halide JIT auf macOS (Wichtig!)
@@ -232,11 +222,11 @@ endif()
 
 # 1. Build the Generator Executable
 add_executable(generate_photo_adjustment "${CMAKE_CURRENT_SOURCE_DIR}/generator/photo_adjustment_generator.cpp")
-target_link_libraries(generate_photo_adjustment PRIVATE ${HALIDE_LIB} ${ONNXRUNTIME_LIB} ${OpenCV_LIBS})
+target_link_libraries(generate_photo_adjustment PRIVATE ${HALIDE_LIB} ${OpenCV_LIBS})
 target_include_directories(generate_photo_adjustment PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/utils"
     ${HALIDE_INCLUDE_DIR}
-    ${ONNXRUNTIME_INCLUDE_DIR}
+
 )
 # Helper utils for Generator (reusing existing utils files)
 target_sources(generate_photo_adjustment PRIVATE
@@ -253,7 +243,7 @@ add_custom_command(
             "-g" "photo_adjustment"
             "-o" "${CMAKE_CURRENT_BINARY_DIR}"
             "-f" "photo_adjustment"
-            "-p" "${HALIDE_ROOT}/lib/libautoschedule_adams2019.so"
+            "-p" "/opt/homebrew/lib/libautoschedule_adams2019.so"
             target=host-metal
             autoscheduler=Adams2019
     DEPENDS generate_photo_adjustment
@@ -330,6 +320,6 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
 else()
     message(STATUS "PERFORMANCE: ❌  SLOW MODE DETECTED (Debug active)")
 endif()
-message(STATUS "ONNX Runtime: ✅  Local Lib (${ONNXRUNTIME_LIB})")
+
 message(STATUS "Halide:       ✅  Local Lib (${HALIDE_LIB})")
 message(STATUS "---------------------------------------------------")
