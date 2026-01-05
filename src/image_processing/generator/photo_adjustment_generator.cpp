@@ -64,8 +64,8 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         // input characteristics.
 
         // 2.1.1 Input Buffer
-        srcImg.dim(0).set_estimate(0, 6000);
-        srcImg.dim(1).set_estimate(0, 4000);
+        srcImg.dim(0).set_estimate(0, 1920);
+        srcImg.dim(1).set_estimate(0, 1280);
         srcImg.dim(2).set_estimate(0, 3);
 
         // 2.1.2 Light Params
@@ -202,8 +202,8 @@ class PhotoAdjustmentGenerator : public Halide::Generator<PhotoAdjustmentGenerat
         dstImg.dim(2).set_stride(srcImg.dim(0).extent() * srcImg.dim(1).extent());
 
         // 2.6.3 Estimates the Output Dimensions
-        dstImg.dim(0).set_estimate(0, 6000);
-        dstImg.dim(1).set_estimate(0, 4000);
+        dstImg.dim(0).set_estimate(0, 1920);
+        dstImg.dim(1).set_estimate(0, 1280);
         dstImg.dim(2).set_estimate(0, 3);
     }
 };
