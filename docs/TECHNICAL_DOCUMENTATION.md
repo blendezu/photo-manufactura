@@ -1,7 +1,7 @@
  # Photo Manufactura - Technical Documentation
 
 **Version:** 0.1.0  
-**Date:** 4 January 2026  
+**Date:** 5 January 2026  
 **Branch:** `feat/app-beta-version`
 
 ---
@@ -25,7 +25,7 @@
 
 ### 1.1 High-Level Architecture
 
-Photo Manufactura follows a **layered MVC (Model-View-Controller)** architecture with clear separation of concerns:
+Photo Manufactura follows a **layered MVC (Model-View-Controller)** architecture where the **Model layer drives image processing** through an owned `ImageController`:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -42,40 +42,53 @@ Photo Manufactura follows a **layered MVC (Model-View-Controller)** architecture
 │               (Application Orchestration)                    │
 │  ┌────────────────────────────────────────────────────┐     │
 │  │         ApplicationController                      │     │
-│  │  - Command Pattern Implementation                  │     │
+│  │  - Wires UI signals to DocumentManager slots       │     │
+│  │  - Command Pattern (ICommand)                      │     │
 │  │  - Event Coordination                              │     │
-│  │  - State Management                                │     │
 │  └────────────────────────────────────────────────────┘     │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────────┐
-│                        Model Layer                           │
-│                  (Business Logic & Data)                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │DocumentManager│ │ImageDocument │  │AdjustmentSett│      │
-│  │              │  │              │  │ings          │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│  ┌──────────────┐                                           │
-│  │   AppState   │                                           │
-│  └──────────────┘                                           │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────────┐
-│                   Processing Layer                           │
-│                (Image Manipulation)                          │
 │  ┌────────────────────────────────────────────────────┐     │
-│  │              ImagePipeline                         │     │
-│  │  - Operation Registry (Factory Pattern)            │     │
-│  │  - Operation Chain (Chain of Responsibility)       │     │
-│  │  - Cache Management                                │     │
-│  │  - Undo/Redo Stack                                 │     │
+│  │         ApplicationWiring                          │     │
+│  │  - Centralized signal/slot connections             │     │
+│  │  - Dependency Injection                            │     │
 │  └────────────────────────────────────────────────────┘     │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│              Model Layer (Business Logic & Processing)       │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  DocumentManager (Facade)                            │   │
+│  │  ├── owns ImageDocument (image data)                 │   │
+│  │  ├── owns AdjustmentSettings (slider values)         │   │
+│  │  ├── owns ImageState (processing parameters)         │   │
+│  │  └── owns ImageController ─────────────────────────┐ │   │
+│  └────────────────────────────────────────────────────│─┘   │
+│                                                       │     │
+│  ┌────────────────────────────────────────────────────▼─┐   │
+│  │  ImageController (Processing Bridge)                 │   │
+│  │  ├── Translates ImageState → Pipeline operations     │   │
+│  │  ├── Manages preview vs full-res modes               │   │
+│  │  └── owns ImagePipeline ───────────────────────────┐ │   │
+│  └────────────────────────────────────────────────────│─┘   │
+│                                                       │     │
+│  ┌────────────────────────────────────────────────────▼─┐   │
+│  │  ImagePipeline                                       │   │
+│  │  ├── Operation chain (Chain of Responsibility)       │   │
+│  │  ├── OperationRegistry (Factory Pattern)             │   │
+│  │  ├── Fusion mode (GPU) / Sequential mode (CPU)       │   │
+│  │  └── Cache management                                │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │Light Ops     │  │Color Ops     │  │Geometry Ops  │      │
 │  │- Brightness  │  │- Saturation  │  │- Rotate      │      │
 │  │- Contrast    │  │- WhiteBalance│  │- Crop        │      │
 │  │- Shadows     │  │- Tint        │  │- Resize      │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐                         │
+│  │   AppState   │  │PresetManager │                         │
+│  └──────────────┘  └──────────────┘                         │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
@@ -87,13 +100,27 @@ Photo Manufactura follows a **layered MVC (Model-View-Controller)** architecture
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**Key Data Contract: `ImageState`**
+```cpp
+struct ImageState {
+    // "Single Source of Truth" for image look
+    float exposure, contrast, brightness, highlight, shadow;
+    float white, black, saturation, temp, tint;
+    float sharpen, clarity, denoise, rotation;
+    // ... geometry settings
+};
+```
+
+
 ### 1.2 Technology Stack
 
 | Layer | Technologies |
 |-------|-------------|
 | **UI Framework** | Qt6 (Core, Gui, Widgets, OpenGL, OpenGLWidgets) |
 | **Image Processing** | OpenCV 4.x (Core, ImgProc, ImgCodecs) |
-| **RAW Processing** | LibRaw 0.20.2 |
+| **GPU Acceleration** | Halide 18.x (AOT compiled Metal/CUDA kernels) |
+| **AI/ML Runtime** | ONNX Runtime 1.16.3 (Style Transfer inference) |
+| **RAW Processing** | LibRaw 0.21+ |
 | **Graphics Rendering** | OpenGL 3.3+ (GLSL 120 shaders) |
 | **Parallelization** | OpenMP (multi-threading) |
 | **Build System** | CMake 3.21+ with Presets |
@@ -124,9 +151,23 @@ Photo Manufactura follows a **layered MVC (Model-View-Controller)** architecture
 class ICommand {
 public:
     virtual ~ICommand() = default;
-    virtual bool execute(const QVariantMap& parameters) = 0;
-    virtual void undo() = 0;
-    virtual QString getName() const = 0;
+    virtual bool execute(const QVariantMap& parameters = {}) = 0;
+    virtual bool undo() { return false; }
+    virtual bool redo() { return false; }
+    virtual bool isUndoable() const { return false; }
+    virtual bool isRedoable() const { return false; }
+    virtual QString getDescription() const = 0;
+    virtual QVariantMap getParametersSchema() const { return {}; }
+    virtual bool validateParameters(const QVariantMap& parameters) const { return true; }
+};
+
+// Base class for undoable commands
+class UndoableCommand : public ICommand {
+public:
+    bool isUndoable() const override { return true; }
+protected:
+    virtual void saveState() = 0;
+    virtual void restoreState() = 0;
 };
 ```
 
@@ -146,13 +187,26 @@ class OperationRegistry {
 public:
     using OperationFactory = std::function<std::shared_ptr<ImageOperation>()>;
     
-    static OperationRegistry& getInstance(); // Singleton
+    // Categories for filters
+    enum class Category { MONOCHROME, VINTAGE, GENERAL };
     
-    void registerFilter(const std::string& name, 
-                       OperationFactory factory, 
-                       Category category);
+    // Filter metadata
+    struct FilterInfo {
+        std::string name;
+        Category category;
+        std::string description;
+        std::string iconName;  // for UI icons
+    };
+    
+    static OperationRegistry& getInstance();  // Singleton
+    
+    void registerFilter(const std::string& name, OperationFactory factory, 
+                       Category category, const std::string& description = "",
+                       const std::string& iconName = "");
     
     std::shared_ptr<ImageOperation> createFilter(const std::string& name);
+    std::vector<std::string> getFiltersByCategory(Category category) const;
+    FilterInfo getFilterInfo(const std::string& name) const;
 };
 ```
 
@@ -227,7 +281,7 @@ public:
 
 **Location:** `src/image_processing/core/image_pipeline.h`
 
-### 2.5 Observer Pattern (Qt Signals/Slots)
+### 2.6 Observer Pattern (Qt Signals/Slots)
 
 **Implementation:** Qt's built-in signal/slot mechanism
 
@@ -333,43 +387,112 @@ signals:
 ```cpp
 class AdjustmentSettings : public QObject {
 private:
-    int m_exposure;      // -100 to +100
-    int m_contrast;      // -100 to +100
-    int m_brightness;    // -100 to +100
-    int m_highlights;    // -100 to +100
-    int m_shadows;       // -100 to +100
-    int m_whites;        // -100 to +100
-    int m_blacks;        // -100 to +100
-    int m_temperature;   // -100 to +100
-    int m_tint;          // -100 to +100
-    int m_saturation;    // -100 to +100
+    // Light adjustments (-100 to +100)
+    int m_exposure = 0;
+    int m_contrast = 0;
+    int m_brightness = 0;
+    int m_highlights = 0;
+    int m_shadows = 0;
+    int m_whites = 0;
+    int m_blacks = 0;
+    
+    // Color adjustments (-100 to +100)
+    int m_temperature = 0;
+    int m_tint = 0;
+    int m_saturation = 0;
+    
+    // Detail adjustments (0 to +100)
+    int m_denoise = 0;
+    int m_clarity = 0;
+    int m_sharpening = 0;
+    
+    // Geometry (-180 to +180)
+    int m_rotation = 0;
+    
+public:
+    // Snapshot for undo/redo state capture
+    struct Snapshot {
+        int exposure, contrast, brightness, highlights, shadows;
+        int whites, blacks, temperature, tint, saturation;
+        int denoise, clarity, sharpening, rotation;
+        bool operator==(const Snapshot& other) const;
+    };
+    
+    Snapshot createSnapshot() const;
+    void applySnapshot(const Snapshot& snapshot);
     
 signals:
     void anySettingChanged();
     void exposureChanged(int value);
-    // ... individual signals
+    // ... individual signals for each property
 };
 ```
 
 **Adjustment Ranges:**
-- All values: `-100` to `+100`
-- Default: `0` (no adjustment)
-- Mapped to operation-specific ranges in processing layer
+- Light/Color: `-100` to `+100`, default `0`
+- Detail: `0` to `+100`, default `0`
+- Rotation: `-180` to `+180`, default `0`
 
 #### 3.1.3 DocumentManager
 
 **Responsibility:** Coordinates model components and image processing
 
 ```cpp
+// History state for undo/redo with full context
+struct HistoryState {
+    QImage image;
+    AdjustmentSettings::Snapshot adjustments;
+    QString description;  // e.g., "Brightness: 50"
+    
+    bool sameImage(const HistoryState& other) const;
+};
+
 class DocumentManager : public QObject {
 private:
     std::unique_ptr<ImageDocument> m_currentDocument;
     std::unique_ptr<AdjustmentSettings> m_adjustments;
-    std::unique_ptr<ImagePipeline> m_imagePipeline;
+    std::unique_ptr<ImageController> m_imageController;
+    
+    // Undo/Redo stacks
+    QStack<HistoryState> m_undoStack;
+    QStack<HistoryState> m_redoStack;
+    static const int MAX_HISTORY_SIZE = 20;
+    
+    // Interaction state tracking
+    HistoryState m_interactionStartState;
+    bool m_hasInteractionState = false;
+    
+    // Style transfer
+    float m_styleStrength = 0.8f;
     
 public:
+    // Document lifecycle
     bool openDocument(const QString& filePath);
     void applyAdjustments();  // Triggers image processing
+    void resetToOriginal();   // Reload from file and reset adjustments
+    
+    // Interaction-aware history
+    void beginInteraction();  // Capture state before slider adjustment starts
+    void saveAdjustmentState(const QString& name, int value);  // Save "Brightness: 50"
+    
+    // Geometry operations
+    void applyStraighten(float angle, const QRect& cropRect);  // Destructive straighten
+    void perspectiveCropImage(const FourPointQuad& quad);
+    
+    // Style transfer
+    void setStyleStrength(float strength);  // 0.0 to 1.0
+    float getStyleStrength() const;
+    
+    // Undo/Redo
+    void undo();
+    void redo();
+    bool canUndo() const;
+    bool canRedo() const;
+    QStringList getHistory() const;  // For InfoPanel display
+    
+signals:
+    void historyChanged(const QStringList& history);
+    void filterChanged(const QString& filterName);
 };
 ```
 
@@ -380,6 +503,18 @@ public:
 4. Process through ImagePipeline
 5. Convert cv::Mat → QImage
 6. Update ImageDocument with processed result
+
+**Interaction History Pattern:**
+```
+User starts dragging slider
+    → toolPanel emits interactionStarted()
+    → DocumentManager::beginInteraction() captures current state
+    → Live preview updates during drag
+User releases slider
+    → toolPanel emits interactionEnded()
+    → DocumentManager::saveAdjustmentState("Brightness", 50)
+    → State saved to undo stack with description
+```
 
 #### 3.1.4 AppState
 
@@ -393,6 +528,16 @@ private:
     bool m_histogramVisible;
     bool m_toolPanelVisible;
     bool m_adjustmentPanelVisible;
+    
+public:
+    QString theme() const;
+    void setTheme(const QString& theme);
+    double zoomLevel() const;
+    void setZoomLevel(double level);
+    
+signals:
+    void themeChanged(const QString& theme);
+    void zoomLevelChanged(double level);
 };
 ```
 
@@ -547,7 +692,7 @@ private:
 
 #### 3.3.3 CanvasWidget (OpenGL)
 
-**Responsibility:** Hardware-accelerated image rendering with zoom, crop, and compare modes
+**Responsibility:** Hardware-accelerated image rendering with zoom, crop, compare, and straighten modes
 
 ```cpp
 // Zoom mode types
@@ -557,7 +702,7 @@ enum class ZoomMode {
 };
 
 // Crop configuration
-enum class CropType { Free, FixedSize, AspectRatio };
+enum class CropType { Free, FixedSize, AspectRatio, FourPoint };
 enum class AspectRatioPreset {
     Free, Square_1_1, Photo_4_3, Photo_3_2, Widescreen_16_9,
     Widescreen_21_9, Portrait_3_4, Portrait_2_3, Portrait_9_16, Custom
@@ -566,6 +711,7 @@ enum class AspectRatioPreset {
 class CanvasWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 private:
     std::unique_ptr<QOpenGLTexture> m_texture;
+    std::unique_ptr<QOpenGLTexture> m_originalTexture;  // For compare mode
     std::unique_ptr<QOpenGLShaderProgram> m_shaderProgram;
     QMatrix4x4 m_mvpMatrix;
     double m_zoomFactor;
@@ -573,6 +719,8 @@ private:
     ZoomMode m_zoomMode;
     bool m_cropMode;
     bool m_compareMode;
+    bool m_straightenMode;      // NEW: Straighten mode
+    float m_straightenAngle;    // NEW: Rotation angle in degrees
     
 public:
     void setImage(const QImage& image);
@@ -586,9 +734,16 @@ public:
     void setCropAspectRatio(AspectRatioPreset preset);
     void setCropFixedSize(int width, int height);
     
-    // Compare (before/after)
+    // Compare (split-screen before/after)
     void setCompareMode(bool enabled);
     void setCompareSplitPosition(float position);  // 0.0 to 1.0
+    bool isCompareMode() const;
+    
+    // Straighten mode (NEW)
+    void setStraightenMode(bool enabled);
+    bool isStraightenMode() const;
+    void setStraightenAngle(float angle);  // Rotation preview
+    float getStraightenAngle() const;
 
 signals:
     // Zoom signals
@@ -603,6 +758,10 @@ signals:
     // Compare signals
     void compareModeChanged(bool enabled);
     
+    // Straighten signals (NEW)
+    void straightenModeChanged(bool enabled);
+    void straightenCropRequested(float angle, const QRect& cropRect);
+    
     // Zoom tracking
     void zoomLevelChanged(double level);
 };
@@ -611,10 +770,10 @@ signals:
 **OpenGL Pipeline:**
 1. Upload QImage to GPU texture
 2. Vertex shader: Apply MVP transformation
-3. Fragment shader: Sample texture
+3. Fragment shader: Sample texture (with compare split logic)
 4. Render to quad
 
-**Shader Code (GLSL 120):**
+**Shader Code (GLSL 120 with Compare Mode):**
 ```glsl
 // Vertex Shader
 attribute vec4 position;
@@ -627,14 +786,24 @@ void main() {
     fragTexCoord = texCoord;
 }
 
-// Fragment Shader
+// Fragment Shader (with split-screen compare)
 varying vec2 fragTexCoord;
-uniform sampler2D texture;
+uniform sampler2D processedTexture;
+uniform sampler2D originalTexture;  // NEW: For compare mode
+uniform float splitPosition;         // NEW: 0.0 to 1.0
+uniform bool compareMode;            // NEW: Toggle split rendering
 
 void main() {
-    gl_FragColor = texture2D(texture, fragTexCoord);
+    if (compareMode && fragTexCoord.x < splitPosition) {
+        // Left side: Original image
+        gl_FragColor = texture2D(originalTexture, fragTexCoord);
+    } else {
+        // Right side (or full): Processed image
+        gl_FragColor = texture2D(processedTexture, fragTexCoord);
+    }
 }
 ```
+
 
 #### 3.3.4 ToolPanel
 
@@ -715,6 +884,51 @@ private:
     QComboBox* m_presetCombo;
 };
 ```
+
+#### 3.3.5 ModernCollapsible Widget (NEW)
+
+**Responsibility:** Animated collapsible sections for organizing tool panel UI
+
+```cpp
+class ModernCollapsible : public QWidget {
+    Q_PROPERTY(int contentHeight READ contentHeight WRITE setContentHeight)
+    
+private:
+    QLabel* m_iconLabel;
+    QLabel* m_titleLabel;
+    QLabel* m_badgeLabel;
+    QLabel* m_chevronLabel;
+    QWidget* m_contentContainer;
+    QPropertyAnimation* m_animation;
+    bool m_expanded;
+    int m_currentContentHeight;
+    
+public:
+    ModernCollapsible(const QString& title, const QString& icon = "",
+                      QWidget* parent = nullptr);
+    
+    void setContentLayout(QLayout* contentLayout);
+    void setExpanded(bool expanded);
+    bool isExpanded() const;
+    void setBadgeCount(int count);  // Show count indicator
+    void setIcon(const QString& icon);  // Path to PNG/SVG icon
+    int contentHeight() const;
+    void setContentHeight(int height);
+
+signals:
+    void expandedChanged(bool expanded);
+};
+```
+
+**Features:**
+- Smooth expand/collapse animation using `QPropertyAnimation`
+- Section header with icon, title, badge, and chevron
+- Hover effects for visual feedback
+- Used for: Presets, Light, Color, Detail, Transform, Effects, AI Style sections
+
+**Icon Assets (`src/ui/resources/assets/icons/`):**
+- `light.png`, `color.png`, `detail.png`, `transform.png`
+- `effects.png`, `ai_style.png`, `presets.png`, `auto_fix.png`
 
 ### 3.4 Processing Layer
 

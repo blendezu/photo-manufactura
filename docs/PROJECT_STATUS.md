@@ -1,6 +1,6 @@
 # Photo Manufactura - Project Status
 
-**Date:** 4 January 2026  
+**Date:** 5 January 2026  
 **Version:** 0.1.0  
 **Branch:** `feat/app-beta-version`
 
@@ -153,6 +153,85 @@
 | Canvas Zoom ↔ Controller | ✅ Complete | Single Zoom toggle mode (Click=in, Alt+Click=out, scroll=natural) |
 | Theme ↔ Controller | ⏳ Pending | SubMenuView needs controller connection |
 | ImagePipeline ↔ DocumentManager | ✅ Complete | Full integration restored, real-time processing enabled |
+
+---
+
+## Recent Updates (January 5, 2026)
+
+### ✅ Completed: Interaction-Aware Undo History
+
+**Feature:**
+- Implemented `HistoryState` struct to capture complete document state (image + adjustments + description)
+- Added `beginInteraction()` method to capture state before slider adjustments begin
+- `saveAdjustmentState()` now saves named history entries (e.g., "Brightness: 50")
+- History descriptions visible in InfoPanel
+
+**Files Modified:**
+- `src/model/DocumentManager.h/cpp` - New `HistoryState` struct, `m_interactionStartState` member
+- `src/controller/ApplicationWiring.cpp` - Connected slider interaction signals
+- `src/ui/panel/toolPanel.h/cpp` - Emits interaction start/end signals
+
+### ✅ Completed: Straighten Mode with Manual Crop Handles
+
+**Feature:**
+- Rotation preview in canvas with live angle display
+- Draggable crop rectangle within straighten mode
+- Aspect ratio control for straighten crop area
+- Reset to original image functionality
+
+**Files Modified:**
+- `src/ui/canvas/canvasWidget.h/cpp` - Added `isStraightenMode()`, `getStraightenAngle()`, movable crop rect
+- `src/model/DocumentManager.h/cpp` - Added `applyStraighten()`, `resetToOriginal()` methods
+
+### ✅ Completed: Rotation Adjustment Slider
+
+**Feature:**
+- Continuous rotation adjustment via slider (in addition to fixed 90° rotations)
+- Enhanced `ModernSlider` with display formatting and tick marks
+
+**Files Modified:**
+- `src/ui/widgets/modernSlider.h/cpp` - Display formatting, tick mark rendering
+- `src/model/AdjustmentSettings.h/cpp` - Rotation property added
+
+### ✅ Completed: Style Transfer Strength Control
+
+**Feature:**
+- Adjustable intensity for AI style transfer effects (0.0-1.0)
+- `setStyleStrength()` / `getStyleStrength()` methods in DocumentManager
+- Persists across adjustment changes
+
+### ✅ Completed: Split-Screen Comparison Mode
+
+**Feature:**
+- OpenGL fragment shader renders split-screen before/after view
+- Original texture uniform passed to shader
+- Slider controls split position
+
+### ✅ Completed: Modern Collapsible UI Widgets
+
+**Feature:**
+- New `ModernCollapsible` widget with animated expand/collapse
+- Section headers with icons (Light, Color, Detail, Transform, Effects, AI Style)
+- Hover effects and badge counts
+
+**New Files:**
+- `src/ui/widgets/modernCollapsible.h/cpp`
+
+**New Icons Added:**
+- `ai_style.png`, `auto_fix.png`, `color.png`, `detail.png`, `effects.png`
+- `light.png`, `presets.png`, `transform.png`
+- `flip_horizontal.png`, `flip_vertical.png`, `rotate_left.png`, `rotate_right.png`
+
+### ✅ Completed: New SVG Icons for Quick Actions
+
+**New Icons:**
+- `apply.svg`, `compare.svg`, `reset.svg`, `save.svg`, `zoom_in.svg`, `dropdown.svg`
+
+### ✅ Completed: Flat Style ModernToolButton
+
+**Feature:**
+- Added flat button style variant to `ModernToolButton`
+- Improved button state styling (hover, pressed, checked)
 
 ---
 
@@ -606,6 +685,14 @@
     - New `FourPointQuad` shared struct for UI/Model
     - Canvas overlay with draggable corner handles
     - Full MVC wiring through ApplicationController
+12. Implemented interaction-aware undo history (Jan 5, 2026)
+    - `HistoryState` struct captures complete document state
+    - `beginInteraction()` / `saveAdjustmentState()` workflow
+13. Implemented straighten mode with manual crop handles (Jan 5, 2026)
+14. Added style transfer strength control (Jan 5, 2026)
+15. Implemented split-screen comparison mode (Jan 5, 2026)
+16. Created modern collapsible UI widgets (Jan 5, 2026)
+17. Added new SVG icons for quick actions (Jan 5, 2026)
 
 ### In Progress 🔄
 1. Theme controller integration (partial)
@@ -614,12 +701,14 @@
 - None
 
 ### Completed ✅ (Previously Listed as TODO)
-- ✅ Undo/Redo - Implemented in DocumentManager with QStack
+- ✅ Undo/Redo - Enhanced with interaction-aware history (Jan 5, 2026)
 - ✅ Histogram Display - HistogramWidget in InfoPanel
 - ✅ Presets System - PresetManager with JSON save/load
 - ✅ Zoom Controller Integration - Single toggle mode
-- ✅ Documentation Updates - All docs synchronized (Jan 3, 2026)
+- ✅ Documentation Updates - All docs synchronized (Jan 5, 2026)
 - ✅ Four-Point Perspective Crop - Ratio-based corners with OpenCV warpPerspective (Jan 4, 2026)
+- ✅ Straighten Mode - Manual crop handles with rotation preview (Jan 5, 2026)
+- ✅ Compare Mode - Split-screen before/after view (Jan 5, 2026)
 
 ---
 
