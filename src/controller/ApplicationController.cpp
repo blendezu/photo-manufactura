@@ -506,8 +506,6 @@ void ApplicationController::applyAutoEnhance() {
         if (std::abs(settings.contrast) > 1.0f) {
             adjustments->setContrast(static_cast<int>(settings.contrast));
         }
-<<<<<<< HEAD
-        
         // Apply Smart Recovery and Tone Mapping
         if (std::abs(settings.highlight) > 1.0f)
             adjustments->setHighlights(static_cast<int>(settings.highlight));
@@ -520,8 +518,6 @@ void ApplicationController::applyAutoEnhance() {
             
         if (std::abs(settings.black) > 1.0f)
             adjustments->setBlacks(static_cast<int>(settings.black));
-=======
->>>>>>> 7ce2ab5 (feat: Add clarity and sharpening adjustments with UI sliders and implement an auto light feature using OpenCV.)
 
         setState("isModified", true);
         
