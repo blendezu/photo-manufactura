@@ -247,6 +247,13 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::saturationChanged, controller,
                              &ApplicationController::adjustSaturation);
 
+    // History connection
+    DocumentManager* docManager = controller->getDocumentManager();
+    if (docManager) {
+        m_connections << connect(toolPanel, &ToolPanel::adjustmentFinished, docManager,
+                                 &DocumentManager::saveAdjustmentState);
+    }
+
     // Detail connections
     m_connections << connect(toolPanel, &ToolPanel::denoiseChanged, controller,
                              &ApplicationController::adjustDenoise);
@@ -348,7 +355,6 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
 
     // Enable/disable color controls based on active filter
     // Grayscale filter should disable color sliders as they have no effect
-    DocumentManager* docManager = controller->getDocumentManager();
     if (docManager) {
         m_connections << connect(docManager, &DocumentManager::filterChanged, toolPanel,
                                  [toolPanel](const QString& filterName) {

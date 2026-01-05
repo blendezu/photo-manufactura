@@ -41,6 +41,9 @@ class ToolPanel : public QWidget {
     void temperatureChanged(int value);
     void tintChanged(int value);
 
+    // Generic signal for history tracking (emitted on slider release)
+    void adjustmentFinished(const QString& name, int value);
+
     // Detail signals
     void denoiseChanged(int value);
     void clarityChanged(int value);
@@ -54,9 +57,9 @@ class ToolPanel : public QWidget {
     void cropRequested();
     void straightenRequested();
 
-    void rotateAngleChanged(int degrees);  // Custom angle rotation
+    void rotateAngleChanged(int degrees);         // Custom angle rotation
     void resizeConfirmed(int width, int height);  // Resize with specific dimensions
-    void perspectiveCropRequested();  // Request perspective crop mode
+    void perspectiveCropRequested();              // Request perspective crop mode
 
     // Crop option signals
     void cropAspectRatioChanged(int presetIndex);  // AspectRatioPreset as int
@@ -94,13 +97,13 @@ class ToolPanel : public QWidget {
    public slots:
     void setZoomModeChecked(bool checked);
     void refreshPresets(const QStringList& userPresets);  // Refresh combo with user presets
-    void updateSliders(int brightness, int contrast, int saturation, int exposure,
-                       int highlights, int shadows, int whites, int blacks,
-                       int temperature, int tint, int denoise, int clarity, int sharpening);  // Update sliders from preset
-    void setColorControlsEnabled(bool enabled);  // Enable/disable color sliders based on active effect
-    void updateImageInfo(const QImage& image);   // Receive current image info
+    void updateSliders(int brightness, int contrast, int saturation, int exposure, int highlights,
+                       int shadows, int whites, int blacks, int temperature, int tint, int denoise,
+                       int clarity, int sharpening);  // Update sliders from preset
+    void setColorControlsEnabled(
+        bool enabled);  // Enable/disable color sliders based on active effect
+    void updateImageInfo(const QImage& image);  // Receive current image info
     void showResizeDialog();
-
 
    private:
     void setupUI();

@@ -77,6 +77,37 @@ class AdjustmentSettings : public QObject {
     // Check if any adjustment is non-default
     bool hasAdjustments() const;
 
+    struct Snapshot {
+        int exposure = 0;
+        int contrast = 0;
+        int brightness = 0;
+        int highlights = 0;
+        int shadows = 0;
+        int whites = 0;
+        int blacks = 0;
+        int temperature = 0;
+        int tint = 0;
+        int saturation = 0;
+        int denoise = 0;
+        int clarity = 0;
+        int sharpening = 0;
+
+        bool operator==(const Snapshot& other) const {
+            return exposure == other.exposure && contrast == other.contrast &&
+                   brightness == other.brightness && highlights == other.highlights &&
+                   shadows == other.shadows && whites == other.whites && blacks == other.blacks &&
+                   temperature == other.temperature && tint == other.tint &&
+                   saturation == other.saturation && denoise == other.denoise &&
+                   clarity == other.clarity && sharpening == other.sharpening;
+        }
+        bool operator!=(const Snapshot& other) const {
+            return !(*this == other);
+        }
+    };
+
+    Snapshot createSnapshot() const;
+    void applySnapshot(const Snapshot& snapshot);
+
    public Q_SLOTS:
     // Basic adjustments
     void setExposure(int value);
@@ -100,7 +131,7 @@ class AdjustmentSettings : public QObject {
     // Reset all to defaults
     void resetAll();
 
-Q_SIGNALS:
+   Q_SIGNALS:
     void exposureChanged(int value);
     void contrastChanged(int value);
     void brightnessChanged(int value);

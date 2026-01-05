@@ -93,6 +93,8 @@ set(WIDGET_SOURCES
     # Utility widgets
     widgets/histogramWidget.h
     widgets/histogramWidget.cpp
+    widgets/HistoryWidget.h
+    widgets/HistoryWidget.cpp
     widgets/ResizeDialog.h
     widgets/ResizeDialog.cpp
 )

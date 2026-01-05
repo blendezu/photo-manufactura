@@ -2,6 +2,7 @@
 
 #include <QGroupBox>
 
+#include "../widgets/HistoryWidget.h"
 #include "../widgets/histogramWidget.h"
 
 InfoPanel::InfoPanel(QWidget* parent) : QWidget(parent) {
@@ -97,47 +98,9 @@ void InfoPanel::setupUI() {
     metadataLayout->addWidget(m_zoomLabel);
     m_mainLayout->addWidget(metadataGroup);
 
-    // History group with matching styling
-    QGroupBox* historyGroup = new QGroupBox(tr("History"), this);
-    historyGroup->setStyleSheet(
-        "QGroupBox { "
-        "  font-weight: 500; "
-        "  border: 1px solid #3a3a3a; "
-        "  border-radius: 5px; "
-        "  margin-top: 10px; "
-        "  padding-top: 10px; "
-        "} "
-        "QGroupBox::title { "
-        "  subcontrol-origin: margin; "
-        "  subcontrol-position: top left; "
-        "  padding: 0 5px; "
-        "  color: #aaa; "
-        "}");
-    QVBoxLayout* historyLayout = new QVBoxLayout(historyGroup);
-    historyLayout->setContentsMargins(5, 10, 5, 5);
-
-    m_historyList = new QListWidget(historyGroup);
-    m_historyList->setFocusPolicy(Qt::NoFocus);  // Don't steal focus from canvas
-    m_historyList->setStyleSheet(
-        "QListWidget { "
-        "  background-color: #2b2b2b; "
-        "  border: none; "
-        "  color: #ccc; "
-        "  font-size: 11px; "
-        "  outline: none; "
-        "} "
-        "QListWidget::item { "
-        "  padding: 4px; "
-        "  border-bottom: 1px solid #333; "
-        "} "
-        "QListWidget::item:selected { "
-        "  background-color: #3a3a3a; "
-        "}");
-    // Show only last 5 items roughly
-    m_historyList->setFixedHeight(150);
-
-    historyLayout->addWidget(m_historyList);
-    m_mainLayout->addWidget(historyGroup);
+    // History Widget
+    m_historyWidget = new HistoryWidget(this);
+    m_mainLayout->addWidget(m_historyWidget);
 
     // Add stretch to push everything to the top
     m_mainLayout->addStretch();
@@ -187,32 +150,9 @@ void InfoPanel::clearInfo() {
     m_colorSpaceLabel->setText(tr("Color Space: N/A"));
     m_zoomLabel->setText(tr("Zoom: 100%"));
     m_histogramWidget->clear();
-    m_historyList->clear();
+    m_historyWidget->clear();
 }
 
 void InfoPanel::updateHistory(const QStringList& history) {
-    m_historyList->clear();
-
-    if (history.isEmpty()) {
-        m_historyList->addItem(tr("Original Image"));
-        return;
-    }
-
-    // Add items (history list is most recent first)
-    // We want to show them top-to-bottom as [Most Recent] ... [Oldest]
-    for (const QString& action : history) {
-        QListWidgetItem* item = new QListWidgetItem(action);
-        // Style the most recent action differently
-        if (m_historyList->count() == 0) {
-            item->setForeground(QColor("#ffffff"));
-            QFont f = item->font();
-            f.setBold(true);
-            item->setFont(f);
-            item->setIcon(QIcon::fromTheme("edit-undo"));  // Optional icon
-        }
-        m_historyList->addItem(item);
-    }
-
-    // Add "Original" at the bottom
-    m_historyList->addItem(tr("Original Image"));
+    m_historyWidget->updateHistory(history);
 }

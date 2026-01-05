@@ -7,6 +7,7 @@
 #include <QWidget>
 
 class HistogramWidget;
+class HistoryWidget;
 
 class InfoPanel : public QWidget {
     Q_OBJECT
@@ -36,5 +37,5 @@ class InfoPanel : public QWidget {
     QLabel* m_megapixelsLabel;
     QLabel* m_zoomLabel;
     HistogramWidget* m_histogramWidget;
-    QListWidget* m_historyList;
+    HistoryWidget* m_historyWidget;
 };
