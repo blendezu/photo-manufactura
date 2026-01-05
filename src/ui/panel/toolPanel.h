@@ -70,6 +70,7 @@ class ToolPanel : public QWidget {
 
     // AI Style Transfer signals
     void styleTransferRequested(StyleTransferType styleType);
+    void styleStrengthChanged(int strength);
 
     // Preset signals
     void presetSelected(const QString& presetName);
@@ -152,6 +153,7 @@ class ToolPanel : public QWidget {
     // Effects/Filters
     FilterGalleryWidget* m_filterGallery;
     FilterGalleryWidget* m_styleGallery;
+    ModernSlider* m_styleStrengthSlider;
 
     // Collapsible sections (for enabling/disabling)
     ModernCollapsible* m_colorSection;

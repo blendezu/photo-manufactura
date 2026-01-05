@@ -156,6 +156,7 @@ class ApplicationController : public QObject {
     void applyFilterVintage();
     void applyAutoEnhance();
     void applyStyleTransfer(StyleTransferType styleType);
+    void setStyleTransferStrength(int strength);  // 0-100 range
 
     // Apply corrections permanently (bake adjustments into image)
     void applyCorrections();

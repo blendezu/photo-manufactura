@@ -447,6 +447,15 @@ ModernCollapsible* ToolPanel::createAIStyleSection() {
 
     layout->addWidget(m_styleGallery);
 
+    // Style Strength Slider
+    m_styleStrengthSlider = new ModernSlider("Intensity", 0, 100, 80, this);
+    m_styleStrengthSlider->setTooltip("Adjust the strength of the AI style transfer");
+    
+    // Connect slider - use valueChanged for immediate feedback (or rely on debounce if implemented)
+    connect(m_styleStrengthSlider, &ModernSlider::valueChanged, this, &ToolPanel::styleStrengthChanged);
+    
+    layout->addWidget(m_styleStrengthSlider);
+
     // Processing indicator (hidden by default)
     QLabel* processingLabel = new QLabel(
         "<span style='color: #6366f1; font-size: 10px;'>"
