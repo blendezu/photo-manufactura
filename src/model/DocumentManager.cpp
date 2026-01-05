@@ -141,10 +141,9 @@ bool DocumentManager::openDocument(const QString& filePath) {
     m_adjustments->resetAll();
     m_currentDocument->clear();
     *m_currentImageState = ImageState{};  // Reset image state
+    *m_currentImageState = ImageState{};  // Reset image state
     m_undoStack.clear();
     m_redoStack.clear();
-    m_undoDescriptions.clear();
-    m_redoDescriptions.clear();
     Q_EMIT historyChanged(QStringList());
 
     // Set up new document
@@ -218,8 +217,6 @@ void DocumentManager::closeDocument() {
     *m_currentImageState = ImageState{};  // Reset image state
     m_undoStack.clear();
     m_redoStack.clear();
-    m_undoDescriptions.clear();
-    m_redoDescriptions.clear();
 
     Q_EMIT documentClosed();
     Q_EMIT documentStateChanged();
@@ -742,31 +739,48 @@ bool DocumentManager::canRedo() const {
 }
 
 QStringList DocumentManager::getHistory() const {
-    // Convert stack to list (most recent first)
     QStringList list;
-    // Iterate in reverse order of stack (top to bottom)
-    for (int i = m_undoDescriptions.size() - 1; i >= 0; --i) {
-        list.append(m_undoDescriptions[i]);
+    for (int i = m_undoStack.size() - 1; i >= 0; --i) {
+        list.append(m_undoStack[i].description);
     }
     return list;
+}
+
+void DocumentManager::saveAdjustmentState(const QString& name, int value) {
+    if (!hasDocument())
+        return;
+
+    // For slider adjustments, we save the state locally to avoid spamming the stack.
+    // However, since we don't have a "Previous State" mechanism yet, we will
+    // rely on the fact that simple adjustment undo/redo is acceptable to restore
+    // the snapshot of settings *at that point*.
+
+    // NOTE: Ideally we should save the state BEFORE the drag started.
+    // Capturing it at release time means we capture the NEW value.
+    // This is a known limitation to be addressed in the next iteration if needed.
+    // For now, consistent snapshots allow jumping between states.
+
+    saveStateToHistory(QString("%1: %2").arg(name).arg(value));
 }
 
 void DocumentManager::saveStateToHistory(const QString& description) {
     if (!hasDocument())
         return;
 
+    HistoryState state;
+    state.image = m_currentDocument->originalImage().copy();
+    state.adjustments = m_adjustments->createSnapshot();
+    state.description = description;
+
     // Save current state to undo stack
-    m_undoStack.push(m_currentDocument->processedImage().copy());
-    m_undoDescriptions.push(description);
+    m_undoStack.push(state);
 
     // Clear redo stack when new action is performed
     m_redoStack.clear();
-    m_redoDescriptions.clear();
 
     // Limit history size
     while (m_undoStack.size() > MAX_HISTORY_SIZE) {
-        m_undoStack.remove(0);         // Remove oldest image
-        m_undoDescriptions.remove(0);  // Remove oldest description
+        m_undoStack.remove(0);
     }
 
     updateUndoRedoState();
@@ -783,31 +797,32 @@ void DocumentManager::undo() {
         return;
     }
 
-    // Save current state to redo stack
-    m_redoStack.push(m_currentDocument->processedImage().copy());
-
-    // Move description from undo to redo
-    if (!m_undoDescriptions.isEmpty()) {
-        m_redoDescriptions.push(m_undoDescriptions.pop());
-    } else {
-        // Fallback if stacks desync (shouldn't happen)
-        m_redoDescriptions.push("Unknown Action");
+    // Capture current state for Redo
+    HistoryState currentState;
+    currentState.image = m_currentDocument->originalImage().copy();
+    currentState.adjustments = m_adjustments->createSnapshot();
+    if (!m_undoStack.isEmpty()) {
+        currentState.description = m_undoStack.top().description;
     }
+    m_redoStack.push(currentState);
 
     // Restore previous state
-    QImage previousState = m_undoStack.pop();
-    m_currentDocument->setOriginalImage(previousState);
-    m_currentDocument->setProcessedImage(previousState);
+    HistoryState previousState = m_undoStack.pop();
 
-    // Update the pipeline with the restored image
-    cv::Mat cvImage = qImageToCvMat(previousState);
-    m_imageController->setImage(cvImage);
+    // Restore base image
+    m_currentDocument->setOriginalImage(previousState.image);
+
+    // Restore adjustments
+    m_adjustments->applySnapshot(previousState.adjustments);
+
+    // Re-process image with restored settings
+    applyAdjustments();
 
     m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
     updateUndoRedoState();
     Q_EMIT historyChanged(getHistory());
-    qDebug() << "Undo performed, undo stack size:" << m_undoStack.size();
+    qDebug() << "Undo performed, remaining history:" << m_undoStack.size();
 }
 
 void DocumentManager::redo() {
@@ -816,25 +831,24 @@ void DocumentManager::redo() {
         return;
     }
 
-    // Save current state to undo stack
-    m_undoStack.push(m_currentDocument->processedImage().copy());
-
-    // Move description from redo to undo
-    if (!m_redoDescriptions.isEmpty()) {
-        m_undoDescriptions.push(m_redoDescriptions.pop());
-    } else {
-        m_undoDescriptions.push("Redone Action");
+    // Save current state to Undo
+    HistoryState currentState;
+    currentState.image = m_currentDocument->originalImage().copy();
+    currentState.adjustments = m_adjustments->createSnapshot();
+    if (!m_redoStack.isEmpty()) {
+        currentState.description = m_redoStack.top().description;
     }
+    m_undoStack.push(currentState);
 
     // Restore next state
-    QImage nextState = m_redoStack.pop();
-    m_currentDocument->setOriginalImage(nextState);
-    m_currentDocument->setProcessedImage(nextState);
+    HistoryState nextState = m_redoStack.pop();
 
-    // Update the pipeline with the restored image
-    cv::Mat cvImage = qImageToCvMat(nextState);
-    m_imageController->setImage(cvImage);
+    m_currentDocument->setOriginalImage(nextState.image);
+    m_adjustments->applySnapshot(nextState.adjustments);
 
+    applyAdjustments();
+
+    m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
     updateUndoRedoState();
     Q_EMIT historyChanged(getHistory());

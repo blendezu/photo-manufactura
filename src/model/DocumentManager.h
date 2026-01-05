@@ -14,6 +14,17 @@
 class ImageController;
 struct ImageState;
 
+struct HistoryState {
+    QImage image;
+    AdjustmentSettings::Snapshot adjustments;
+    QString description;
+
+    // Helper to check if only adjustments changed (for memory optimization if needed later)
+    bool sameImage(const HistoryState& other) const {
+        return image.cacheKey() == other.image.cacheKey();
+    }
+};
+
 /**
  * @brief Manages document lifecycle and coordinates model components
  *
@@ -82,6 +93,9 @@ class DocumentManager : public QObject {
         return m_styleStrength;
     }
 
+    // Save current adjustment state to history (for slider release)
+    void saveAdjustmentState(const QString& name, int value);
+
     // Undo/Redo operations
     void undo();
     void redo();
@@ -116,10 +130,8 @@ class DocumentManager : public QObject {
     static const int DEBOUNCE_DELAY_MS = 100;
 
     // Undo/Redo history
-    QStack<QImage> m_undoStack;
-    QStack<QImage> m_redoStack;
-    QStack<QString> m_undoDescriptions;
-    QStack<QString> m_redoDescriptions;
+    QStack<HistoryState> m_undoStack;
+    QStack<HistoryState> m_redoStack;
     static const int MAX_HISTORY_SIZE = 20;
 
     // Active filter tracking (persists across adjustment changes)

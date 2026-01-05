@@ -129,3 +129,58 @@ void AdjustmentSettings::resetAll() {
     Q_EMIT settingsReset();
     Q_EMIT anySettingChanged();
 }
+
+AdjustmentSettings::Snapshot AdjustmentSettings::createSnapshot() const {
+    Snapshot s;
+    s.exposure = m_exposure;
+    s.contrast = m_contrast;
+    s.brightness = m_brightness;
+    s.highlights = m_highlights;
+    s.shadows = m_shadows;
+    s.whites = m_whites;
+    s.blacks = m_blacks;
+    s.temperature = m_temperature;
+    s.tint = m_tint;
+    s.saturation = m_saturation;
+    s.denoise = m_denoise;
+    s.clarity = m_clarity;
+    s.sharpening = m_sharpening;
+    return s;
+}
+
+void AdjustmentSettings::applySnapshot(const Snapshot& s) {
+    if (createSnapshot() == s)
+        return;
+
+    // Apply basic adjustments
+    if (m_exposure != s.exposure)
+        setExposure(s.exposure);
+    if (m_contrast != s.contrast)
+        setContrast(s.contrast);
+    if (m_brightness != s.brightness)
+        setBrightness(s.brightness);
+    if (m_highlights != s.highlights)
+        setHighlights(s.highlights);
+    if (m_shadows != s.shadows)
+        setShadows(s.shadows);
+    if (m_whites != s.whites)
+        setWhites(s.whites);
+    if (m_blacks != s.blacks)
+        setBlacks(s.blacks);
+
+    // Apply color adjustments
+    if (m_temperature != s.temperature)
+        setTemperature(s.temperature);
+    if (m_tint != s.tint)
+        setTint(s.tint);
+    if (m_saturation != s.saturation)
+        setSaturation(s.saturation);
+
+    // Apply detail adjustments
+    if (m_denoise != s.denoise)
+        setDenoise(s.denoise);
+    if (m_clarity != s.clarity)
+        setClarity(s.clarity);
+    if (m_sharpening != s.sharpening)
+        setSharpening(s.sharpening);
+}

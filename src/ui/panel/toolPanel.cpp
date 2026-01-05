@@ -5,11 +5,11 @@
 #include <QScrollBar>
 
 #include "../../controller/ApplicationController.h"  // For StyleTransferType enum
+#include "../widgets/ResizeDialog.h"
 #include "../widgets/modernButton.h"
 #include "../widgets/modernCollapsible.h"
 #include "../widgets/modernSlider.h"
 #include "../widgets/modernToolButton.h"
-#include "../widgets/ResizeDialog.h"
 
 ToolPanel::ToolPanel(QWidget* parent) : QWidget(parent) {
     setupUI();
@@ -117,7 +117,6 @@ QWidget* ToolPanel::createQuickActionsBar() {
     resetBtn->setToolTip("Reset all adjustments");
     connect(resetBtn, &ModernToolButton::clicked, this, &ToolPanel::resetAllAdjustments);
 
-
     layout->addWidget(applyBtn);
     layout->addWidget(m_compareBtn);
     layout->addWidget(m_zoomBtn);
@@ -211,7 +210,7 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
     saveBtn->setButtonSize(ModernButton::Small);
     saveBtn->setIconEmoji("💾");
     saveBtn->setToolTip("Save current adjustments as a new preset");
-    saveBtn->setFixedWidth(65); // Adjusted width
+    saveBtn->setFixedWidth(65);  // Adjusted width
     // Custom styling for extra compactness to match user request
     saveBtn->setStyleSheet(R"(
         QPushButton {
@@ -293,6 +292,20 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     m_brightnessSlider = new ModernSlider("Brightness", -100, 100, 0, this);
     m_brightnessSlider->setTooltip("Adjust overall brightness\nDouble-click to reset");
 
+    // Connect slider released signals for history
+    auto connectHistory = [this](ModernSlider* slider, const QString& name) {
+        connect(slider, &ModernSlider::sliderReleased, this,
+                [this, name, slider]() { Q_EMIT adjustmentFinished(name, slider->value()); });
+    };
+
+    connectHistory(m_exposureSlider, "Exposure");
+    connectHistory(m_contrastSlider, "Contrast");
+    connectHistory(m_highlightsSlider, "Highlights");
+    connectHistory(m_shadowsSlider, "Shadows");
+    connectHistory(m_whitesSlider, "Whites");
+    connectHistory(m_blacksSlider, "Blacks");
+    connectHistory(m_brightnessSlider, "Brightness");
+
     // Connect signals
     connect(m_exposureSlider, &ModernSlider::valueChanged, this, &ToolPanel::exposureChanged);
     connect(m_contrastSlider, &ModernSlider::valueChanged, this, &ToolPanel::contrastChanged);
@@ -338,6 +351,15 @@ ModernCollapsible* ToolPanel::createColorSection() {
     connect(m_tintSlider, &ModernSlider::valueChanged, this, &ToolPanel::tintChanged);
     connect(m_saturationSlider, &ModernSlider::valueChanged, this, &ToolPanel::saturationChanged);
 
+    // Connect history
+    auto connectHistory = [this](ModernSlider* slider, const QString& name) {
+        connect(slider, &ModernSlider::sliderReleased, this,
+                [this, name, slider]() { Q_EMIT adjustmentFinished(name, slider->value()); });
+    };
+    connectHistory(m_temperatureSlider, "Temperature");
+    connectHistory(m_tintSlider, "Tint");
+    connectHistory(m_saturationSlider, "Saturation");
+
     // Add to layout
     layout->addWidget(m_temperatureSlider);
     layout->addWidget(m_tintSlider);
@@ -356,7 +378,8 @@ ModernCollapsible* ToolPanel::createDetailSection() {
 
     // Denoise slider
     m_denoiseSlider = new ModernSlider("Denoise", 0, 100, 0, this);
-    m_denoiseSlider->setTooltip("Reduce image noise\nHigher values = stronger denoising\nDouble-click to reset");
+    m_denoiseSlider->setTooltip(
+        "Reduce image noise\nHigher values = stronger denoising\nDouble-click to reset");
     connect(m_denoiseSlider, &ModernSlider::valueChanged, this, &ToolPanel::denoiseChanged);
     layout->addWidget(m_denoiseSlider);
 
@@ -371,6 +394,15 @@ ModernCollapsible* ToolPanel::createDetailSection() {
     m_sharpeningSlider->setTooltip("Sharpen image details\nDouble-click to reset");
     connect(m_sharpeningSlider, &ModernSlider::valueChanged, this, &ToolPanel::sharpeningChanged);
     layout->addWidget(m_sharpeningSlider);
+
+    // Connect history
+    auto connectHistory = [this](ModernSlider* slider, const QString& name) {
+        connect(slider, &ModernSlider::sliderReleased, this,
+                [this, name, slider]() { Q_EMIT adjustmentFinished(name, slider->value()); });
+    };
+    connectHistory(m_denoiseSlider, "Denoise");
+    connectHistory(m_claritySlider, "Clarity");
+    connectHistory(m_sharpeningSlider, "Sharpening");
 
     detailSection->setContentLayout(layout);
     detailSection->setExpanded(false);  // Start collapsed
@@ -447,13 +479,17 @@ ModernCollapsible* ToolPanel::createAIStyleSection() {
 
     layout->addWidget(m_styleGallery);
 
-    // Style Strength Slider
     m_styleStrengthSlider = new ModernSlider("Intensity", 0, 100, 80, this);
     m_styleStrengthSlider->setTooltip("Adjust the strength of the AI style transfer");
-    
-    // Connect slider - use valueChanged for immediate feedback (or rely on debounce if implemented)
-    connect(m_styleStrengthSlider, &ModernSlider::valueChanged, this, &ToolPanel::styleStrengthChanged);
-    
+
+    // Connect slider - use valueChanged for immediate feedback
+    connect(m_styleStrengthSlider, &ModernSlider::valueChanged, this,
+            &ToolPanel::styleStrengthChanged);
+    // History
+    connect(m_styleStrengthSlider, &ModernSlider::sliderReleased, this, [this]() {
+        Q_EMIT adjustmentFinished("Style Strength", m_styleStrengthSlider->value());
+    });
+
     layout->addWidget(m_styleStrengthSlider);
 
     // Processing indicator (hidden by default)
@@ -602,7 +638,6 @@ ModernCollapsible* ToolPanel::createToolSection() {
     resizeBtnLayout->addStretch();
     layout->addLayout(resizeBtnLayout);
 
-
     // Crop section
     QLabel* cropLabel = new QLabel("CROP", this);
     cropLabel->setStyleSheet(
@@ -745,37 +780,38 @@ void ToolPanel::setZoomModeChecked(bool checked) {
 }
 
 void ToolPanel::refreshPresets(const QStringList& userPresets) {
-    if (!m_presetCombo) return;
-    
+    if (!m_presetCombo)
+        return;
+
     // Block signals during refresh
     m_presetCombo->blockSignals(true);
-    
+
     // Remember current selection
     QString currentSelection = m_presetCombo->currentData().toString();
-    
+
     // Clear and rebuild
     m_presetCombo->clear();
     m_presetCombo->addItem("Select a preset...");
     m_presetCombo->insertSeparator(1);
-    
+
     // Add built-in presets
-    QStringList builtInPresets = {"Cinematic", "Portrait", "Landscape", "Warm Sunset",
+    QStringList builtInPresets = {"Cinematic", "Portrait",     "Landscape",     "Warm Sunset",
                                   "Cool Blue", "Vintage Film", "High Contrast", "Soft Light",
-                                  "Dramatic", "Natural"};
+                                  "Dramatic",  "Natural"};
     for (const QString& preset : builtInPresets) {
         m_presetCombo->addItem("📦 " + preset, preset);
     }
-    
+
     // Add separator if there are user presets
     if (!userPresets.isEmpty()) {
         m_presetCombo->insertSeparator(m_presetCombo->count());
-        
+
         // Add user presets
         for (const QString& preset : userPresets) {
             m_presetCombo->addItem("👤 " + preset, preset);
         }
     }
-    
+
     // Restore selection if it still exists
     if (!currentSelection.isEmpty()) {
         int index = m_presetCombo->findData(currentSelection);
@@ -783,13 +819,13 @@ void ToolPanel::refreshPresets(const QStringList& userPresets) {
             m_presetCombo->setCurrentIndex(index);
         }
     }
-    
+
     m_presetCombo->blockSignals(false);
 }
 
 void ToolPanel::updateSliders(int brightness, int contrast, int saturation, int exposure,
-                              int highlights, int shadows, int whites, int blacks,
-                              int temperature, int tint, int denoise, int clarity, int sharpening) {
+                              int highlights, int shadows, int whites, int blacks, int temperature,
+                              int tint, int denoise, int clarity, int sharpening) {
     // Update all sliders without triggering valueChanged signals
     m_brightnessSlider->setValue(brightness);
     m_contrastSlider->setValue(contrast);
@@ -811,7 +847,7 @@ void ToolPanel::setColorControlsEnabled(bool enabled) {
     m_temperatureSlider->setEnabled(enabled);
     m_tintSlider->setEnabled(enabled);
     m_saturationSlider->setEnabled(enabled);
-    
+
     // Dim the color section if disabled
     if (m_colorSection) {
         if (enabled) {
@@ -820,7 +856,7 @@ void ToolPanel::setColorControlsEnabled(bool enabled) {
             m_colorSection->setStyleSheet("QWidget { opacity: 0.5; }");
         }
     }
-    
+
     qDebug() << "Color controls" << (enabled ? "enabled" : "disabled (grayscale/effect active)");
 }
 
@@ -836,7 +872,8 @@ void ToolPanel::showResizeDialog() {
         if (dialog.exec() == QDialog::Accepted) {
             int newWidth = dialog.newWidth();
             int newHeight = dialog.newHeight();
-            if (newWidth != m_currentImageSize.width() || newHeight != m_currentImageSize.height()) {
+            if (newWidth != m_currentImageSize.width() ||
+                newHeight != m_currentImageSize.height()) {
                 Q_EMIT resizeConfirmed(newWidth, newHeight);
             }
         }
