@@ -363,9 +363,26 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
                 if (m_manualStraightenCropRect.isEmpty()) {
                     m_manualStraightenCropRect = cropRectIs;
                 }
+                update();
                 return;
             }
-            // If not hitting handle, allow pan? logic below handles panning if we don't return
+
+            // Check if inside the rect for moving
+            if (displayRect.contains(event->pos())) {
+                m_straightenMoving = true;
+                m_straightenMoveStart = event->pos();
+
+                // If manual rect is empty, initialize it
+                if (m_manualStraightenCropRect.isEmpty()) {
+                    m_manualStraightenCropRect = cropRectIs;
+                }
+
+                setCursor(Qt::SizeAllCursor);
+                update();
+                return;
+            }
+            // If not hitting handle or inside, allow pan? logic below handles panning if we don't
+            // return
         }
 
         // Check if clicking on compare split divider
@@ -497,6 +514,50 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
         }
 
         m_manualStraightenCropRect = newRect;
+        m_manualStraightenCropRect = newRect;
+        update();
+        return;
+    }
+
+    // Handle Straighten Mode Moving
+    if (m_straightenMode && m_straightenMoving) {
+        // Calculate delta in widget coords
+        QPoint deltaWidget = event->pos() - m_straightenMoveStart;
+
+        // Convert delta to image coords (approximate is fine for relative move)
+        // Better: Convert start and current to image coords and take difference
+        QPoint startImage = widgetToImageCoords(m_straightenMoveStart);
+        QPoint currentImage = widgetToImageCoords(event->pos());
+        QPoint deltaImage = currentImage - startImage;
+
+        if (deltaImage.isNull())
+            return;
+
+        QRect newRect = m_manualStraightenCropRect.translated(deltaImage);
+        QRect safeRect = getMaxPossibleCropRect();
+
+        // Constrain newRect within safeRect
+        if (newRect.left() < safeRect.left())
+            newRect.moveLeft(safeRect.left());
+        if (newRect.top() < safeRect.top())
+            newRect.moveTop(safeRect.top());
+        if (newRect.right() > safeRect.right())
+            newRect.moveRight(safeRect.right());
+        if (newRect.bottom() > safeRect.bottom())
+            newRect.moveBottom(safeRect.bottom());
+
+        // Update if valid
+        if (newRect.width() > 0 && newRect.height() > 0) {
+            m_manualStraightenCropRect = newRect;
+            m_straightenMoveStart = event->pos();  // Update start for incremental move?
+            // Actually, if we use delta from start, we shouldn't update start.
+            // But widgetToImageCoords depends on zoom/pan which might change? No, likely stable
+            // during drag. Let's use incremental update to handle integer quantization better or
+            // simple re-anchoring. Simplest: update MoveStart to current pos and apply incremental
+            // delta.
+            m_straightenMoveStart = event->pos();
+        }
+
         update();
         return;
     }
@@ -547,6 +608,12 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
         // Handle Straighten Release
         if (m_straightenMode && m_straightenDragHandle != -1) {
             m_straightenDragHandle = -1;
+            return;
+        }
+
+        if (m_straightenMode && m_straightenMoving) {
+            m_straightenMoving = false;
+            setCursor(Qt::CrossCursor);  // Reset to straighten mode cursor
             return;
         }
 

@@ -209,11 +209,11 @@ ModernCollapsible* ToolPanel::createPresetsSection() {
     saveBtn->setButtonSize(ModernButton::Small);
     saveBtn->setIcon(":/assets/icons/save.svg");
     saveBtn->setToolTip("Save current adjustments as a new preset");
-    saveBtn->setFixedWidth(65);  // Adjusted width
-    // Custom styling for extra compactness to match user request
+    // Removed fixed width to allow layout to size it properly
+    // Custom styling for extra compactness
     saveBtn->setStyleSheet(R"(
         QPushButton {
-            padding: 4px 4px 4px 26px;
+            padding: 5px 10px 5px 24px; /* Increased right padding, adjusted left for icon */
             text-align: left;
             font-size: 11px;
             margin: 0px;
@@ -529,7 +529,30 @@ void ToolPanel::resetAllAdjustments() {
     m_brightnessSlider->reset();
     m_denoiseSlider->reset();
     m_claritySlider->reset();
+    m_claritySlider->reset();
     m_sharpeningSlider->reset();
+
+    m_sharpeningSlider->reset();
+
+    // Reset rotation
+    if (m_rotationSlider) {
+        m_rotationSlider->reset();
+    }
+
+    // Reset transformation UI state
+    if (m_cropModeCombo) {
+        m_cropModeCombo->setCurrentIndex(0);  // Reset to "Free" or first item
+    }
+
+    // Deactivate Straighten Mode if active
+    if (m_straightenToggle && m_straightenToggle->isChecked()) {
+        m_straightenToggle->setChecked(false);
+    }
+
+    // Reset filter gallery selection
+    if (m_filterGallery) {
+        m_filterGallery->setSelectedFilter("Original");
+    }
 
     // Notify controller to reset processing parameters
     Q_EMIT resetAllRequested();
@@ -564,15 +587,17 @@ ModernCollapsible* ToolPanel::createToolSection() {
     QHBoxLayout* rotateBtns = new QHBoxLayout();
     rotateBtns->setSpacing(8);
 
-    ModernButton* rotateLeftBtn = new ModernButton("Left", ModernButton::Secondary, this);
-    rotateLeftBtn->setIcon(":/assets/icons/rotate_left.png");
+    ModernToolButton* rotateLeftBtn =
+        new ModernToolButton("Left", ":/assets/icons/rotate_left.png", this);
     rotateLeftBtn->setToolTip("Rotate 90° Left");
-    connect(rotateLeftBtn, &QPushButton::clicked, this, &ToolPanel::rotateLeftRequested);
+    rotateLeftBtn->setFlat(true);
+    connect(rotateLeftBtn, &ModernToolButton::clicked, this, &ToolPanel::rotateLeftRequested);
 
-    ModernButton* rotateRightBtn = new ModernButton("Right", ModernButton::Secondary, this);
-    rotateRightBtn->setIcon(":/assets/icons/rotate_right.png");
+    ModernToolButton* rotateRightBtn =
+        new ModernToolButton("Right", ":/assets/icons/rotate_right.png", this);
     rotateRightBtn->setToolTip("Rotate 90° Right");
-    connect(rotateRightBtn, &QPushButton::clicked, this, &ToolPanel::rotateRightRequested);
+    rotateRightBtn->setFlat(true);
+    connect(rotateRightBtn, &ModernToolButton::clicked, this, &ToolPanel::rotateRightRequested);
 
     rotateBtns->addWidget(rotateLeftBtn);
     rotateBtns->addWidget(rotateRightBtn);
@@ -587,15 +612,17 @@ ModernCollapsible* ToolPanel::createToolSection() {
     QHBoxLayout* flipBtns = new QHBoxLayout();
     flipBtns->setSpacing(8);
 
-    ModernButton* flipHBtn = new ModernButton("Horiz", ModernButton::Secondary, this);
-    flipHBtn->setIcon(":/assets/icons/flip_horizontal.png");
+    ModernToolButton* flipHBtn =
+        new ModernToolButton("Horiz", ":/assets/icons/flip_horizontal.png", this);
     flipHBtn->setToolTip("Flip Horizontally");
-    connect(flipHBtn, &QPushButton::clicked, this, &ToolPanel::flipHorizontalRequested);
+    flipHBtn->setFlat(true);
+    connect(flipHBtn, &ModernToolButton::clicked, this, &ToolPanel::flipHorizontalRequested);
 
-    ModernButton* flipVBtn = new ModernButton("Vert", ModernButton::Secondary, this);
-    flipVBtn->setIcon(":/assets/icons/flip_vertical.png");
+    ModernToolButton* flipVBtn =
+        new ModernToolButton("Vert", ":/assets/icons/flip_vertical.png", this);
     flipVBtn->setToolTip("Flip Vertically");
-    connect(flipVBtn, &QPushButton::clicked, this, &ToolPanel::flipVerticalRequested);
+    flipVBtn->setFlat(true);
+    connect(flipVBtn, &ModernToolButton::clicked, this, &ToolPanel::flipVerticalRequested);
 
     flipBtns->addWidget(flipHBtn);
     flipBtns->addWidget(flipVBtn);
@@ -625,10 +652,11 @@ ModernCollapsible* ToolPanel::createToolSection() {
 
     // Toggle and Apple buttons
     QHBoxLayout* straightRow = new QHBoxLayout();
-    m_straightenToggle = new ModernButton("Straighten Mode", ModernButton::Secondary, this);
-    m_straightenToggle->setIcon(":/assets/icons/straighten.png");
+    m_straightenToggle = new ModernToolButton("Straighten", ":/assets/icons/straighten.png", this);
     m_straightenToggle->setCheckable(true);
-    connect(m_straightenToggle, &QPushButton::toggled, this, &ToolPanel::straightenModeToggled);
+    m_straightenToggle->setFlat(true);
+    connect(m_straightenToggle, &ModernToolButton::toggled, this,
+            &ToolPanel::straightenModeToggled);
 
     m_applyStraightenBtn = new ModernButton("Apply", ModernButton::Primary, this);
     m_applyStraightenBtn->setEnabled(false);
@@ -638,7 +666,7 @@ ModernCollapsible* ToolPanel::createToolSection() {
             m_straightenToggle->setChecked(false);  // Auto-exit Straighten Mode
         }
     });
-    connect(m_straightenToggle, &QPushButton::toggled, m_applyStraightenBtn,
+    connect(m_straightenToggle, &ModernToolButton::toggled, m_applyStraightenBtn,
             &QPushButton::setEnabled);
 
     straightRow->addWidget(m_straightenToggle, 2);
@@ -668,7 +696,7 @@ ModernCollapsible* ToolPanel::createToolSection() {
     )";
     m_straightenRatioCombo->setStyleSheet(comboStyle);
     m_straightenRatioCombo->setEnabled(false);
-    connect(m_straightenToggle, &QPushButton::toggled, m_straightenRatioCombo,
+    connect(m_straightenToggle, &ModernToolButton::toggled, m_straightenRatioCombo,
             &QPushButton::setEnabled);
     connect(
         m_straightenRatioCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -692,10 +720,10 @@ ModernCollapsible* ToolPanel::createToolSection() {
     m_cropModeCombo->setStyleSheet(comboStyle);
 
     QHBoxLayout* cropRow = new QHBoxLayout();
-    ModernButton* startCropBtn = new ModernButton("Crop", ModernButton::Secondary, this);
-    startCropBtn->setIcon(":/assets/icons/crop.png");
+    ModernToolButton* startCropBtn = new ModernToolButton("Crop", ":/assets/icons/crop.png", this);
     startCropBtn->setToolTip("Enter Crop Mode");
-    connect(startCropBtn, &QPushButton::clicked, this, &ToolPanel::cropRequested);
+    startCropBtn->setFlat(true);
+    connect(startCropBtn, &ModernToolButton::clicked, this, &ToolPanel::cropRequested);
 
     cropRow->addWidget(startCropBtn, 1);
     cropRow->addWidget(m_cropModeCombo, 2);
