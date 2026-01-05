@@ -163,6 +163,10 @@ bool DocumentManager::openDocument(const QString& filePath) {
     Q_EMIT documentOpened(filePath);
     Q_EMIT documentStateChanged();
     updateUndoRedoState();
+
+    // Force controller to reset pipeline with current (reset) adjustments
+    applyAdjustments();
+
     return true;
 }
 

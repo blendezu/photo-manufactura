@@ -154,10 +154,24 @@ void ApplicationWiring::wireEditMenu(SubMenuEdit* editMenu, ApplicationControlle
     qDebug() << "Wiring Edit Menu...";
 
     // Undo/Redo
+    // Undo/Redo
     m_connections << connect(editMenu, &SubMenuEdit::undoRequested, controller,
                              &ApplicationController::undo);
     m_connections << connect(editMenu, &SubMenuEdit::redoRequested, controller,
                              &ApplicationController::redo);
+
+    // Sync enabled state from DocumentManager
+    if (DocumentManager* docManager = controller->getDocumentManager()) {
+        m_connections << connect(docManager, &DocumentManager::undoRedoStateChanged, editMenu,
+                                 [editMenu](bool canUndo, bool canRedo) {
+                                     editMenu->setUndoEnabled(canUndo);
+                                     editMenu->setRedoEnabled(canRedo);
+                                 });
+
+        // Initial state sync (if document exists)
+        editMenu->setUndoEnabled(docManager->canUndo());
+        editMenu->setRedoEnabled(docManager->canRedo());
+    }
 }
 
 void ApplicationWiring::wireViewMenu(SubMenuView* viewMenu, ApplicationController* controller,
