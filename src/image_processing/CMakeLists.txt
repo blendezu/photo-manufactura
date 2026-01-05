@@ -15,10 +15,10 @@ set(CMAKE_INSTALL_RPATH "")
 # ==========================================
 # FIX 1: Build-Type wird nun über CMakePresets gesteuert
 # ==========================================
-# if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-#     message(STATUS "Setting build type to 'Release' as none was specified.")
-#     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-# endif()
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+endif()
 
 add_library(image_processing STATIC)
 
