@@ -261,6 +261,13 @@ void DocumentManager::resetToOriginal() {
         m_adjustments->resetAll();
         m_adjustments->setRotation(0);
         applyAdjustments();
+        // Clear logic for stack missing here? m_undoStack.clear()?
+        // Actually the resetToOriginal implies history wipe?
+        // Let's ensure stack is cleared if it's meant to be a full hard reset
+        m_undoStack.clear();
+        m_redoStack.clear();
+        Q_EMIT historyChanged(getHistory());
+        updateUndoRedoState();
         Q_EMIT errorOccurred("Cannot fully reset unsaved document (adjustments reset only).");
     }
 }
