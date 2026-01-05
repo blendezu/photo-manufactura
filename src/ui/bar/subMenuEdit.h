@@ -16,6 +16,7 @@ class SubMenuEdit : public QMenu {
     void undoRequested();
     void redoRequested();
 
+   public Q_SLOTS:
     // State update slots
     void setUndoEnabled(bool enabled);
     void setRedoEnabled(bool enabled);
