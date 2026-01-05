@@ -196,11 +196,8 @@ class ApplicationController : public QObject {
     void adjustmentsChanged(int brightness, int contrast, int saturation, int exposure,
                             int highlights, int shadows, int whites, int blacks, int temperature,
                             int tint, int denoise, int clarity, int sharpening);
-<<<<<<< HEAD
     void enablePerspectiveCropMode();            // Signal to view (Canvas)
     void enableCropMode(bool enabled);           // Toggle crop mode
-=======
->>>>>>> 7ce2ab5 (feat: Add clarity and sharpening adjustments with UI sliders and implement an auto light feature using OpenCV.)
 
    private slots:
     void onImageProcessingComplete();
