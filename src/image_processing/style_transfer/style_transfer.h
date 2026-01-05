@@ -1,9 +1,8 @@
 #ifndef STYLE_TRANSFER_H
 #define STYLE_TRANSFER_H
 
-#include <onnxruntime_cxx_api.h>
-
 #include <opencv2/core/mat.hpp>
+#include <opencv2/dnn.hpp>
 #include <vector>
 
 #include "operation_base.h"
@@ -16,14 +15,12 @@ class StyleTransfer : public ImageOperation {
     StyleType currentStyle;
     std::string modelPath;
 
-    Ort::Env env;
-    Ort::SessionOptions sessionOptions;
-    std::unique_ptr<Ort::Session> session;
+    cv::dnn::Net net;
 
     void loadModel(StyleType style);
 
     // for pre and post-processing
-    cv::Mat postprocess(const std::vector<float>& floatArray, int rows, int cols);
+    cv::Mat postprocess(const cv::Mat& outputTensor, int rows, int cols);
 
    public:
     explicit StyleTransfer(StyleType style);  // constructor loads the standard style

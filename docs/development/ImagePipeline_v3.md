@@ -248,18 +248,36 @@ void MainWindow::undo() {
 
 ## 8. Preview Strategy (High Performance)
 
-**Problem:** Processing 30MP images takes ~600ms (too slow for smooth slider movement).
-**Solution:** Use **Two Controllers** (or swap images).
+**Problem:** Processing large images (e.g. 24MP+) takes too long for smooth slider movement (laggy UI).
+**Solution:** `ImageController` has a **Built-in Preview Mode**.
 
-1.  **Preview Controller:**
-    - Load a resized version of the image (e.g., 1920px long edge).
-    - Use this for all Slider interactions.
-    - **Speed:** < 50ms (Realtime 60fps).
+### Automatic Preview Generation
+When you call `controller.setImage(img)`, the controller automatically:
+1.  Stores the full-resolution image.
+2.  Creates a cached **Preview Image** (downscaled to max 1920px).
+3.  Enters **Preview Mode** immediately (`m_isPreviewMode = true`).
 
-2.  **Export / High-Res Controller:**
-    - Keep the full-resolution image in memory.
-    - Only process this when the user clicks "Save" or releases the slider (if needed).
+### Usge pattern
 
-**Workflow:**
-- `onSliderMove`: Update & Process **Preview**.
-- `onSave`: Copy State from Preview -> Update & Process **Full Res**.
+1.  **Slider Dragging (Preview):**
+    By default, `controller.process()` works on the small preview image. This is extremely fast (< 50ms).
+    *   **Action:** Slider Move
+    *   **Code:** Just call `update(state)` + `process()`.
+
+2.  **Exports / Zoom / Final View (Full Res):**
+    When you need the full resolution result (e.g. when the user releases the mouse button, or zooms in 100%, or clicks "Save"), you switch modes.
+
+    ```cpp
+    // 1. Switch to Full Resolution
+    controller.setPreviewMode(false);
+    
+    // 2. Process (Slower, but full detail)
+    cv::Mat fullRes = controller.process();
+    
+    // 3. (Optional) Switch back to Preview for next slider move
+    controller.setPreviewMode(true);
+    ```
+
+**Workflow Summary:**
+- **On Slider Move:** Update & Process (Uses Preview by default).
+- **On Mouse Release / Save:** `setPreviewMode(false)` -> Process -> `setPreviewMode(true)`.

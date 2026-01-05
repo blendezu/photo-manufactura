@@ -106,30 +106,17 @@ AutoLightSettings AutoLight::analyze(const cv::Mat& srcImg) {
     // Or if original blacks were crushed, we want to lift them.
     if (newP01 < 10.0f) {
         // Boost shadows to recover detail
+        // Factor is stronger if black point is lower
         float recovery = (10.0f - newP01) * 2.0f;
-        settings.shadow = std::clamp(recovery, 0.0f, 50.0f);
-    }
-    
-    // Check if blacks are raised (faded look) - assume we want rich blacks
-    if (newP01 > 20.0f) {
-        // Lower blacks to restore depth
-        float darken = (newP01 - 20.0f) * 1.5f;
-        settings.black = std::clamp(-darken, -40.0f, 0.0f);
+        settings.shadow = std::clamp(recovery, 0.0f, 40.0f);
     }
 
     // B. Highlights Recovery
     // If we brightened the image (ev > 0), whites might clip to 255.
     if (newP99 > 245.0f) {
-        // Reduce highlights to recover detail (recover up to -60)
-        float recovery = (newP99 - 245.0f) * 2.5f;
-        settings.highlight = std::clamp(-recovery, -60.0f, 0.0f);
-    }
-    
-    // Check if whites are dull - assume we want brilliance
-    if (newP99 < 220.0f && dynamicRange > 100) {
-        // Boost whites to pop
-        float brighten = (220.0f - newP99) * 1.2f;
-        settings.white = std::clamp(brighten, 0.0f, 40.0f);
+        // Reduce highlights to recover detail
+        float recovery = (newP99 - 245.0f) * 2.0f;
+        settings.highlight = std::clamp(-recovery, -50.0f, 0.0f);
     }
 
     return settings;
