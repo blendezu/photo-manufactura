@@ -497,38 +497,44 @@ void ApplicationController::applyAutoEnhance() {
     AdjustmentSettings* adjustments = m_documentManager->adjustments();
     if (adjustments) {
         // Only apply if values are significant
+        if (std::abs(settings.brightness) > 1.0f) {
+            adjustments->setBrightness(static_cast<int>(settings.brightness));
+        }
+
         if (std::abs(settings.exposure) > 0.01f) {
             // Map exposure range (-5.0 to 5.0) to slider range (-100 to 100)
             int exposureVal = static_cast<int>(settings.exposure * 20.0f);
             adjustments->setExposure(exposureVal);
         }
-        
+
         if (std::abs(settings.contrast) > 1.0f) {
             adjustments->setContrast(static_cast<int>(settings.contrast));
         }
         // Apply Smart Recovery and Tone Mapping
         if (std::abs(settings.highlight) > 1.0f)
             adjustments->setHighlights(static_cast<int>(settings.highlight));
-            
+
         if (std::abs(settings.shadow) > 1.0f)
             adjustments->setShadows(static_cast<int>(settings.shadow));
-            
+
         if (std::abs(settings.white) > 1.0f)
             adjustments->setWhites(static_cast<int>(settings.white));
-            
+
         if (std::abs(settings.black) > 1.0f)
             adjustments->setBlacks(static_cast<int>(settings.black));
 
         setState("isModified", true);
-        
+
         // Notify UI to update sliders
-        emit adjustmentsChanged(adjustments->brightness(), adjustments->contrast(),
-                                adjustments->saturation(), adjustments->exposure(),
-                                adjustments->highlights(), adjustments->shadows(), adjustments->whites(),
-                                adjustments->blacks(), adjustments->temperature(), adjustments->tint(),
-                                adjustments->denoise(), adjustments->clarity(), adjustments->sharpening());
-                                
-         qDebug() << "Auto Enhance applied: Exposure" << settings.exposure << "Contrast" << settings.contrast;
+        emit adjustmentsChanged(
+            adjustments->brightness(), adjustments->contrast(), adjustments->saturation(),
+            adjustments->exposure(), adjustments->highlights(), adjustments->shadows(),
+            adjustments->whites(), adjustments->blacks(), adjustments->temperature(),
+            adjustments->tint(), adjustments->denoise(), adjustments->clarity(),
+            adjustments->sharpening());
+
+        qDebug() << "Auto Enhance applied: Exposure" << settings.exposure << "Contrast"
+                 << settings.contrast;
     }
 }
 
@@ -585,7 +591,7 @@ void ApplicationController::applyPreset(const QString& presetName) {
                                 settings->highlights(), settings->shadows(), settings->whites(),
                                 settings->blacks(), settings->temperature(), settings->tint(),
                                 settings->denoise(), settings->clarity(), settings->sharpening());
-        
+
         // Detail sliders updated
     } else {
         qDebug() << "Failed to load preset:" << presetName;
