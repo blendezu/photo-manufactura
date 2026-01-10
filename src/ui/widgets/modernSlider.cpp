@@ -116,28 +116,36 @@ void ModernSlider::updateSliderStyle() {
     int glowIntensity = static_cast<int>(m_handleGlow * 30);
     QString accentColor = m_isHovered ? "#0098ff" : "#0078d4";
 
+    // Use grayed out colors when disabled
+    bool disabled = !isEnabled();
+    QString grooveColor = disabled ? "#252525" : "#303030";
+    QString subPageStart = disabled ? "#404040" : "#0058a4";
+    QString subPageEnd = disabled ? "#505050" : accentColor;
+    QString handleBg = disabled ? "#606060" : "#f0f0f0";
+    QString handleBorder = disabled ? "#505050" : "#888";
+
     QString style = QString(R"(
         QSlider::groove:horizontal {
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #303030, stop:0.5 #383838, stop:1 #303030);
+                stop:0 %5, stop:0.5 #383838, stop:1 %5);
             height: 4px;
             border-radius: 2px;
         }
         QSlider::sub-page:horizontal {
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #0058a4, stop:1 %1);
+                stop:0 %1, stop:1 %2);
             height: 4px;
             border-radius: 2px;
         }
         QSlider::add-page:horizontal {
-            background: #303030;
+            background: %5;
             height: 4px;
             border-radius: 2px;
         }
         QSlider::handle:horizontal {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #f0f0f0, stop:0.4 #e0e0e0, stop:1 #c8c8c8);
-            border: 1px solid #888;
+                stop:0 %3, stop:0.4 %3, stop:1 %4);
+            border: 1px solid %4;
             width: 14px;
             height: 14px;
             margin: -6px 0;
@@ -146,16 +154,28 @@ void ModernSlider::updateSliderStyle() {
         QSlider::handle:horizontal:hover {
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #ffffff, stop:0.4 #f0f0f0, stop:1 #e0e0e0);
-            border: 1px solid %1;
+            border: 1px solid %2;
         }
         QSlider::handle:horizontal:pressed {
-            background: %1;
+            background: %2;
             border: 2px solid #ffffff;
         }
     )")
-                        .arg(accentColor);
+                        .arg(subPageStart, subPageEnd, handleBg, handleBorder, grooveColor);
 
     m_slider->setStyleSheet(style);
+
+    // Update label colors for disabled state
+    if (disabled) {
+        m_label->setStyleSheet("QLabel { color: #555; font-size: 11px; font-weight: 500; }");
+        m_valueLabel->setStyleSheet("QLabel { color: #444; font-size: 10px; }");
+    } else if (m_isHovered) {
+        m_label->setStyleSheet("QLabel { color: #ffffff; font-size: 11px; font-weight: 500; }");
+        m_valueLabel->setStyleSheet("QLabel { color: #888; font-size: 10px; }");
+    } else {
+        m_label->setStyleSheet("QLabel { color: #c0c0c0; font-size: 11px; font-weight: 500; }");
+        m_valueLabel->setStyleSheet("QLabel { color: #888; font-size: 10px; }");
+    }
 }
 
 void ModernSlider::setHandleGlow(qreal glow) {
@@ -357,6 +377,15 @@ void ModernSlider::paintEvent(QPaintEvent* event) {
             painter.drawText(textRect, Qt::AlignCenter, label);
         }
     }
+}
+
+void ModernSlider::changeEvent(QEvent* event) {
+    if (event->type() == QEvent::EnabledChange) {
+        updateSliderStyle();
+        m_slider->setEnabled(isEnabled());
+        m_spinBox->setEnabled(isEnabled());
+    }
+    QWidget::changeEvent(event);
 }
 
 // ============================================================================

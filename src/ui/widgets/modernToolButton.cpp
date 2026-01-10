@@ -320,3 +320,10 @@ void FilterGalleryWidget::setSelectedFilter(const QString& name) {
         card->setSelected(card->filterName() == name);
     }
 }
+
+void FilterGalleryWidget::clearSelection() {
+    m_selectedFilter.clear();
+    for (auto* card : m_cards) {
+        card->setSelected(false);
+    }
+}

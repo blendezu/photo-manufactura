@@ -61,6 +61,7 @@ class ModernSlider : public QWidget {
     void leaveEvent(QEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void paintEvent(QPaintEvent* event) override;  // For tick marks
+    void changeEvent(QEvent* event) override;      // For disabled state
 
    private:
     void setupUI();

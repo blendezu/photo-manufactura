@@ -297,6 +297,15 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     if (docManager) {
         m_connections << connect(toolPanel, &ToolPanel::adjustmentFinished, docManager,
                                  &DocumentManager::saveAdjustmentState);
+
+        // Sync sliders when undo/redo restores adjustments
+        m_connections << connect(docManager, &DocumentManager::adjustmentsRestored, toolPanel,
+                                 &ToolPanel::updateSliders);
+
+        // Sync rotation slider when undo/redo
+        m_connections << connect(
+            docManager, &DocumentManager::rotationRestored, toolPanel,
+            [toolPanel](int rotation) { toolPanel->setRotationSliderValue(rotation); });
     }
 
     // Detail connections
@@ -345,12 +354,22 @@ void ApplicationWiring::wireToolPanel(ToolPanel* toolPanel, ApplicationControlle
     m_connections << connect(toolPanel, &ToolPanel::autoLightRequested, controller,
                              &ApplicationController::applyAutoEnhance);
 
+    m_connections << connect(toolPanel, &ToolPanel::smartEnhanceRequested, controller,
+                             &ApplicationController::applySmartEnhance);
+
     // AI Style Transfer connections
     m_connections << connect(toolPanel, &ToolPanel::styleTransferRequested, controller,
                              &ApplicationController::applyStyleTransfer);
 
-    m_connections << connect(toolPanel, &ToolPanel::styleStrengthChanged, controller,
-                             &ApplicationController::setStyleTransferStrength);
+    // AI Style Transfer variation sliders
+    m_connections << connect(toolPanel, &ToolPanel::styleHueChanged, controller,
+                             &ApplicationController::setStyleHueVariation);
+    m_connections << connect(toolPanel, &ToolPanel::styleSatChanged, controller,
+                             &ApplicationController::setStyleSatVariation);
+    m_connections << connect(toolPanel, &ToolPanel::styleContrastChanged, controller,
+                             &ApplicationController::setStyleContrastVariation);
+    m_connections << connect(toolPanel, &ToolPanel::styleNoiseChanged, controller,
+                             &ApplicationController::setStyleNoiseAmount);
 
     // Compare mode toggle - wire to canvas setCompareMode
     CanvasWidget* canvas = m_mainWindow->getCanvasWidget();
