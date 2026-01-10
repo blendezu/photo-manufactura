@@ -18,6 +18,7 @@ struct HistoryState {
     QImage image;
     AdjustmentSettings::Snapshot adjustments;
     QString description;
+    QString filter;  // Active filter name (for undo/redo)
 
     // Helper to check if only adjustments changed (for memory optimization if needed later)
     bool sameImage(const HistoryState& other) const {
@@ -74,7 +75,8 @@ class DocumentManager : public QObject {
     bool applyAdjustmentsPermanently();   // Bake adjustments into base image
 
     // Auto-Light estimation (returns settings without applying them)
-    AutoLightSettings estimateAutoLight();
+    AutoLightSettings estimateAutoLight();              // Analyze current processed image
+    AutoLightSettings estimateAutoLightFromOriginal();  // Analyze original image
 
     // Processing mode (CPU vs GPU)
     void setGpuMode(bool enabled);  // Toggle between CPU and GPU processing
@@ -91,10 +93,11 @@ class DocumentManager : public QObject {
     // Filter operations
     void applyFilter(const QString& filterName);
     void removeFilter();
-    void setStyleStrength(float strength);
-    float getStyleStrength() const {
-        return m_styleStrength;
-    }
+    // Style transfer variation parameters
+    void setStyleHueVariation(int value);
+    void setStyleSatVariation(int value);
+    void setStyleContrastVariation(int value);
+    void setStyleNoiseAmount(int value);
 
     // Save current adjustment state to history (for slider release)
     // Save current adjustment state to history (for slider release)
@@ -119,6 +122,11 @@ class DocumentManager : public QObject {
     void undoRedoStateChanged(bool canUndo, bool canRedo);
     void historyChanged(const QStringList& history);  // Emitted when history stack changes
     void filterChanged(const QString& filterName);    // Emitted when filter is applied/removed
+    // Emitted after undo/redo so UI sliders can sync
+    void adjustmentsRestored(int brightness, int contrast, int saturation, int exposure,
+                             int highlights, int shadows, int whites, int blacks, int temperature,
+                             int tint, int denoise, int clarity, int sharpening);
+    void rotationRestored(int rotation);  // Separate signal for rotation slider
 
    private:
     void saveStateToHistory(const QString& description = "Adjustment");
@@ -140,8 +148,13 @@ class DocumentManager : public QObject {
     static const int MAX_HISTORY_SIZE = 20;
 
     // Active filter tracking (persists across adjustment changes)
-    QString m_currentFilter;       // Empty means no filter applied
-    float m_styleStrength = 0.8f;  // Default style intensity
+    QString m_currentFilter;  // Empty means no filter applied
+
+    // Style transfer variation parameters
+    int m_styleHueVariation = 0;
+    int m_styleSatVariation = 0;
+    int m_styleContrastVariation = 0;
+    int m_styleNoiseAmount = 0;
 
     // Interaction state tracking
     HistoryState m_interactionStartState;

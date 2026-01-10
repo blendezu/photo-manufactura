@@ -107,6 +107,7 @@ class FilterGalleryWidget : public QWidget {
     void addFilter(const QString& name, const QString& previewPath = "");
     void clearFilters();
     void setSelectedFilter(const QString& name);
+    void clearSelection();  // Deselect all cards
     QString selectedFilter() const {
         return m_selectedFilter;
     }

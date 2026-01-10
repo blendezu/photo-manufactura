@@ -157,9 +157,14 @@ class ApplicationController : public QObject {
     void applyFilterOriginal();
     void applyFilterGrayscale();
     void applyFilterVintage();
-    void applyAutoEnhance();
+    void applyAutoEnhance();   // Reset sliders, analyze original image
+    void applySmartEnhance();  // Refine current adjustments
     void applyStyleTransfer(StyleTransferType styleType);
-    void setStyleTransferStrength(int strength);  // 0-100 range
+    // Style transfer variation controls
+    void setStyleHueVariation(int value);
+    void setStyleSatVariation(int value);
+    void setStyleContrastVariation(int value);
+    void setStyleNoiseAmount(int value);
 
     // Apply corrections permanently (bake adjustments into image)
     void applyCorrections();

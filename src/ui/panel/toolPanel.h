@@ -75,11 +75,15 @@ class ToolPanel : public QWidget {
     void filterOriginalRequested();
     void filterGrayscaleRequested();
     void filterVintageRequested();
-    void autoLightRequested();
+    void autoLightRequested();     // Reset sliders, analyze original
+    void smartEnhanceRequested();  // Refine current state
 
     // AI Style Transfer signals
     void styleTransferRequested(StyleTransferType styleType);
-    void styleStrengthChanged(int strength);
+    void styleHueChanged(int value);
+    void styleSatChanged(int value);
+    void styleContrastChanged(int value);
+    void styleNoiseChanged(int value);
 
     // Preset signals
     void presetSelected(const QString& presetName);
@@ -107,6 +111,7 @@ class ToolPanel : public QWidget {
     void updateSliders(int brightness, int contrast, int saturation, int exposure, int highlights,
                        int shadows, int whites, int blacks, int temperature, int tint, int denoise,
                        int clarity, int sharpening);  // Update sliders from preset
+    void setRotationSliderValue(int rotation);        // For undo/redo restore
     void setColorControlsEnabled(
         bool enabled);  // Enable/disable color sliders based on active effect
     void updateImageInfo(const QImage& image);  // Receive current image info
@@ -168,7 +173,12 @@ class ToolPanel : public QWidget {
     // Effects/Filters
     FilterGalleryWidget* m_filterGallery;
     FilterGalleryWidget* m_styleGallery;
-    ModernSlider* m_styleStrengthSlider;
+
+    // AI Style variation sliders
+    ModernSlider* m_styleHueSlider;
+    ModernSlider* m_styleSatSlider;
+    ModernSlider* m_styleContrastSlider;
+    ModernSlider* m_styleNoiseSlider;
 
     // Collapsible sections (for enabling/disabling)
     ModernCollapsible* m_colorSection;

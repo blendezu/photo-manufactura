@@ -238,10 +238,14 @@ ModernCollapsible* ToolPanel::createBasicSection() {
     layout->setSpacing(2);
     layout->setContentsMargins(8, 8, 8, 12);
 
-    // Auto Enhance Button
+    // Auto buttons row
+    QHBoxLayout* autoRow = new QHBoxLayout();
+    autoRow->setSpacing(8);
+
+    // Auto Light Button (reset to original, then apply)
     QPushButton* autoBtn = new QPushButton("Auto Light", this);
     autoBtn->setIcon(QIcon(":/assets/icons/auto_fix.png"));
-    autoBtn->setToolTip("Automatically adjust exposure and contrast");
+    autoBtn->setToolTip("Reset sliders and auto-adjust from original image");
     autoBtn->setCursor(Qt::PointingHandCursor);
     autoBtn->setStyleSheet(R"(
         QPushButton {
@@ -249,9 +253,9 @@ ModernCollapsible* ToolPanel::createBasicSection() {
             color: #e0e0e0;
             border: 1px solid #505050;
             border-radius: 4px;
-            padding: 6px;
+            padding: 6px 8px;
             font-weight: bold;
-            text-align: center;
+            font-size: 11px;
         }
         QPushButton:hover {
             background-color: #4a4a4a;
@@ -262,7 +266,35 @@ ModernCollapsible* ToolPanel::createBasicSection() {
         }
     )");
     connect(autoBtn, &QPushButton::clicked, this, &ToolPanel::autoLightRequested);
-    layout->addWidget(autoBtn);
+    autoRow->addWidget(autoBtn);
+
+    // Smart Enhance Button (refine current)
+    QPushButton* smartBtn = new QPushButton("Enhance", this);
+    smartBtn->setIcon(QIcon(":/assets/icons/auto_fix.png"));
+    smartBtn->setToolTip("Refine current adjustments (analyze current image)");
+    smartBtn->setCursor(Qt::PointingHandCursor);
+    smartBtn->setStyleSheet(R"(
+        QPushButton {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #505050;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        QPushButton:hover {
+            background-color: #4a4a4a;
+            border-color: #606060;
+        }
+        QPushButton:pressed {
+            background-color: #2a2a2a;
+        }
+    )");
+    connect(smartBtn, &QPushButton::clicked, this, &ToolPanel::smartEnhanceRequested);
+    autoRow->addWidget(smartBtn);
+
+    layout->addLayout(autoRow);
 
     // Separator
     QFrame* line = new QFrame(this);
@@ -488,18 +520,27 @@ ModernCollapsible* ToolPanel::createAIStyleSection() {
 
     layout->addWidget(m_styleGallery);
 
-    m_styleStrengthSlider = new ModernSlider("Intensity", 0, 100, 80, this);
-    m_styleStrengthSlider->setTooltip("Adjust the strength of the AI style transfer");
+    // Create variation sliders
+    m_styleHueSlider = new ModernSlider("Hue Shift", -100, 100, 0, this);
+    m_styleHueSlider->setTooltip("Shift colors around the color wheel\n-100 = Cool, +100 = Warm");
+    connect(m_styleHueSlider, &ModernSlider::valueChanged, this, &ToolPanel::styleHueChanged);
+    layout->addWidget(m_styleHueSlider);
 
-    // Connect slider - use valueChanged for immediate feedback
-    connect(m_styleStrengthSlider, &ModernSlider::valueChanged, this,
-            &ToolPanel::styleStrengthChanged);
-    // History
-    connect(m_styleStrengthSlider, &ModernSlider::sliderReleased, this, [this]() {
-        Q_EMIT adjustmentFinished("Style Strength", m_styleStrengthSlider->value());
-    });
+    m_styleSatSlider = new ModernSlider("Saturation", 0, 100, 0, this);
+    m_styleSatSlider->setTooltip("Boost color intensity before style transfer");
+    connect(m_styleSatSlider, &ModernSlider::valueChanged, this, &ToolPanel::styleSatChanged);
+    layout->addWidget(m_styleSatSlider);
 
-    layout->addWidget(m_styleStrengthSlider);
+    m_styleContrastSlider = new ModernSlider("Contrast", 0, 100, 0, this);
+    m_styleContrastSlider->setTooltip("Adjust contrast before style transfer");
+    connect(m_styleContrastSlider, &ModernSlider::valueChanged, this,
+            &ToolPanel::styleContrastChanged);
+    layout->addWidget(m_styleContrastSlider);
+
+    m_styleNoiseSlider = new ModernSlider("Noise", 0, 100, 0, this);
+    m_styleNoiseSlider->setTooltip("Add noise for texture variation");
+    connect(m_styleNoiseSlider, &ModernSlider::valueChanged, this, &ToolPanel::styleNoiseChanged);
+    layout->addWidget(m_styleNoiseSlider);
 
     // Processing indicator (hidden by default)
     QLabel* processingLabel = new QLabel(
@@ -554,6 +595,21 @@ void ToolPanel::resetAllAdjustments() {
     if (m_filterGallery) {
         m_filterGallery->setSelectedFilter("Original");
     }
+
+    // Reset style gallery selection (deselect all)
+    if (m_styleGallery) {
+        m_styleGallery->clearSelection();
+    }
+
+    // Reset style variation sliders
+    if (m_styleHueSlider)
+        m_styleHueSlider->reset();
+    if (m_styleSatSlider)
+        m_styleSatSlider->reset();
+    if (m_styleContrastSlider)
+        m_styleContrastSlider->reset();
+    if (m_styleNoiseSlider)
+        m_styleNoiseSlider->reset();
 
     // Notify controller to reset processing parameters
     Q_EMIT resetAllRequested();
@@ -854,20 +910,26 @@ void ToolPanel::updateSliders(int brightness, int contrast, int saturation, int 
     m_sharpeningSlider->setValue(sharpening);
 }
 
+void ToolPanel::setRotationSliderValue(int rotation) {
+    if (m_rotationSlider) {
+        m_rotationSlider->setValue(rotation);
+    }
+}
+
 void ToolPanel::setColorControlsEnabled(bool enabled) {
     // Enable/disable individual color sliders
     m_temperatureSlider->setEnabled(enabled);
     m_tintSlider->setEnabled(enabled);
     m_saturationSlider->setEnabled(enabled);
 
-    // Dim the color section if disabled
-    if (m_colorSection) {
-        if (enabled) {
-            m_colorSection->setStyleSheet("");
-        } else {
-            m_colorSection->setStyleSheet("QWidget { opacity: 0.5; }");
-        }
-    }
+    // Apply visual dimming to show disabled state
+    // Qt doesn't support CSS opacity, so we use color-based styling
+    QString disabledStyle = "QWidget { color: #555; }";
+    QString enabledStyle = "";
+
+    m_temperatureSlider->setStyleSheet(enabled ? enabledStyle : disabledStyle);
+    m_tintSlider->setStyleSheet(enabled ? enabledStyle : disabledStyle);
+    m_saturationSlider->setStyleSheet(enabled ? enabledStyle : disabledStyle);
 
     qDebug() << "Color controls" << (enabled ? "enabled" : "disabled (grayscale/effect active)");
 }

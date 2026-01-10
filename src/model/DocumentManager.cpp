@@ -390,8 +390,18 @@ bool DocumentManager::applyAdjustmentsPermanently() {
     // Reset all adjustments to zero since they're now baked in
     m_adjustments->resetAll();
 
-    qDebug() << "Adjustments applied permanently - image is now the base";
+    // Clear current filter - it's now baked in, allowing another filter to be stacked
+    m_currentFilter.clear();
+
+    // Reset style variation parameters
+    m_styleHueVariation = 0;
+    m_styleSatVariation = 0;
+    m_styleContrastVariation = 0;
+    m_styleNoiseAmount = 0;
+
+    qDebug() << "Adjustments and filters applied permanently - ready for stacking";
     Q_EMIT documentStateChanged();
+    Q_EMIT filterChanged("");  // Notify UI that filter is cleared
     return true;
 }
 
@@ -400,12 +410,32 @@ AutoLightSettings DocumentManager::estimateAutoLight() {
         return AutoLightSettings{};
     }
 
-    // Get current original image
+    // Get current processed image (so Auto Light works on current state, not original)
+    QImage currentImage = m_currentDocument->processedImage();
+    if (currentImage.isNull()) {
+        currentImage = m_currentDocument->originalImage();
+    }
+    cv::Mat srcMat = qImageToCvMat(currentImage);
+
+    try {
+        // Analyze image for optimal settings
+        return AutoLight::analyze(srcMat);
+    } catch (const std::exception& e) {
+        qDebug() << "AutoLight analysis error:" << e.what();
+        return AutoLightSettings{};
+    }
+}
+
+AutoLightSettings DocumentManager::estimateAutoLightFromOriginal() {
+    if (!hasDocument()) {
+        return AutoLightSettings{};
+    }
+
+    // Get original image (for reset + auto behavior)
     QImage originalImage = m_currentDocument->originalImage();
     cv::Mat srcMat = qImageToCvMat(originalImage);
 
     try {
-        // Analyze image for optimal settings
         return AutoLight::analyze(srcMat);
     } catch (const std::exception& e) {
         qDebug() << "AutoLight analysis error:" << e.what();
@@ -764,7 +794,10 @@ void DocumentManager::applyFilter(const QString& filterName) {
             }
 
             StyleTransfer styleTransfer(styleType);
-            styleTransfer.setStrength(m_styleStrength);
+            styleTransfer.setHueVariation(m_styleHueVariation);
+            styleTransfer.setSatVariation(m_styleSatVariation);
+            styleTransfer.setContrastVariation(m_styleContrastVariation);
+            styleTransfer.setNoiseAmount(m_styleNoiseAmount);
             resultMat = styleTransfer.apply(srcMat);
         } else {
             qDebug() << "Unknown filter:" << filterName;
@@ -776,8 +809,9 @@ void DocumentManager::applyFilter(const QString& filterName) {
             m_currentDocument->setProcessedImage(resultImage);
             m_currentDocument->setModified(true);
 
-            // Track persistent filters (Grayscale, Vintage) so they persist during adjustments
-            if (filterName == "Grayscale" || filterName == "Vintage") {
+            // Track persistent filters so they persist during adjustments
+            if (filterName == "Grayscale" || filterName == "Vintage" ||
+                filterName.startsWith("StyleTransfer_")) {
                 m_currentFilter = filterName;
             }
 
@@ -905,6 +939,7 @@ void DocumentManager::saveStateToHistory(const QString& description) {
     state.image = m_currentDocument->originalImage().copy();
     state.adjustments = m_adjustments->createSnapshot();
     state.description = description;
+    state.filter = m_currentFilter;  // Save active filter
 
     // Save current state to undo stack
     m_undoStack.push(state);
@@ -935,6 +970,7 @@ void DocumentManager::undo() {
     HistoryState currentState;
     currentState.image = m_currentDocument->originalImage().copy();
     currentState.adjustments = m_adjustments->createSnapshot();
+    currentState.filter = m_currentFilter;  // Save current filter
     if (!m_undoStack.isEmpty()) {
         currentState.description = m_undoStack.top().description;
     }
@@ -954,13 +990,29 @@ void DocumentManager::undo() {
     // Restore adjustments
     m_adjustments->applySnapshot(previousState.adjustments);
 
+    // Restore filter state
+    m_currentFilter = previousState.filter;
+
     // Re-process image with restored settings
     applyAdjustments();
+
+    // Notify UI about filter change
+    Q_EMIT filterChanged(m_currentFilter);
 
     m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
     updateUndoRedoState();
     Q_EMIT historyChanged(getHistory());
+
+    // Notify UI to sync sliders with restored adjustment values
+    Q_EMIT adjustmentsRestored(
+        m_adjustments->brightness(), m_adjustments->contrast(), m_adjustments->saturation(),
+        m_adjustments->exposure(), m_adjustments->highlights(), m_adjustments->shadows(),
+        m_adjustments->whites(), m_adjustments->blacks(), m_adjustments->temperature(),
+        m_adjustments->tint(), m_adjustments->denoise(), m_adjustments->clarity(),
+        m_adjustments->sharpening());
+    Q_EMIT rotationRestored(m_adjustments->rotation());
+
     qDebug() << "Undo performed, remaining history:" << m_undoStack.size();
 }
 
@@ -974,6 +1026,7 @@ void DocumentManager::redo() {
     HistoryState currentState;
     currentState.image = m_currentDocument->originalImage().copy();
     currentState.adjustments = m_adjustments->createSnapshot();
+    currentState.filter = m_currentFilter;  // Save current filter
     if (!m_redoStack.isEmpty()) {
         currentState.description = m_redoStack.top().description;
     }
@@ -990,21 +1043,60 @@ void DocumentManager::redo() {
 
     m_adjustments->applySnapshot(nextState.adjustments);
 
+    // Restore filter state
+    m_currentFilter = nextState.filter;
+
     applyAdjustments();
+
+    // Notify UI about filter change
+    Q_EMIT filterChanged(m_currentFilter);
 
     m_currentDocument->setModified(true);
     Q_EMIT imageTransformed();
     updateUndoRedoState();
     Q_EMIT historyChanged(getHistory());
+
+    // Notify UI to sync sliders with restored adjustment values
+    Q_EMIT adjustmentsRestored(
+        m_adjustments->brightness(), m_adjustments->contrast(), m_adjustments->saturation(),
+        m_adjustments->exposure(), m_adjustments->highlights(), m_adjustments->shadows(),
+        m_adjustments->whites(), m_adjustments->blacks(), m_adjustments->temperature(),
+        m_adjustments->tint(), m_adjustments->denoise(), m_adjustments->clarity(),
+        m_adjustments->sharpening());
+    Q_EMIT rotationRestored(m_adjustments->rotation());
 }
 
-void DocumentManager::setStyleStrength(float strength) {
-    if (std::abs(m_styleStrength - strength) < 0.01f)
+void DocumentManager::setStyleHueVariation(int value) {
+    if (m_styleHueVariation == value)
         return;
+    m_styleHueVariation = value;
+    if (m_currentFilter.startsWith("StyleTransfer_")) {
+        applyFilter(m_currentFilter);
+    }
+}
 
-    m_styleStrength = strength;
+void DocumentManager::setStyleSatVariation(int value) {
+    if (m_styleSatVariation == value)
+        return;
+    m_styleSatVariation = value;
+    if (m_currentFilter.startsWith("StyleTransfer_")) {
+        applyFilter(m_currentFilter);
+    }
+}
 
-    // If we are currently using a style transfer filter, reapply it
+void DocumentManager::setStyleContrastVariation(int value) {
+    if (m_styleContrastVariation == value)
+        return;
+    m_styleContrastVariation = value;
+    if (m_currentFilter.startsWith("StyleTransfer_")) {
+        applyFilter(m_currentFilter);
+    }
+}
+
+void DocumentManager::setStyleNoiseAmount(int value) {
+    if (m_styleNoiseAmount == value)
+        return;
+    m_styleNoiseAmount = value;
     if (m_currentFilter.startsWith("StyleTransfer_")) {
         applyFilter(m_currentFilter);
     }

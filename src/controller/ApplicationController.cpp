@@ -510,27 +510,34 @@ void ApplicationController::applyAutoEnhance() {
         return;
     }
 
-    // Estimate optimal settings
-    AutoLightSettings settings = m_documentManager->estimateAutoLight();
-
-    // Update settings in document (this will trigger processing)
+    // Reset all light-related sliders first (Lightroom-style behavior)
     AdjustmentSettings* adjustments = m_documentManager->adjustments();
     if (adjustments) {
-        // Only apply if values are significant
-        if (std::abs(settings.brightness) > 1.0f) {
+        adjustments->setExposure(0);
+        adjustments->setBrightness(0);
+        adjustments->setContrast(0);
+        adjustments->setHighlights(0);
+        adjustments->setShadows(0);
+        adjustments->setWhites(0);
+        adjustments->setBlacks(0);
+    }
+
+    // Estimate optimal settings from ORIGINAL image
+    AutoLightSettings settings = m_documentManager->estimateAutoLightFromOriginal();
+
+    if (adjustments) {
+        // Apply calculated settings
+        if (std::abs(settings.brightness) > 1.0f)
             adjustments->setBrightness(static_cast<int>(settings.brightness));
-        }
 
         if (std::abs(settings.exposure) > 0.01f) {
-            // Map exposure range (-5.0 to 5.0) to slider range (-50 to 50)
             int exposureVal = static_cast<int>(settings.exposure * 10.0f);
             adjustments->setExposure(exposureVal);
         }
 
-        if (std::abs(settings.contrast) > 1.0f) {
+        if (std::abs(settings.contrast) > 1.0f)
             adjustments->setContrast(static_cast<int>(settings.contrast));
-        }
-        // Apply Smart Recovery and Tone Mapping
+
         if (std::abs(settings.highlight) > 1.0f)
             adjustments->setHighlights(static_cast<int>(settings.highlight));
 
@@ -543,9 +550,9 @@ void ApplicationController::applyAutoEnhance() {
         if (std::abs(settings.black) > 1.0f)
             adjustments->setBlacks(static_cast<int>(settings.black));
 
+        m_documentManager->applyAdjustments();
         setState("isModified", true);
 
-        // Notify UI to update sliders
         emit adjustmentsChanged(
             adjustments->brightness(), adjustments->contrast(), adjustments->saturation(),
             adjustments->exposure(), adjustments->highlights(), adjustments->shadows(),
@@ -553,8 +560,57 @@ void ApplicationController::applyAutoEnhance() {
             adjustments->tint(), adjustments->denoise(), adjustments->clarity(),
             adjustments->sharpening());
 
-        qDebug() << "Auto Enhance applied: Exposure" << settings.exposure << "Contrast"
-                 << settings.contrast;
+        qDebug() << "Auto Light (reset mode): Exposure" << settings.exposure;
+    }
+}
+
+void ApplicationController::applySmartEnhance() {
+    if (!m_documentManager->hasDocument()) {
+        return;
+    }
+
+    // Estimate from CURRENT processed image (refinement mode)
+    AutoLightSettings settings = m_documentManager->estimateAutoLight();
+
+    AdjustmentSettings* adjustments = m_documentManager->adjustments();
+    if (adjustments) {
+        // Add to existing values for cumulative effect
+        if (std::abs(settings.brightness) > 1.0f)
+            adjustments->setBrightness(adjustments->brightness() +
+                                       static_cast<int>(settings.brightness));
+
+        if (std::abs(settings.exposure) > 0.01f) {
+            int exposureVal = static_cast<int>(settings.exposure * 10.0f);
+            adjustments->setExposure(adjustments->exposure() + exposureVal);
+        }
+
+        if (std::abs(settings.contrast) > 1.0f)
+            adjustments->setContrast(adjustments->contrast() + static_cast<int>(settings.contrast));
+
+        if (std::abs(settings.highlight) > 1.0f)
+            adjustments->setHighlights(adjustments->highlights() +
+                                       static_cast<int>(settings.highlight));
+
+        if (std::abs(settings.shadow) > 1.0f)
+            adjustments->setShadows(adjustments->shadows() + static_cast<int>(settings.shadow));
+
+        if (std::abs(settings.white) > 1.0f)
+            adjustments->setWhites(adjustments->whites() + static_cast<int>(settings.white));
+
+        if (std::abs(settings.black) > 1.0f)
+            adjustments->setBlacks(adjustments->blacks() + static_cast<int>(settings.black));
+
+        m_documentManager->applyAdjustments();
+        setState("isModified", true);
+
+        emit adjustmentsChanged(
+            adjustments->brightness(), adjustments->contrast(), adjustments->saturation(),
+            adjustments->exposure(), adjustments->highlights(), adjustments->shadows(),
+            adjustments->whites(), adjustments->blacks(), adjustments->temperature(),
+            adjustments->tint(), adjustments->denoise(), adjustments->clarity(),
+            adjustments->sharpening());
+
+        qDebug() << "Smart Enhance (refine mode): +Exposure" << settings.exposure;
     }
 }
 
@@ -788,10 +844,30 @@ void ApplicationController::requestPerspectiveCropMode() {
 void ApplicationController::requestCropMode() {
     emit enableCropMode(true);
 }
-void ApplicationController::setStyleTransferStrength(int strength) {
+void ApplicationController::setStyleHueVariation(int value) {
     if (m_documentManager) {
-        float normalizedStrength = static_cast<float>(strength) / 100.0f;
-        m_documentManager->setStyleStrength(normalizedStrength);
+        m_documentManager->setStyleHueVariation(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::setStyleSatVariation(int value) {
+    if (m_documentManager) {
+        m_documentManager->setStyleSatVariation(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::setStyleContrastVariation(int value) {
+    if (m_documentManager) {
+        m_documentManager->setStyleContrastVariation(value);
+        setState("isModified", true);
+    }
+}
+
+void ApplicationController::setStyleNoiseAmount(int value) {
+    if (m_documentManager) {
+        m_documentManager->setStyleNoiseAmount(value);
         setState("isModified", true);
     }
 }

@@ -3,11 +3,11 @@
 #include <opencv2/core/hal/interface.h>
 
 #include <iostream>
-#include <memory>
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/dnn/dnn.hpp>
 #include <opencv2/opencv.hpp>
+#include <random>
 #include <vector>
 
 StyleTransfer::StyleTransfer(StyleType style) : currentStyle(style) {
@@ -43,10 +43,10 @@ void StyleTransfer::loadModel(StyleType style) {
 
     // List of potential paths to check
     std::vector<std::string> baseDirs = {
-        "AI_models/",                // Standard relative path (dev/bin)
-        "../Resources/AI_models/",   // macOS Bundle Resources
-        "../../../AI_models/",       // Fallback relative to bin if run from bundle
-        "../AI_models/"              // Sibling directory
+        "AI_models/",               // Standard relative path (dev/bin)
+        "../Resources/AI_models/",  // macOS Bundle Resources
+        "../../../AI_models/",      // Fallback relative to bin if run from bundle
+        "../AI_models/"             // Sibling directory
     };
 
     std::string fullPath;
@@ -54,10 +54,6 @@ void StyleTransfer::loadModel(StyleType style) {
 
     for (const auto& dir : baseDirs) {
         std::string testPath = dir + modelName;
-        // Simple check if file exists using OpenCV (or just try loading)
-        // Here we rely on try/catch logic below, but strictly we should check existence first or iterate.
-        // Let's assume we find it if the file handles open. But cv::dnn::readNetFromONNX throws.
-        // A better way is to use <filesystem> or just access.
         FILE* f = fopen(testPath.c_str(), "r");
         if (f) {
             fclose(f);
@@ -69,9 +65,9 @@ void StyleTransfer::loadModel(StyleType style) {
     }
 
     if (!found) {
-        // Fallback to default if not found (let exception handler catch it)
         fullPath = "AI_models/" + modelName;
-        std::cerr << "⚠️ Could not locate model " << modelName << " in any expected path." << std::endl;
+        std::cerr << "⚠️ Could not locate model " << modelName << " in any expected path."
+                  << std::endl;
     }
 
     std::cout << "Loading model from " << fullPath << std::endl;
@@ -97,42 +93,118 @@ void StyleTransfer::setStyle(StyleType style) {
     }
 }
 
-// convert to interleaved BGR because output of the models ist NCHW (Planar RGB)
 cv::Mat StyleTransfer::postprocess(const cv::Mat& outputTensor, int rows, int cols) {
-    // Output is 1x3x224x224
-    // We can extract the channel pointers.
-    // The data is contiguous float.
     const float* data = (float*)outputTensor.data;
 
     std::vector<cv::Mat> channels;
     int channelSize = rows * cols;
 
     for (int i = 0; i < 3; i++) {
-        // pointer auf the start point of each chanel
         const float* channelData = data + (i * channelSize);
-
-        // create a matrix
         cv::Mat channel(rows, cols, CV_32F, const_cast<float*>(channelData));
-
         channels.push_back(channel);
     }
 
-    // merge these 3 channels to a float image
     cv::Mat mergedImg;
     cv::merge(channels, mergedImg);
 
-    // clamp the value 0 - 255
     cv::threshold(mergedImg, mergedImg, 255.0, 255.0, cv::THRESH_TRUNC);
     cv::threshold(mergedImg, mergedImg, 0.0, 0.0, cv::THRESH_TOZERO);
 
-    // convert to 8bit
     cv::Mat img8;
     mergedImg.convertTo(img8, CV_8U);
 
-    // RGB to BGR
     cv::cvtColor(img8, img8, cv::COLOR_RGB2BGR);
 
     return img8;
+}
+
+cv::Mat StyleTransfer::applyVariation(const cv::Mat& input) {
+    // Check if any variation is applied
+    bool hasVariation = (m_params.hueVariation != 0 || m_params.satVariation > 0 ||
+                         m_params.contrastVariation > 0 || m_params.noiseAmount > 0);
+
+    if (!hasVariation) {
+        return input.clone();
+    }
+
+    cv::Mat result = input.clone();
+
+    // === HUE VARIATION ===
+    if (m_params.hueVariation != 0) {
+        cv::Mat hsv;
+        cv::cvtColor(result, hsv, cv::COLOR_BGR2HSV);
+
+        std::vector<cv::Mat> hsvChannels;
+        cv::split(hsv, hsvChannels);
+
+        // Hue shift: map -100 to +100 → -90 to +90 degrees (half the hue wheel)
+        float hueShift = m_params.hueVariation * 0.9f;
+
+        hsvChannels[0].convertTo(hsvChannels[0], CV_32F);
+        hsvChannels[0] += hueShift;
+
+        // Wrap hue values (0-180 in OpenCV HSV)
+        cv::Mat hueMask;
+        cv::compare(hsvChannels[0], 180.0f, hueMask, cv::CMP_GE);
+        cv::subtract(hsvChannels[0], cv::Scalar(180.0f), hsvChannels[0], hueMask);
+        cv::compare(hsvChannels[0], 0.0f, hueMask, cv::CMP_LT);
+        cv::add(hsvChannels[0], cv::Scalar(180.0f), hsvChannels[0], hueMask);
+        hsvChannels[0].convertTo(hsvChannels[0], CV_8U);
+
+        cv::merge(hsvChannels, hsv);
+        cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
+    }
+
+    // === SATURATION VARIATION ===
+    if (m_params.satVariation > 0) {
+        cv::Mat hsv;
+        cv::cvtColor(result, hsv, cv::COLOR_BGR2HSV);
+
+        std::vector<cv::Mat> hsvChannels;
+        cv::split(hsv, hsvChannels);
+
+        // Saturation factor: 0-100 maps to 1.0-2.0× (boost only)
+        float satFactor = 1.0f + (m_params.satVariation / 100.0f);
+
+        hsvChannels[1].convertTo(hsvChannels[1], CV_32F);
+        hsvChannels[1] *= satFactor;
+        cv::threshold(hsvChannels[1], hsvChannels[1], 255.0, 255.0, cv::THRESH_TRUNC);
+        hsvChannels[1].convertTo(hsvChannels[1], CV_8U);
+
+        cv::merge(hsvChannels, hsv);
+        cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
+    }
+
+    // === CONTRAST VARIATION ===
+    if (m_params.contrastVariation > 0) {
+        // Contrast factor: 0-100 maps to 1.0-2.0×
+        float contrastFactor = 1.0f + (m_params.contrastVariation / 100.0f);
+
+        result.convertTo(result, CV_32F);
+        result = (result - 128.0f) * contrastFactor + 128.0f;
+        cv::threshold(result, result, 255.0, 255.0, cv::THRESH_TRUNC);
+        cv::threshold(result, result, 0.0, 0.0, cv::THRESH_TOZERO);
+        result.convertTo(result, CV_8U);
+    }
+
+    // === NOISE ===
+    if (m_params.noiseAmount > 0) {
+        cv::Mat noise(input.size(), CV_32FC3);
+
+        // Use a fixed seed for reproducible noise, varied by noise amount
+        std::mt19937 rng(m_params.noiseAmount * 12345);
+        cv::randn(noise, 0, m_params.noiseAmount * 0.5f);  // 0-50 noise std dev
+
+        cv::Mat resultFloat;
+        result.convertTo(resultFloat, CV_32FC3);
+        resultFloat += noise;
+        cv::threshold(resultFloat, resultFloat, 255.0, 255.0, cv::THRESH_TRUNC);
+        cv::threshold(resultFloat, resultFloat, 0.0, 0.0, cv::THRESH_TOZERO);
+        resultFloat.convertTo(result, CV_8UC3);
+    }
+
+    return result;
 }
 
 cv::Mat StyleTransfer::apply(const cv::Mat& srcImg) {
@@ -157,62 +229,26 @@ cv::Mat StyleTransfer::apply(const cv::Mat& srcImg) {
     // convert to 3 channels if gray image
     if (img8.channels() == 1) {
         cv::cvtColor(img8, img8, cv::COLOR_GRAY2BGR);
-    }
-
-    else if (img8.channels() == 4) {
+    } else if (img8.channels() == 4) {
         cv::cvtColor(img8, img8, cv::COLOR_BGRA2BGR);
     }
 
+    // Apply variations to input before style transfer
+    cv::Mat variedInput = applyVariation(img8);
+
     // preprocessing for ONNX
-    cv::Mat inputBlob =
-        cv::dnn::blobFromImage(img8,
-                               1.0,                 // value scale factor 255 x 1 = 255
-                               cv::Size(224, 224),  // transfer models expect 224x224
-                               cv::Scalar(0, 0, 0),
-                               true,   // transfer models expect RGB images
-                               true);  // crop
+    cv::Mat inputBlob = cv::dnn::blobFromImage(variedInput, 1.0, cv::Size(224, 224),
+                                               cv::Scalar(0, 0, 0), true, true);
 
-    //================ INFERENZ ===============
-
+    // INFERENCE
     net.setInput(inputBlob, "input1");
     cv::Mat outputTensor = net.forward("output1");
 
-    // ========== Posprocessing (Tensor -> Bild)===========
-
+    // Postprocessing
     cv::Mat result = postprocess(outputTensor, 224, 224);
 
     // Resize to original size
     cv::resize(result, result, srcImg.size());
-
-    // Apply strength blending if < 1.0
-    if (strength < 1.0f) {
-        cv::Mat blended;
-        // Blend original (converted to 8-bit BGR if needed) with result
-        // Result is always 8-bit BGR
-        
-        // Ensure we have a compatible source image for blending
-        cv::Mat srcForBlending;
-        if (srcImg.depth() != CV_8U) {
-             // If source was 16-bit, we already have img8 which is 8-bit
-             srcForBlending = img8; 
-             // Note: img8 is already BGR (converted earlier if needed)
-        } else {
-             srcForBlending = srcImg;
-             // Ensure channels match (srcImg might be BGRA or Gray, result is BGR)
-             if (srcForBlending.channels() != 3) {
-                 srcForBlending = img8; // img8 is already 3-channel BGR
-             }
-        }
-        
-        // Verify sizes match (resize should have handled this, but good to be safe)
-        if (srcForBlending.size() == result.size() && srcForBlending.type() == result.type()) {
-             cv::addWeighted(srcForBlending, 1.0f - strength, result, strength, 0.0, blended);
-             return blended;
-        } else {
-             std::cerr << "⚠️ StyleTransfer: Blending skipped due to type/size mismatch." << std::endl;
-             // Fallback to result
-        }
-    }
 
     return result;
 }
