@@ -41,3 +41,37 @@
 *.dwo
 
 build/
+
+# Large binary files - should not be in Git
+images/
+*.nef
+*.NEF
+*.cr3
+*.CR3
+*.raf
+*.RAF
+*.dng
+*.DNG
+*.arw
+*.ARW
+*.rw2
+*.RW2
+
+# Build artifacts and generated files
+bin/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+CTestTestfile.cmake
+*.dmg
+version.txt
+
+# System files
+.DS_Store
+.cache/
+.qt/
+
+# AI models will NOT be ignored - they can stay in Git if needed
+# AI_models/ - DO NOT UNCOMMENT
