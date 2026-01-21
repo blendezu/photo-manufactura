@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Photo Manufactura
+Comment=Professional Photo Processing Application
+Exec=/Users/ghiri.ananthavadivel/projects/eda_project/photo-manufactura/scripts/launch_photo_manufactura.sh
+Icon=/Users/ghiri.ananthavadivel/projects/eda_project/photo-manufactura/resources/icon.svg
+Terminal=false
+Categories=Graphics;Photography;
+StartupNotify=true

@@ -1,61 +1,188 @@
-# UI Component - Can be built independently or as part of main project
-# This file works in both standalone and subdirectory mode
+# ============================================================
+# Photo Manufactura - UI Component
+# ============================================================
+# Can be built standalone (app) or as a submodule (library)
+# ============================================================
 
-# Check if this is being built as a standalone project
+cmake_minimum_required(VERSION 3.21)
+
+# ============================================================
+# Detect Build Mode
+# ============================================================
+set(STANDALONE_BUILD OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    # Standalone build
-    cmake_minimum_required(VERSION 3.21)
-    project(ui_component VERSION 1.0.0 LANGUAGES CXX)
-    
-    # Set C++ standard for standalone build
+    set(STANDALONE_BUILD ON)
+endif()
+
+# ============================================================
+# Project Configuration (Standalone Only)
+# ============================================================
+if(STANDALONE_BUILD)
+    project(ui_component 
+        VERSION 1.0.0 
+        LANGUAGES CXX
+        DESCRIPTION "Photo Manufactura UI Component"
+    )
+
+    # C++ Standard
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    
-    # Enable compile commands for IDEs
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-    
-    # Enable Qt auto-tools for standalone build
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-    set(CMAKE_AUTOUIC ON)
+
+    # Qt Meta-Object Compiler
+    set(CMAKE_AUTOMOC ON)  # Automatically run moc on Qt classes
+    set(CMAKE_AUTORCC ON)  # Automatically compile .qrc files
+    set(CMAKE_AUTOUIC ON)  # Automatically compile .ui files
 endif()
 
-# Create the UI library
+# ============================================================
+# Dependencies
+# ============================================================
+find_package(Qt6 REQUIRED COMPONENTS 
+    Core 
+    Gui 
+    Widgets 
+    OpenGL 
+    OpenGLWidgets
+)
+
+# Find OpenCV (required for transitive dependencies from model/controller)
+find_package(OpenCV REQUIRED COMPONENTS core)
+
+# ============================================================
+# UI Library Target
+# ============================================================
 add_library(ui STATIC)
 
-# Add source files
-target_sources(ui PRIVATE
-    mainwindow.cpp
+# ------------------------------------------------------------
+# Source Files Organization
+# ------------------------------------------------------------
+set(MAIN_SOURCES
     mainwindow.h
+    mainwindow.cpp
 )
 
-# Include directories
+set(BAR_SOURCES
+    bar/toolBar.h
+    bar/toolBar.cpp
+    bar/subMenuFile.h
+    bar/subMenuFile.cpp
+    bar/subMenuEdit.h
+    bar/subMenuEdit.cpp
+    bar/subMenuView.h
+    bar/subMenuView.cpp
+)
+
+set(PANEL_SOURCES
+    panel/infoPanel.h
+    panel/infoPanel.cpp
+    panel/toolPanel.h
+    panel/toolPanel.cpp
+)
+
+set(WIDGET_SOURCES
+    # Modern UI widgets (current)
+    widgets/modernToolButton.h
+    widgets/modernToolButton.cpp
+    widgets/modernSlider.h
+    widgets/modernSlider.cpp
+    widgets/modernCollapsible.h
+    widgets/modernCollapsible.cpp
+    widgets/modernButton.h
+    widgets/modernButton.cpp
+    # Utility widgets
+    widgets/histogramWidget.h
+    widgets/histogramWidget.cpp
+    widgets/HistoryWidget.h
+    widgets/HistoryWidget.cpp
+    widgets/ResizeDialog.h
+    widgets/ResizeDialog.cpp
+)
+
+set(CANVAS_SOURCES
+    canvas/canvasWidget.h
+    canvas/canvasWidget.cpp
+)
+
+set(THEME_SOURCES
+    resources/theme/styleSheet.h
+    resources/theme/styleSheet.cpp
+    resources/theme/themeManager.h
+    resources/theme/themeManager.cpp
+)
+
+set(RESOURCE_SOURCES
+    resources/resources.qrc
+)
+
+# Add all sources to target
+target_sources(ui PRIVATE
+    ${MAIN_SOURCES}
+    ${BAR_SOURCES}
+    ${PANEL_SOURCES}
+    ${WIDGET_SOURCES}
+    ${CANVAS_SOURCES}
+    ${THEME_SOURCES}
+    ${RESOURCE_SOURCES}
+)
+
+# ------------------------------------------------------------
+# Include Directories
+# ------------------------------------------------------------
 target_include_directories(ui PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/bar>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/canvas>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/panel>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/resources/theme>
+    $<INSTALL_INTERFACE:include>
+    ${OpenCV_INCLUDE_DIRS}
 )
 
-# Dependencies (Qt6 with error handling)
-find_package(Qt6 COMPONENTS Core Widgets)
-if(Qt6_FOUND)
-    target_link_libraries(ui PUBLIC Qt6::Core Qt6::Widgets)
-    message(STATUS "Qt6 found: ${Qt6_VERSION}")
-else()
-    message(WARNING "Qt6 not found - building without Qt support")
-endif()
+# ------------------------------------------------------------
+# Link Libraries
+# ------------------------------------------------------------
+target_link_libraries(ui PUBLIC 
+    Qt6::Core 
+    Qt6::Gui 
+    Qt6::Widgets 
+    Qt6::OpenGL 
+    Qt6::OpenGLWidgets
+)
 
-# If standalone build, create an executable for testing
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    # Create a test executable for this component
-    add_executable(test_mainwindow)
+# ============================================================
+# Standalone Executable (Optional)
+# ============================================================
+if(STANDALONE_BUILD)
+    # Add model and controller as subdirectories for standalone build
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../model ${CMAKE_BINARY_DIR}/model)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../controller ${CMAKE_BINARY_DIR}/controller)
     
-    target_sources(test_mainwindow PRIVATE
-        test_mainwindow.cpp
+    # Create executable
+    add_executable(ui_main
+        ui_main.cpp
+    )
+
+    # Link with UI library, controller and model
+    target_link_libraries(ui_main PRIVATE 
+        ui
+        controller
+        model
     )
     
-    target_link_libraries(test_mainwindow PRIVATE ui)
-    
-    # Set output directory
-    set_target_properties(test_mainwindow PROPERTIES
+    # Add controller and model include directories
+    target_include_directories(ui_main PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/../controller
+        ${CMAKE_CURRENT_SOURCE_DIR}/../model
+    )
+
+    # Output directory
+    set_target_properties(ui_main PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
+
+    message(STATUS "✅ Building standalone UI executable (entry: ui_main.cpp)")
+else()
+    message(STATUS "📦 Building UI as a submodule library")
 endif()

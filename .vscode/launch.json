@@ -52,6 +52,19 @@
             "externalConsole": false,
             "MIMode": "lldb",
             "preLaunchTask": "Build Controller Component"
+        },
+        {
+            "name": "Launch Image Processing Component (Release)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/image_processing/build/release/bin/image_processing_test",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/src/image_processing/build/release/bin",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "Build Image Processing Component (Release)"
         }
     ]
 }

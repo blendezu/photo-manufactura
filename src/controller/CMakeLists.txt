@@ -12,17 +12,38 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     
     # Enable compile commands for IDEs
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    
+    # Add model subdirectory for standalone build
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../model ${CMAKE_BINARY_DIR}/model)
 endif()
 
-# Create the Controller library
-add_library(controller STATIC)
+# Find required Qt6 components for controller
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGL OpenGLWidgets)
 
-# Add source files when you create them
-# target_sources(controller PRIVATE
-#     controller.cpp
-#     controller_manager.cpp
-#     event_handler.cpp
-# )
+# Create the Controller library
+add_library(controller STATIC
+    ApplicationController.cpp
+    ApplicationController.h
+    ApplicationWiring.cpp
+    ApplicationWiring.h
+    ICommand.h
+    Commands.h
+    # ImageProcessingService requires image_processing component
+    # Uncomment when linking with image_processing:
+    # ImageProcessingService.cpp
+    # ImageProcessingService.h
+)
+
+# Link Qt6 libraries and model
+target_link_libraries(controller 
+    PUBLIC
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::Gui
+        Qt6::OpenGL
+        Qt6::OpenGLWidgets
+        model
+)
 
 # Include directories
 target_include_directories(controller PUBLIC
@@ -37,16 +58,16 @@ target_include_directories(controller PUBLIC
 # If standalone build, create an executable for testing
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     # Create a test executable for this component
-    add_executable(controller_test)
+    # add_executable(controller_test)
     
     # target_sources(controller_test PRIVATE
     #     test_main.cpp  # Create this for testing
     # )
     
-    target_link_libraries(controller_test PRIVATE controller)
+    # target_link_libraries(controller_test PRIVATE controller)
     
     # Set output directory
-    set_target_properties(controller_test PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-    )
+    # set_target_properties(controller_test PROPERTIES
+    #     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    # )
 endif()

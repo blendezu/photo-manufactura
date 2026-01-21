@@ -1,0 +1,68 @@
+cmake_minimum_required(VERSION 3.21)
+project(RawProcessing LANGUAGES CXX)
+
+if(TARGET raw_processing)
+    message(STATUS "ℹ️ Target 'raw_processing' existiert bereits. Überspringe erneute Definition.")
+    return()  # Beendet das Verarbeiten dieser Datei hier sofort
+endif()
+
+# Library
+add_library(raw_processing STATIC)
+
+target_sources(raw_processing PRIVATE
+    raw_processing.cpp
+    raw_processing.h
+)
+
+target_include_directories(raw_processing PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_compile_features(raw_processing PUBLIC cxx_std_20)
+
+# OpenCV - FESTE VERBINDUNG
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui)  # highgui für imshow/waitKey
+
+if(TARGET OpenCV::OpenCV)
+    target_link_libraries(raw_processing PUBLIC OpenCV::OpenCV)
+elseif(TARGET OpenCV::opencv_core)
+    target_link_libraries(raw_processing PUBLIC
+        OpenCV::opencv_core
+        OpenCV::opencv_imgproc
+        OpenCV::opencv_imgcodecs
+        OpenCV::opencv_highgui  # Für imshow und waitKey
+    )
+else()
+    target_include_directories(raw_processing PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(raw_processing PUBLIC ${OpenCV_LIBS})
+endif()
+
+# LibRaw und LCMS2
+target_include_directories(raw_processing PUBLIC
+    /opt/homebrew/Cellar/libraw/0.21.4/include/libraw
+    /opt/homebrew/Cellar/libraw/0.21.4/include
+    /opt/homebrew/opt/little-cms2/include
+)
+
+target_link_libraries(raw_processing PUBLIC
+    /opt/homebrew/Cellar/libraw/0.21.4/lib/libraw.dylib
+    /opt/homebrew/lib/liblcms2.dylib
+)
+
+# Warnungen
+target_compile_options(raw_processing PRIVATE 
+    $<$<CONFIG:Debug>:-Wall -Wextra -Wpedantic -g>
+)
+
+# Test - WICHTIG: Auch OpenCV verlinken!
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_main.cpp")
+    add_executable(raw_processing_test test/test_main.cpp)
+    target_link_libraries(raw_processing_test PRIVATE 
+        raw_processing
+        ${OpenCV_LIBS}  # OpenCV auch hier verlinken!
+    )
+    # Output-Pfad festlegen
+    set_target_properties(raw_processing_test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+endif()

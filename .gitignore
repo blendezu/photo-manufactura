@@ -1,6 +1,11 @@
 # Prerequisites
 *.d
 
+# macOS files
+.DS_Store
+**/.DS_Store
+*.dmg
+
 # Compiled Object files
 *.slo
 *.lo
@@ -37,41 +42,49 @@
 *.out
 *.app
 
-# debug information files
+# Debug information files
 *.dwo
 
+# Build directories
 build/
+**/build/
+docs/generated/
 
-# Large binary files - should not be in Git
-images/
-*.nef
-*.NEF
-*.cr3
-*.CR3
-*.raf
-*.RAF
-*.dng
-*.DNG
-*.arw
-*.ARW
-*.rw2
-*.RW2
-
-# Build artifacts and generated files
-bin/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-Makefile
-CTestTestfile.cmake
-*.dmg
-version.txt
-
-# System files
-.DS_Store
+# Cache directories
 .cache/
-.qt/
+**/.cache/
+.clangd/
 
-# AI models will NOT be ignored - they can stay in Git if needed
-# AI_models/ - DO NOT UNCOMMENT
+# External libraries (use Conan/CMake FetchContent instead)
+libs/
+
+# Large test assets (consider Git LFS)
+images/*.nef
+images/*.cr3
+images/*.RAF
+images/*.raf
+images/*.arw
+images/*.dng
+
+# IDE and editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/settings.json
+.vscode/launch.json
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Package artifacts
+*.AppImage
+*.zip
+
+# CMake
+CMakeFiles/
+cmake_install.cmake
+CMakeCache.txt
+compile_commands.json

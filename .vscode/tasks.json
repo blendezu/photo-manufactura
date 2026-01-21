@@ -1,8 +1,9 @@
 {
     "version": "2.0.0",
     "tasks": [
+        // --- 0. Main App ---
         {
-            "label": "Configure UI Component",
+            "label": "Configure Main App",
             "type": "shell",
             "command": "cmake",
             "args": [
@@ -13,11 +14,59 @@
             ],
             "group": "build",
             "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Configure main application CMake"
+        },
+        {
+            "label": "Build Main App",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Build main application",
+            "dependsOn": "Configure Main App"
+        },
+        {
+            "label": "Launch Main App",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "./build/bin/photo_manufactura.app"
+            ],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "Build Main App",
+            "detail": "Launch main application"
+        },
+        // ---  1. UI ---
+        {
+            "label": "Configure UI Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
                 "cwd": "${workspaceFolder}/src/ui"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
             "detail": "Configure UI component CMake"
         },
         {
@@ -35,9 +84,6 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
             "detail": "Build UI component independently",
             "dependsOn": "Configure UI Component"
         },
@@ -56,9 +102,9 @@
             "detail": "Clean UI component build directory"
         },
         {
-            "label": "Test UI Component",
+            "label": "Launch UI Component",
             "type": "shell",
-            "command": "./build/bin/test_mainwindow",
+            "command": "./build/bin/ui_main",
             "group": "test",
             "options": {
                 "cwd": "${workspaceFolder}/src/ui"
@@ -66,6 +112,7 @@
             "dependsOn": "Build UI Component",
             "detail": "Run UI component tests"
         },
+        // --- 2. Controller ---
         {
             "label": "Configure Controller Component",
             "type": "shell",
@@ -74,15 +121,14 @@
                 "-B",
                 "build",
                 "-S",
-                "."
+                ".",
+                "-G",
+                "Ninja"
             ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}/src/controller"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
             "detail": "Configure Controller component CMake"
         },
         {
@@ -97,11 +143,23 @@
             "options": {
                 "cwd": "${workspaceFolder}/src/controller"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
             "detail": "Build Controller component independently",
             "dependsOn": "Configure Controller Component"
+        },
+        // --- 3. Image Processing ---
+        {
+            "label": "Clean Controller Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/controller"
+            },
+            "detail": "Clean Controller component build directory"
         },
         {
             "label": "Configure Image Processing Component",
@@ -111,15 +169,14 @@
                 "-B",
                 "build",
                 "-S",
-                "."
+                ".",
+                "-G",
+                "Ninja"
             ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}/src/image_processing"
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
             "detail": "Configure Image Processing component CMake"
         },
         {
@@ -128,31 +185,557 @@
             "command": "cmake",
             "args": [
                 "--build",
+                "--preset",
+                "debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "detail": "Build Image Processing component independently",
+            "dependsOn": "Configure Image Processing Component"
+        },
+        {
+            "label": "Launch Image Processing Component (Debug)",
+            "type": "shell",
+            "command": "./image_processing_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing/build/debug/bin"
+            },
+            "dependsOn": "Build Image Processing Component",
+            "detail": "Launch Image Processing Components"
+        },
+        {
+            "label": "Configure Image Processing Component (Release)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "release"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "detail": "Configure Image Processing component CMake (Release)"
+        },
+        {
+            "label": "Clean Image Processing Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
                 "build"
             ],
             "group": "build",
             "options": {
                 "cwd": "${workspaceFolder}/src/image_processing"
             },
+            "detail": "Clean Image Processing component build directory"
+        },
+        {
+            "label": "Configure Tasks Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks"
+            },
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Build Image Processing component independently",
-            "dependsOn": "Configure Image Processing Component"
+            "detail": "Configure Tasks component CMake"
         },
         {
-            "label": "Build All Components",
-            "dependsOrder": "parallel",
-            "dependsOn": [
-                "Build UI Component",
-                "Build Controller Component",
-                "Build Image Processing Component"
+            "label": "Build Tasks Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Tasks component independently",
+            "dependsOn": "Configure Tasks Component"
+        },
+        {
+            "label": "Clean Tasks Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks"
+            },
+            "detail": "Clean Tasks component build directory"
+        },
+        {
+            "label": "Configure Tasks Tests",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks/test"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure Tasks tests CMake"
+        },
+        {
+            "label": "Build Tasks Tests",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks/test"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Tasks tests",
+            "dependsOn": "Configure Tasks Tests"
+        },
+        {
+            "label": "Run Tasks Tests",
+            "type": "shell",
+            "command": "DYLD_LIBRARY_PATH=/opt/homebrew/opt/libomp/lib:$DYLD_LIBRARY_PATH ./build/tasks_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/tasks/test"
+            },
+            "dependsOn": "Build Tasks Tests",
+            "detail": "Run Tasks component tests"
+        },
+        {
+            "label": "Build Image Processing Component (Release)",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "--preset",
+                "release"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing"
+            },
+            "detail": "Build Image Processing component independently (Release)",
+            "dependsOn": "Configure Image Processing Component (Release)"
+        },
+        {
+            "label": "Launch Image Processing Component",
+            "type": "shell",
+            "command": "./image_processing_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/image_processing/build/release/bin"
+            },
+            "dependsOn": "Build Image Processing Component (Release)",
+            "detail": "Launch Image Processing Components (Release)"
+        },
+        // --- 4. Raw Processing ---
+        {
+            "label": "Configure Raw Processing Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure Raw Processing component CMake"
+        },
+        {
+            "label": "Build Raw Processing Component",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
             ],
             "group": {
                 "kind": "build",
-                "isDefault": true
+                "isDefault": false
             },
-            "detail": "Build all components in parallel"
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build Raw Processing component independently",
+            "dependsOn": "Configure Raw Processing Component"
+        },
+        {
+            "label": "Clean Raw Processing Component",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "detail": "Clean Raw Processing component build directory"
+        },
+        {
+            "label": "Launch Raw Processing Component",
+            "type": "shell",
+            "command": "./build/bin/raw_processing_test",
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}/src/raw_processing"
+            },
+            "dependsOn": "Build Raw Processing Component",
+            "detail": "Launch Raw Processing Component"
+        },
+        {
+            "label": "Configure Application",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure main application CMake"
+        },
+        {
+            "label": "Build Application",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build main application (photo_manufactura)",
+            "dependsOn": "Configure Application"
+        },
+        {
+            "label": "Clean Application",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Clean main application build directory"
+        },
+        {
+            "label": "Launch Application",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "./build/bin/photo_manufactura.app"
+            ],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "Build Application",
+            "detail": "Launch Photo Manufactura application"
+        },
+        {
+            "label": "Generate Icon",
+            "type": "shell",
+            "command": "./generate_icon.sh",
+            "options": {
+                "cwd": "${workspaceFolder}/resources"
+            },
+            "detail": "Generate .icns icon from SVG",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja",
+                "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Configure application in Release mode",
+            "dependsOn": "Generate Icon"
+        },
+        {
+            "label": "Compile Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "Release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Compile application in Release mode",
+            "dependsOn": "Build Release"
+        },
+        {
+            "label": "Create DMG Installer",
+            "type": "shell",
+            "command": "./scripts/create_macos_dmg.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Create macOS DMG installer package",
+            "dependsOn": "Compile Release",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build and Package Release",
+            "type": "shell",
+            "command": "./scripts/build_release.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Complete release build with DMG packaging",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Test Release Build",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "build/bin/photo_manufactura.app"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Launch the Release build .app bundle",
+            "dependsOn": "Compile Release",
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean Release Build",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Clean Release build directory",
+            "problemMatcher": []
+        },
+        // --- 5. Release & Distribution ---
+        {
+            "label": "🚀 Full Release Build",
+            "type": "shell",
+            "command": "./scripts/build_release.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Complete release build with platform-specific packaging (DMG/AppImage/ZIP)",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📦 Create macOS DMG",
+            "type": "shell",
+            "command": "./scripts/create_macos_dmg.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Create macOS DMG installer (requires Release build)",
+            "dependsOn": "Compile Release",
+            "problemMatcher": []
+        },
+        {
+            "label": "🐧 Create Linux AppImage",
+            "type": "shell",
+            "command": "./scripts/create_linux_appimage.sh",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Create Linux AppImage (run on Linux only)",
+            "problemMatcher": []
+        },
+        {
+            "label": "🔨 Configure Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-S",
+                ".",
+                "-G",
+                "Ninja",
+                "-DCMAKE_BUILD_TYPE=Release"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Configure CMake in Release mode",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "🔨 Build Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--config",
+                "Release",
+                "-j",
+                "8"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Build in Release mode (parallel)",
+            "dependsOn": "🔨 Configure Release",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "🧪 Test Release App",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "./build/bin/photo_manufactura.app"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Launch Release build to test before packaging",
+            "dependsOn": "🔨 Build Release",
+            "problemMatcher": []
+        },
+        {
+            "label": "🧹 Clean All Builds",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build",
+                "AppDir",
+                "*.dmg",
+                "*.AppImage",
+                "*.zip"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Clean all build artifacts and packages",
+            "problemMatcher": []
+        },
+        {
+            "label": "📋 Show Version",
+            "type": "shell",
+            "command": "echo",
+            "args": [
+                "Version: $(cat VERSION)"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "detail": "Display current project version",
+            "problemMatcher": []
         }
     ]
 }
