@@ -22,7 +22,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/ad-tran/photo-manufactura.git
+git clone https://github.com/adt97vn/photo-manufactura.git
 cd photo-manufactura
 
 # Build and run
@@ -130,8 +130,8 @@ To be Added Soon!
 ## 🤝 Community & Support
 
 - **📖 Documentation**: [Build Guide](docs/BUILD.md) | [API Reference](docs/)
-- **🐛 Issues**: [GitHub Issues](https://github.com/ad-tran/photo-manufactura/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/ad-tran/photo-manufactura/discussions)
+- **🐛 Issues**: [GitHub Issues](https://github.com/adt97vn/photo-manufactura/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/adt97vn/photo-manufactura/discussions)
 
 
 ## 📄 License
@@ -143,7 +143,7 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 <div align="center">
 
-**[⭐ Star this repo](https://github.com/ad-tran/photo-manufactura)** • **[🍴 Fork it](https://github.com/ad-tran/photo-manufactura/fork)** • **[📖 Read the docs](docs/BUILD.md)**
+**[⭐ Star this repo](https://github.com/adt97vn/photo-manufactura)** • **[🍴 Fork it](https://github.com/adt97vn/photo-manufactura/fork)** • **[📖 Read the docs](docs/BUILD.md)**
 
 *Built with ❤️ for photographers and developers*
 
