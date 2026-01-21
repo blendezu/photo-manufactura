@@ -9,7 +9,17 @@
 [![LibRaw](https://img.shields.io/badge/LibRaw-0.20.2-blue.svg)](https://github.com/LibRaw/LibRaw)
 [![License](https://img.shields.io/badge/license-GNU-blue.svg)](LICENSE)
 
+
+## ⬇️ Download the App
+[Download macOS App](https://github.com/adt97vn/photo-manufactura/releases/download/v.0.0.1/Photo_Manufactura_v0.1.0_macOS.dmg)
+
+
+
+
+
+
 ## 🚀 Quick Start
+
 
 ### Prerequisites
 - **CMake 3.21+**
