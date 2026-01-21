@@ -87,10 +87,14 @@ images/*.dng
 CMakeFiles/
 
 # Explicitly unwanted build artifacts (previously tracked)
-/bin/
-/.qt/
-/Makefile
-cmake_install.cmake
-CMakeCache.txt
-compile_commands.json
+
+# Explicitly unwanted build artifacts (recursive)
+**/bin/
+**/.qt/
+**/Makefile
+**/cmake_install.cmake
+**/CMakeCache.txt
+**/compile_commands.json
+**/CMakeFiles/
+
 
