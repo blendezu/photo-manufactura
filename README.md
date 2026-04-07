@@ -7,16 +7,26 @@
 [![Qt](https://img.shields.io/badge/Qt-6.x-green.svg)](https://www.qt.io/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.x-orange.svg)](https://opencv.org/)
 [![LibRaw](https://img.shields.io/badge/LibRaw-0.20.2-blue.svg)](https://github.com/LibRaw/LibRaw)
+[![OpenMP](https://img.shields.io/badge/OpenMP-supported-blue.svg)](https://www.openmp.org/)
+[![Halide](https://img.shields.io/badge/Halide-supported-blue.svg)](https://halide-lang.org/)
 [![License](https://img.shields.io/badge/license-GNU-blue.svg)](LICENSE)
 
 
 ## ⬇️ Download the App
-[Download macOS App](https://github.com/blendezu/photo-manufactura/releases/download/v.0.0.1/Photo_Manufactura_v0.1.0_macOS.dmg)
+[![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v.0.0.1/Photo_Manufactura_v0.1.0_macOS.dmg)
 
 
+## 🤝 Team & Contributions
 
+| Contributor | Focus Areas |
+| :--- | :--- |
+| **Ghiri** |  Project & Software Architecture, GUI Development |
+| **Anh Duong** |Software Features, Image Processing, Performance Optimization |
 
-
+## 🎥 Video Demo
+<div align="center">
+  <video src="images/kom.mp4" width="100%" controls></video>
+</div>
 
 ## 🚀 Quick Start
 
@@ -27,6 +37,8 @@
 - **Qt6** (GUI components)
 - **OpenCV** (advanced image processing)
 - **LibRaw** (RAW file support)
+- **OpenMP** (multithreading support)
+- **Halide** (high-performance image processing)
 
 ### Installation
 
@@ -46,6 +58,9 @@ cmake --build --preset default
 ## 📁 Project Structure
 
 ```
+## 📁 Project Structure
+
+```text
 photo-manufactura/
 ├── 📄 BUILD.md                    # Detailed build instructions
 ├── ⚙️  CMakeLists.txt              # Main CMake configuration
@@ -54,43 +69,31 @@ photo-manufactura/
 ├── 📜 LICENSE                     # Project license
 ├── 📖 README.md                   # This file
 ├── 🔨 build/                      # Build outputs (generated)
-│   ├── default/                   # Release build artifacts
-│   │   └── bin/photo_manufactura  # Main executable
-│   └── dev/                       # Development build artifacts
 └── 📦 src/                        # Source code
-    ├── 🖥️  controller/             # Application logic & coordination
-    │   └── CMakeLists.txt
-    ├── 📄 document/               # Document management system
-    │   └── CMakeLists.txt
-    ├── 🎨 image_processing/       # Core image manipulation algorithms
-    │   └── CMakeLists.txt
-    ├── 📸 raw_processing/         # RAW file format handling
-    │   └── CmakeLists.txt
-    ├── ⚡ scheduler_worker/       # Task scheduling & worker threads
-    │   └── CMakeLists.txt
-    ├── 🖼️  ui/                     # Qt6-based user interface
-    │   ├── CMakeLists.txt         # UI component build config
-    │   ├── ui_main.cpp            # UI implementation
-    │   ├── ui_main.h              # UI interface definitions
-    │   └── test_main.cpp          # UI component tests
+    ├── 🎮 controller/             # UI Logic, Wiring & Commands
+    ├── 🎨 image_processing/       # Core filters, style transfer & operations
+    ├── 📄 model/                  # AppState, DocumentManager & Settings
+    ├── 📸 raw_processing/         # LibRaw integration & RAW handling
+    ├── ⚡ tasks/                  # TaskScheduler & Asynchronous processing
+    ├── 🖼️  ui/                     # Qt6-based GUI (widgets, canvas, panels)
     └── 🚀 main.cpp                # Application entry point
 ```
 
 ### 🏗️ Architecture Overview
 
-**Modular Design**: Each component in `src/` is independently buildable and testable:
+**Modular Design**: Each component in `src/` is built as an independent library:
 
 | Component | Purpose | Key Features |
 |-----------|---------|-------------|
-| **UI** | User interface layer | Qt6 widgets, responsive design |
-| **Controller** | Application coordination | MVC pattern, event handling |
-| **Document** | File & project management | Session state, project files |
-| **Image Processing** | Core algorithms | Filters, transforms, effects |
-| **RAW Processing** | Professional workflow | LibRaw integration, metadata |
-| **Scheduler Worker** | Performance optimization | Multi-threading, task queues |
+| **UI** | Presentation layer | Qt6 widgets, Custom Canvas, Responsive Panels |
+| **Controller** | Application Logic | Command Pattern, Application Wiring, Event Handling |
+| **Model** | Data & State Management | Document Management, App State, Preset System |
+| **Image Processing** | Core algorithms | OpenCV filters, Style Transfer, Halide ops |
+| **RAW Processing** | Professional RAW handling | LibRaw support, RAW development |
+| **Tasks** | Performance & Async | Multi-threaded Task Scheduler, Async worker system |
 
 ### Component Independence
-Each component can be developed, tested, and built independently:
+Each component can be developed and built independently to ensure a clean separation of concerns.
 
 ```bash
 cd src/ui
@@ -132,10 +135,6 @@ cmake -B build -S . && cmake --build build
 5. **Review** and discuss changes with maintainers
 6. **Merge** after approval and passing tests
 7. **Celebrate** your contribution to Photo Manufactura! 
-
-## 📊 Performance
-
-To be Added Soon! 
 
 ## 🤝 Community & Support
 
