@@ -24,7 +24,10 @@
 | **Anh Duong** |Software Features, Image Processing, Performance Optimization |
 
 ## 🎥 Video Demo
-![Video Demo](images/kom.mp4)
+
+https://github.com/user-attachments/assets/c49ff535-8141-4161-b415-68978416fb0c
+
+
 
 
 ## 🚀 Quick Start
