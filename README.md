@@ -24,9 +24,8 @@
 | **Anh Duong** |Software Features, Image Processing, Performance Optimization |
 
 ## 🎥 Video Demo
-<div align="center">
-  <video src="https://github.com/blendezu/photo-manufactura/raw/main/images/kom.mp4" width="100%" controls></video>
-</div>
+![Video Demo](images/kom.mp4)
+
 
 ## 🚀 Quick Start
 
