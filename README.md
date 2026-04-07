@@ -25,7 +25,7 @@
 
 ## 🎥 Video Demo
 <div align="center">
-  <video src="images/kom.mp4" width="100%" controls></video>
+  <video src="https://github.com/blendezu/photo-manufactura/raw/main/images/kom.mp4" width="100%" controls></video>
 </div>
 
 ## 🚀 Quick Start
