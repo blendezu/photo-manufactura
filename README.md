@@ -33,14 +33,14 @@ https://github.com/user-attachments/assets/c49ff535-8141-4161-b415-68978416fb0c
 ### ⚙️ Data Flow Architecture
 ![Data Flow](images/for_readme/data_flow.jpg)
 
-### 💡 Features & Interface
+### 💡 Features
 ![Features](images/for_readme/features.jpg)
+
+### 📊 GPU vs CPU Performance
+![Performance](images/for_readme/performance.jpg)
 
 ### 🚀 Processing Pipeline
 ![Final Pipeline](images/for_readme/final_pipeline.jpg)
-
-### 📊 Performance Comparison
-![Performance](images/for_readme/performance.jpg)
 
 ## 🚀 Quick Start
 
