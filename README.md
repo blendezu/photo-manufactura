@@ -23,9 +23,9 @@
 | **Ghiri** |  Project & Software Architecture, GUI Development |
 | **Anh Duong** |Software Features, Image Processing, Performance Optimization |
 
-## 🎥 Video Demo
+## 🎥 Video Demo v2
 
-https://github.com/user-attachments/assets/c49ff535-8141-4161-b415-68978416fb0c
+https://github.com/user-attachments/assets/dae3756a-edfe-4394-bdd9-75fcd702bd13
 
 
 ## 🖼️ Visual Overview
