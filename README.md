@@ -13,7 +13,7 @@
 
 
 ## ⬇️ Download the App
-[![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v.0.0.1/Photo_Manufactura_v0.1.0_macOS.dmg)
+[![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v0.2.0/PhotoManufactura-0.2.0-macOS.dmg)
 
 
 ## 🤝 Team & Contributions
