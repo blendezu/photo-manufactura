@@ -15,6 +15,14 @@
 ## ⬇️ Download the App
 [![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v0.2.0/PhotoManufactura-0.2.0-macOS.dmg)
 
+## 🏆 About the Project
+
+This project was created as part of the course **Desktop Application Development** (*Entwicklung Desktop Applikationen*), taught by **Prof. Dr. Jan Salmen** in cooperation with the **Qt Group**. 
+
+🌟 **Photo Manufactura was voted the best application in the course!**
+
+📰 Read the official feature article on the Qt Blog:  
+[From Classroom to Code II: Innovative Qt Apps by Future Developers](https://www.qt.io/blog/from-classroom-to-code-ii-innovative-qt-apps-by-future-developers?hs_preview=OXwMQbmY-395764106431)
 
 ## 🤝 Team & Contributions
 
