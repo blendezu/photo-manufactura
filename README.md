@@ -1,3 +1,13 @@
+## 🏆 About the Project
+
+This project was created as part of the course **Desktop Application Development** (*Entwicklung Desktop Applikationen*), taught by [Prof. Dr. Jan Salmen](https://www.th-koeln.de/personen/jan.salmen/) at Cologne University of Applied Sciences - [Institut für Medien- und Phototechnik](https://www.th-koeln.de/informations-medien-und-elektrotechnik/institut-fuer-medien--und-phototechnik-imp_14807.php) in cooperation with the [Qt Group](https://www.qt.io/). 
+
+🌟 **Photo Manufactura was voted the best application in the course!**
+
+📰 Read the official feature article on the Qt Blog:  
+[From Classroom to Code II: Innovative Qt Apps by Future Developers](https://www.qt.io/blog/from-classroom-to-code-ii-innovative-qt-apps-by-future-developers?hs_preview=OXwMQbmY-395764106431)
+
+
 # 📸 Photo Manufactura
 
 > **High-performance, modular photo processing engine built with modern C++20 and Qt6**
@@ -14,15 +24,6 @@
 
 ## ⬇️ Download the App
 [![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v0.2.0/PhotoManufactura-0.2.0-macOS.dmg)
-
-## 🏆 About the Project
-
-This project was created as part of the course **Desktop Application Development** (*Entwicklung Desktop Applikationen*), taught by **Prof. Dr. Jan Salmen** in cooperation with the **Qt Group**. 
-
-🌟 **Photo Manufactura was voted the best application in the course!**
-
-📰 Read the official feature article on the Qt Blog:  
-[From Classroom to Code II: Innovative Qt Apps by Future Developers](https://www.qt.io/blog/from-classroom-to-code-ii-innovative-qt-apps-by-future-developers?hs_preview=OXwMQbmY-395764106431)
 
 ## 🤝 Team & Contributions
 
