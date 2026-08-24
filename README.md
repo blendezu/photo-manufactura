@@ -23,7 +23,7 @@ This project was created as part of the course **Desktop Application Development
 
 
 ## ⬇️ Download the App
-[![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v0.2.0/PhotoManufactura-0.2.0-macOS.dmg)
+[![Download macOS](https://img.shields.io/badge/Download-macOS_App-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/blendezu/photo-manufactura/releases/download/v.0.0.1/Photo_Manufactura_v0.1.0_macOS.dmg)
 
 ## 🤝 Team & Contributions
 
@@ -32,10 +32,9 @@ This project was created as part of the course **Desktop Application Development
 | **Ghiri** |  Project & Software Architecture, GUI Development |
 | **Anh Duong** |Software Features, Image Processing, Performance Optimization |
 
-## 🎥 Video Demo v2
+## 🎥 Video Demo
 
-https://github.com/user-attachments/assets/dae3756a-edfe-4394-bdd9-75fcd702bd13
-
+https://github.com/user-attachments/assets/c49ff535-8141-4161-b415-68978416fb0c
 
 ## 🖼️ Visual Overview
 
